@@ -72,32 +72,34 @@ Score = BasePoints × BalanceMultiplier
 ### Project Structure
 ```
 src/
-├── engine/                 # Core business logic (portable)
+├── core/                   # Core business logic (portable)
 │   ├── index.js           # Public API exports
 │   ├── scoring.js         # Score calculation
+│   ├── scoring.test.js    # Scoring tests
 │   ├── statistics.js      # stdDev, CV, mean calculations
+│   ├── statistics.test.js # Statistics tests
 │   ├── validation.js      # Rule enforcement (3-category limit, freebie)
+│   ├── validation.test.js # Validation tests
 │   └── constants.js       # 49 tile definitions
 ├── data/                   # Data layer (swappable)
 │   ├── index.js           # Data access interface
 │   ├── memory.js          # In-memory store (for testing/CLI)
+│   ├── memory.test.js     # Memory store tests
 │   └── json-file.js       # JSON file persistence
-├── cli/                    # CLI interface
-│   └── index.js           # Command-line app
-└── index.js               # Current file (to be refactored)
+└── index.js               # CLI entry point
 ```
 
 ## Implementation Phases
 
-### Phase 1: Extract Core Engine
-**Goal**: Create `src/engine/` with pure business logic
+### Phase 1: Extract Core Engine ✅
+**Goal**: Create `src/core/` with pure business logic
 
-**Files to create:**
-- `src/engine/constants.js` - 49 tile definitions
-- `src/engine/statistics.js` - stdDev, CV, mean functions
-- `src/engine/scoring.js` - Score calculation
-- `src/engine/validation.js` - Rule enforcement
-- `src/engine/index.js` - Public API
+**Files created:**
+- `src/core/constants.js` - 49 tile definitions (43 book-assignable + 6 manual)
+- `src/core/statistics.js` - stdDev, CV, mean, tile count functions
+- `src/core/scoring.js` - Score calculation and breakdown
+- `src/core/validation.js` - Rule enforcement (3-category limit, freebie)
+- `src/core/index.js` - Public API
 
 **Key functions:**
 ```javascript
@@ -119,7 +121,9 @@ calculateCV(counts)
 calculateTileCounts(userBooks)
 ```
 
-### Phase 2: Data Layer
+**Tests:** 50 passing across scoring, statistics, and validation
+
+### Phase 2: Data Layer ✅
 **Goal**: Abstract data storage for multi-user support
 
 **Data model:**
@@ -142,21 +146,25 @@ calculateTileCounts(userBooks)
 { id, name, isManual }
 ```
 
-**Files to create:**
+**Files created:**
 - `src/data/index.js` - Interface definition
-- `src/data/memory.js` - In-memory implementation
-- `src/data/json-file.js` - File-based persistence
+- `src/data/memory.js` - In-memory implementation (with `_reset()` for tests)
+- `src/data/json-file.js` - JSON file persistence (`book-bingo.db.json`)
 
-### Phase 3: CLI Enhancement
+### Phase 3: CLI Enhancement 🔧
 **Goal**: Wire engine to CLI with multi-user support
 
 **Commands:**
 ```bash
-npm start                    # Show current user's score/stats
-npm start -- --user=alice    # Show specific user
-npm start -- --add-book      # Interactive book addition
-npm start -- --leaderboard   # Compare all users
+npm start                    # Show current user's score/stats ✅
+npm start -- --user=alice    # Show specific user ✅
+npm start -- --add-book      # Interactive book addition ✅
+npm start -- --leaderboard   # Compare all users (not yet implemented)
 ```
+
+**Completed:** Basic CLI (`src/index.js`) with user management, book addition, and score display using the json-file data layer and core scoring engine.
+
+**Remaining:** `--leaderboard` command to compare all users.
 
 ### Phase 4: Future (Web App)
 - Express API wrapping engine
@@ -164,19 +172,15 @@ npm start -- --leaderboard   # Compare all users
 - SQLite/Postgres for persistence
 - Offline-first PWA
 
-## Files to Modify
-- `src/index.js` - Refactor to use engine, becomes CLI entry point
-
-## Files to Create
-- `src/engine/*.js` - Core business logic
-- `src/data/*.js` - Data layer abstraction
-
-## Verification
+## Verification ✅
 1. `npm run lint` passes
-2. Unit tests for scoring edge cases:
+2. Unit tests (50 passing):
    - Empty user (0 books) = score 0
    - 1 book in 1 tile = base score
    - 3-category limit enforced
    - Freebie allows unlimited tiles
+   - `getScoreBreakdown` returns correct values for balanced/unbalanced readers
+   - `getScoreBreakdown` is consistent with `calculateScore`
+   - Memory store CRUD operations for users and books
 3. Manual test: Add books, verify score changes appropriately
 4. Verify: Well-balanced reading scores higher than concentrated

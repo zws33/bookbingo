@@ -6,6 +6,9 @@ export default [
   js.configs.recommended,
   prettier,
   {
+    ignores: ['coverage/**'],
+  },
+  {
     languageOptions: {
       ecmaVersion: 'latest',
       sourceType: 'module',
