@@ -1,4 +1,6 @@
-export const TILES = [
+import type { Tile } from '../types/index.js';
+
+export const TILES: Tile[] = [
   { id: 't01', name: "reread a book you didn't finish", isManual: false },
   { id: 't02', name: 'part of a series', isManual: false },
   { id: 't03', name: '1000+ pages', isManual: false },

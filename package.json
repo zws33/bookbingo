@@ -5,19 +5,24 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "start": "node src/index.js",
-    "test": "node --test",
-    "lint": "eslint \"**/*.js\"",
-    "format": "prettier --write \"**/*.js\""
+    "start": "node --import tsx app/cli/index.ts",
+    "test": "node --import tsx --test \"lib/**/*.test.ts\"",
+    "lint": "eslint \"app/**/*.ts\" \"lib/**/*.ts\"",
+    "format": "prettier --write \"app/**/*.ts\" \"lib/**/*.ts\"",
+    "typecheck": "tsc --noEmit"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "devDependencies": {
     "@eslint/js": "^9.39.2",
+    "@types/node": "^22.10.0",
     "eslint": "^9.39.2",
     "eslint-config-prettier": "^10.1.8",
     "globals": "^17.0.0",
-    "prettier": "^3.8.0"
+    "prettier": "^3.8.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0",
+    "typescript-eslint": "^8.18.0"
   }
 }

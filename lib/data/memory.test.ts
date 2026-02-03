@@ -65,7 +65,7 @@ test('Memory Data Store', async (t) => {
       assert.equal(book.userId, user.id);
     });
 
-    await t.test('getBooksByUserId returns only that user\'s books', async () => {
+    await t.test("getBooksByUserId returns only that user's books", async () => {
       memory._reset();
       const alice = await memory.createUser('alice');
       const bob = await memory.createUser('bob');

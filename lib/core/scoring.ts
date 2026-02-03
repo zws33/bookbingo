@@ -1,12 +1,11 @@
+import type { UserBook, ScoreBreakdown } from '../types/index.js';
 import { calculateCV, calculateTileCounts } from './statistics.js';
 
 /**
  * Calculates the base points from the tile counts.
  * BasePoints = Σ (1 + log2(booksInTile)) for each tile with books.
- * @param {Map<string, number>} tileCounts - A map of tile IDs to book counts.
- * @returns {number} The total base points.
  */
-export function calculateBasePoints(tileCounts) {
+export function calculateBasePoints(tileCounts: Map<string, number>): number {
   let basePoints = 0;
   for (const count of tileCounts.values()) {
     if (count > 0) {
@@ -19,10 +18,8 @@ export function calculateBasePoints(tileCounts) {
 /**
  * Calculates the balance multiplier from the tile counts.
  * BalanceMultiplier = 1 / (1 + CV²), where CV is the coefficient of variation.
- * @param {Map<string, number>} tileCounts - A map of tile IDs to book counts.
- * @returns {number} The balance multiplier.
  */
-export function calculateBalanceMultiplier(tileCounts) {
+export function calculateBalanceMultiplier(tileCounts: Map<string, number>): number {
   const counts = Array.from(tileCounts.values());
   const cv = calculateCV(counts);
   return 1 / (1 + cv ** 2);
@@ -30,10 +27,8 @@ export function calculateBalanceMultiplier(tileCounts) {
 
 /**
  * Calculates the final score for a user.
- * @param {import('../data/index.js').UserBook[]} userBooks - A list of the user's books.
- * @returns {number} The final calculated score.
  */
-export function calculateScore(userBooks) {
+export function calculateScore(userBooks: UserBook[]): number {
   if (!userBooks || userBooks.length === 0) {
     return 0;
   }
@@ -45,16 +40,8 @@ export function calculateScore(userBooks) {
 
 /**
  * Provides a detailed breakdown of the score calculation.
- * @param {import('../data/index.js').UserBook[]} userBooks - A list of the user's books.
- * @returns {{
- *   score: number;
- *   basePoints: number;
- *   balanceMultiplier: number;
- *   tileCounts: Map<string, number>;
- *   totalBooks: number;
- * }}
  */
-export function getScoreBreakdown(userBooks) {
+export function getScoreBreakdown(userBooks: UserBook[]): ScoreBreakdown {
   const totalBooks = userBooks.length;
   if (totalBooks === 0) {
     return {
@@ -79,4 +66,3 @@ export function getScoreBreakdown(userBooks) {
     totalBooks,
   };
 }
-

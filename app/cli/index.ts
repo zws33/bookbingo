@@ -1,14 +1,21 @@
 import process from 'node:process';
 import readline from 'readline';
-import { jsonFile as db } from './data/json-file.js';
-import core from './core/index.js';
+import { jsonFile as db } from '../../lib/data/json-file.js';
+import core from '../../lib/core/index.js';
+import type { User } from '../../lib/types/index.js';
+
+interface ParsedArgs {
+  user?: string;
+  'add-book'?: boolean;
+  [key: string]: string | boolean | undefined;
+}
 
 const rl = readline.createInterface({
   input: process.stdin,
   output: process.stdout,
 });
 
-async function main() {
+async function main(): Promise<void> {
   const args = parseArgs(process.argv.slice(2));
 
   // Seed the database with a default user if it's empty
@@ -22,7 +29,7 @@ async function main() {
 
   if (args.user) {
     const username = args.user;
-    let foundUser = users.find(u => u.name === username);
+    let foundUser = users.find((u) => u.name === username);
     if (!foundUser) {
       foundUser = await db.createUser(username);
     }
@@ -38,7 +45,7 @@ async function main() {
   rl.close();
 }
 
-async function displayUserScore(user) {
+async function displayUserScore(user: User): Promise<void> {
   const books = await db.getBooksByUserId(user.id);
   const score = core.calculateScore(books);
   const stats = core.getScoreBreakdown(books);
@@ -50,7 +57,7 @@ async function displayUserScore(user) {
   console.log('Tile Counts:', stats.tileCounts);
 }
 
-async function addBook(user) {
+async function addBook(user: User): Promise<void> {
   const title = await question('Title: ');
   const author = await question('Author: ');
 
@@ -58,7 +65,7 @@ async function addBook(user) {
     userId: user.id,
     title,
     author,
-    tiles: [],
+    tiles: [] as string[],
     isFreebie: false,
     readAt: new Date(),
   };
@@ -67,14 +74,14 @@ async function addBook(user) {
   console.log(`Added "${title}" for ${user.name}.`);
 }
 
-function question(prompt) {
+function question(prompt: string): Promise<string> {
   return new Promise((resolve) => {
     rl.question(prompt, resolve);
   });
 }
 
-function parseArgs(args) {
-  const parsedArgs = {};
+function parseArgs(args: string[]): ParsedArgs {
+  const parsedArgs: ParsedArgs = {};
   for (const arg of args) {
     if (arg.startsWith('--')) {
       const [key, value] = arg.slice(2).split('=');

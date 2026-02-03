@@ -1,16 +1,17 @@
 import { test } from 'node:test';
 import { strict as assert } from 'node:assert';
 import { calculateScore, getScoreBreakdown } from './scoring.js';
+import type { UserBook } from '../types/index.js';
 
 test('Scoring Core', async (t) => {
   await t.test('calculateScore', async (t) => {
     await t.test('should return 0 for a user with no books', () => {
-      const userBooks = [];
+      const userBooks: UserBook[] = [];
       assert.equal(calculateScore(userBooks), 0);
     });
 
     await t.test('should calculate the correct score for a single book in one tile', () => {
-      const userBooks = [
+      const userBooks: UserBook[] = [
         {
           id: '1',
           userId: 'user1',
@@ -33,7 +34,7 @@ test('Scoring Core', async (t) => {
         { title: 'Book 2', tiles: ['t01'] },
         { title: 'Book 3', tiles: ['t01'] },
         { title: 'Book 4', tiles: ['t01'] },
-      ];
+      ] as UserBook[];
       // BasePoints = 1 + log2(4) = 3
       // BalanceMultiplier = 1
       // Score = 3 * 1 = 3
@@ -42,19 +43,19 @@ test('Scoring Core', async (t) => {
 
     await t.test('should calculate a lower score for an unbalanced reader', () => {
       // 2 books in each of 5 tiles, 10 books in one tile (20 books, 6 tiles)
-      const unbalancedBooks = [];
+      const unbalancedBooks: UserBook[] = [];
       for (let i = 0; i < 5; i++) {
-        unbalancedBooks.push({ title: `Book ${i}`, tiles: [`t${i + 1}`] });
-        unbalancedBooks.push({ title: `Book ${i + 5}`, tiles: [`t${i + 1}`] });
+        unbalancedBooks.push({ title: `Book ${i}`, tiles: [`t${i + 1}`] } as UserBook);
+        unbalancedBooks.push({ title: `Book ${i + 5}`, tiles: [`t${i + 1}`] } as UserBook);
       }
       for (let i = 0; i < 10; i++) {
-        unbalancedBooks.push({ title: `Book ${i + 10}`, tiles: ['t06'] });
+        unbalancedBooks.push({ title: `Book ${i + 10}`, tiles: ['t06'] } as UserBook);
       }
 
       // 1 book in each of 20 tiles (perfectly balanced)
-      const balancedBooks = [];
+      const balancedBooks: UserBook[] = [];
       for (let i = 0; i < 20; i++) {
-        balancedBooks.push({ title: `Book ${i}`, tiles: [`t${i + 1}`] });
+        balancedBooks.push({ title: `Book ${i}`, tiles: [`t${i + 1}`] } as UserBook);
       }
 
       const unbalancedScore = calculateScore(unbalancedBooks);
@@ -81,7 +82,7 @@ test('Scoring Core', async (t) => {
         { title: 'Book 1', tiles: ['t01'] },
         { title: 'Book 2', tiles: ['t02'] },
         { title: 'Book 3', tiles: ['t03'] },
-      ];
+      ] as UserBook[];
 
       const breakdown = getScoreBreakdown(books);
 
@@ -97,13 +98,13 @@ test('Scoring Core', async (t) => {
 
     await t.test('should return correct breakdown for an unbalanced reader', () => {
       // 2 books in each of 5 tiles, 10 books in one tile (20 books, 6 tiles)
-      const books = [];
+      const books: UserBook[] = [];
       for (let i = 0; i < 5; i++) {
-        books.push({ title: `Book ${i}`, tiles: [`t${i + 1}`] });
-        books.push({ title: `Book ${i + 5}`, tiles: [`t${i + 1}`] });
+        books.push({ title: `Book ${i}`, tiles: [`t${i + 1}`] } as UserBook);
+        books.push({ title: `Book ${i + 5}`, tiles: [`t${i + 1}`] } as UserBook);
       }
       for (let i = 0; i < 10; i++) {
-        books.push({ title: `Book ${i + 10}`, tiles: ['t06'] });
+        books.push({ title: `Book ${i + 10}`, tiles: ['t06'] } as UserBook);
       }
 
       const breakdown = getScoreBreakdown(books);
@@ -128,7 +129,7 @@ test('Scoring Core', async (t) => {
       const books = [
         { title: 'Book 1', tiles: ['t01', 't02'] },
         { title: 'Book 2', tiles: ['t02', 't03'] },
-      ];
+      ] as UserBook[];
 
       const score = calculateScore(books);
       const breakdown = getScoreBreakdown(books);
@@ -137,4 +138,3 @@ test('Scoring Core', async (t) => {
     });
   });
 });
-

@@ -1,7 +1,7 @@
-
 import { test } from 'node:test';
 import { strict as assert } from 'node:assert';
 import { calculateMean, calculateStdDev, calculateCV, calculateTileCounts } from './statistics.js';
+import type { UserBook } from '../types/index.js';
 
 test('Statistics Core', async (t) => {
   await t.test('calculateMean', async (t) => {
@@ -48,7 +48,7 @@ test('Statistics Core', async (t) => {
 
   await t.test('calculateTileCounts', async (t) => {
     await t.test('should return an empty map for no books', () => {
-      const userBooks = [];
+      const userBooks: UserBook[] = [];
       const tileCounts = calculateTileCounts(userBooks);
       assert.equal(tileCounts.size, 0);
     });
@@ -59,7 +59,7 @@ test('Statistics Core', async (t) => {
         { tiles: ['t01', 't03'] },
         { tiles: ['t04'] },
         { tiles: ['t01'] },
-      ];
+      ] as UserBook[];
       const tileCounts = calculateTileCounts(userBooks);
       assert.equal(tileCounts.get('t01'), 3);
       assert.equal(tileCounts.get('t02'), 1);

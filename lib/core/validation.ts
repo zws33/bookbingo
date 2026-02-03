@@ -1,14 +1,12 @@
+import type { UserBook } from '../types/index.js';
 import { TILES } from './constants.js';
 
 export const MAX_TILES_PER_BOOK = 3;
 
 /**
  * Checks if a tile assignment is valid for a book.
- * @param {import('../data/index.js').UserBook} book - The book to check.
- * @param {string} tileId - The ID of the tile to assign.
- * @returns {boolean} True if the tile can be assigned, false otherwise.
  */
-export function canAssignTile(book, tileId) {
+export function canAssignTile(book: UserBook, tileId: string): boolean {
   if (book.isFreebie) {
     return true; // Freebie books can have unlimited tiles.
   }
@@ -27,10 +25,8 @@ export function canAssignTile(book, tileId) {
 
 /**
  * Validates the tiles assigned to a single book.
- * @param {import('../data/index.js').UserBook} book - The book to validate.
- * @throws {Error} If the book violates any tile validation rules.
  */
-export function validateBookTiles(book) {
+export function validateBookTiles(book: UserBook): void {
   if (!book.isFreebie && book.tiles.length > MAX_TILES_PER_BOOK) {
     throw new Error(
       `Book "${book.title}" exceeds the maximum of ${MAX_TILES_PER_BOOK} tiles.`
@@ -44,13 +40,10 @@ export function validateBookTiles(book) {
 
 /**
  * Validates the freebie book rule across a user's entire book list.
- * @param {import('../data/index.js').UserBook[]} userBooks - All books for a user.
- * @throws {Error} If there is more than one freebie book.
  */
-export function validateFreebie(userBooks) {
+export function validateFreebie(userBooks: UserBook[]): void {
   const freebieCount = userBooks.filter((book) => book.isFreebie).length;
   if (freebieCount > 1) {
     throw new Error('User has more than one "freebie" book designated.');
   }
 }
-

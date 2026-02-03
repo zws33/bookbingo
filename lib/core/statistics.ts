@@ -1,9 +1,9 @@
+import type { UserBook } from '../types/index.js';
+
 /**
  * Calculates the mean (average) of a list of numbers.
- * @param {number[]} values - An array of numbers.
- * @returns {number} The mean of the numbers.
  */
-export function calculateMean(values) {
+export function calculateMean(values: number[]): number {
   if (values.length === 0) {
     return 0;
   }
@@ -13,10 +13,8 @@ export function calculateMean(values) {
 
 /**
  * Calculates the standard deviation of a list of numbers.
- * @param {number[]} values - An array of numbers.
- * @returns {number} The standard deviation.
  */
-export function calculateStdDev(values) {
+export function calculateStdDev(values: number[]): number {
   if (values.length < 2) {
     return 0;
   }
@@ -28,10 +26,8 @@ export function calculateStdDev(values) {
 
 /**
  * Calculates the coefficient of variation (CV).
- * @param {number[]} values - An array of numbers.
- * @returns {number} The coefficient of variation.
  */
-export function calculateCV(values) {
+export function calculateCV(values: number[]): number {
   const mean = calculateMean(values);
   if (mean === 0) {
     return 0;
@@ -42,11 +38,9 @@ export function calculateCV(values) {
 
 /**
  * Counts the number of books assigned to each tile.
- * @param {import('../data/index.js').UserBook[]} userBooks - A list of user's books.
- * @returns {Map<string, number>} A map where keys are tile IDs and values are counts.
  */
-export function calculateTileCounts(userBooks) {
-  const tileCounts = new Map();
+export function calculateTileCounts(userBooks: UserBook[]): Map<string, number> {
+  const tileCounts = new Map<string, number>();
   for (const book of userBooks) {
     for (const tileId of book.tiles) {
       tileCounts.set(tileId, (tileCounts.get(tileId) || 0) + 1);
@@ -54,4 +48,3 @@ export function calculateTileCounts(userBooks) {
   }
   return tileCounts;
 }
-
