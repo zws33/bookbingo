@@ -1,6 +1,7 @@
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { signInWithPopup, signOut } from 'firebase/auth';
 import { auth, googleProvider } from './lib/firebase';
+import { BookList } from './components/BookList';
 
 function App() {
   const [user, loading, error] = useAuthState(auth);
@@ -40,41 +41,33 @@ function App() {
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white shadow">
-        <div className="max-w-4xl mx-auto px-4 py-6 flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-gray-900">Book Bingo</h1>
+        <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
+          <h1 className="text-xl font-bold text-gray-900">📚 Book Bingo</h1>
           {user && (
-            <button
-              onClick={handleSignOut}
-              className="text-sm text-gray-600 hover:text-gray-900"
-            >
-              Sign Out
-            </button>
-          )}
-        </div>
-      </header>
-
-      <main className="max-w-4xl mx-auto px-4 py-12">
-        {user ? (
-          <div className="text-center">
-            <div className="mb-6">
+            <div className="flex items-center gap-4">
               {user.photoURL && (
                 <img
                   src={user.photoURL}
                   alt="Profile"
-                  className="w-20 h-20 rounded-full mx-auto mb-4"
+                  className="w-8 h-8 rounded-full"
                 />
               )}
-              <h2 className="text-xl font-semibold text-gray-900">
-                Welcome, {user.displayName || user.email}!
-              </h2>
-              <p className="text-gray-600 mt-2">{user.email}</p>
+              <button
+                onClick={handleSignOut}
+                className="text-sm text-gray-600 hover:text-gray-900"
+              >
+                Sign Out
+              </button>
             </div>
-            <p className="text-gray-500">
-              You are signed in. Book list coming soon!
-            </p>
-          </div>
+          )}
+        </div>
+      </header>
+
+      <main className="max-w-4xl mx-auto px-4 py-6">
+        {user ? (
+          <BookList user={user} />
         ) : (
-          <div className="text-center">
+          <div className="text-center py-12">
             <h2 className="text-3xl font-bold text-gray-900 mb-4">
               Welcome to Book Bingo
             </h2>
