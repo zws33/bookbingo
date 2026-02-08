@@ -3,9 +3,13 @@ import { useCollection } from 'react-firebase-hooks/firestore';
 import { collection } from 'firebase/firestore';
 import { User } from 'firebase/auth';
 import { db } from '../lib/firebase';
+import { useToast } from '../lib/ToastContext';
+import { updateReading } from '../lib/books';
 import { Reading } from '../types';
 import { BookCard } from './BookCard';
+import { BookForm, BookFormData } from './BookForm';
 import { EmptyState } from './EmptyState';
+import { Modal } from './Modal';
 import { SearchFilter } from './SearchFilter';
 
 interface BookListProps {
@@ -14,6 +18,10 @@ interface BookListProps {
 
 export function BookList({ user }: BookListProps) {
   const [authorFilter, setAuthorFilter] = useState('');
+  const [selectedReading, setSelectedReading] = useState<Reading | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { showSuccess, showError } = useToast();
+
   const [snapshot, loading, error] = useCollection(
     collection(db, 'users', user.uid, 'readings')
   );
@@ -33,6 +41,21 @@ export function BookList({ user }: BookListProps) {
       r.bookAuthor.toLowerCase().includes(filter)
     );
   }, [readings, authorFilter]);
+
+  const handleEdit = async (data: BookFormData) => {
+    if (!selectedReading) return;
+    setIsSubmitting(true);
+    try {
+      await updateReading(user.uid, selectedReading.id, data.title, data.author);
+      showSuccess('Book updated successfully');
+      setSelectedReading(null);
+    } catch (err) {
+      showError('Failed to update book');
+      console.error('Update book error:', err);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   if (loading) {
     return <div className="text-center py-8 text-gray-500">Loading books...</div>;
@@ -59,10 +82,32 @@ export function BookList({ user }: BookListProps) {
       ) : (
         <div className="grid gap-4 sm:grid-cols-2">
           {filteredReadings.map((reading) => (
-            <BookCard key={reading.id} reading={reading} />
+            <BookCard
+              key={reading.id}
+              reading={reading}
+              onClick={() => setSelectedReading(reading)}
+            />
           ))}
         </div>
       )}
+
+      <Modal
+        isOpen={selectedReading !== null}
+        onClose={() => setSelectedReading(null)}
+        title="Edit Book"
+      >
+        {selectedReading && (
+          <BookForm
+            initialData={{
+              title: selectedReading.bookTitle,
+              author: selectedReading.bookAuthor,
+            }}
+            onSubmit={handleEdit}
+            onCancel={() => setSelectedReading(null)}
+            isSubmitting={isSubmitting}
+          />
+        )}
+      </Modal>
     </div>
   );
 }
