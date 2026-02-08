@@ -1,4 +1,4 @@
-import { addDoc, collection, doc, serverTimestamp, updateDoc } from 'firebase/firestore';
+import { addDoc, collection, deleteDoc, doc, serverTimestamp, updateDoc } from 'firebase/firestore';
 import { db } from './firebase';
 
 export async function createReading(
@@ -28,4 +28,11 @@ export async function updateReading(
     bookAuthor: author,
     updatedAt: serverTimestamp(),
   });
+}
+
+export async function deleteReading(
+  userId: string,
+  readingId: string
+): Promise<void> {
+  await deleteDoc(doc(db, 'users', userId, 'readings', readingId));
 }
