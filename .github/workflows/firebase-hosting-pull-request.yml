@@ -16,8 +16,26 @@ jobs:
       - run: npm ci && npm run build
         working-directory: app/web
       - uses: FirebaseExtended/action-hosting-deploy@v0
+        id: deploy
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
           firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_BOOKBINGO_3FDB1 }}
           projectId: bookbingo-3fdb1
           entryPoint: app/web
+      - name: Display preview URL
+        run: |
+          echo "## Preview Deployment Successful! 🎉" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Preview URL:" >> $GITHUB_STEP_SUMMARY
+          echo "🔗 **${{ steps.deploy.outputs.details_url }}**" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ -n "${{ steps.deploy.outputs.expire_time_formatted }}" ]; then
+            echo "⏰ **Expires:** ${{ steps.deploy.outputs.expire_time_formatted }}" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "---" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Your preview has been deployed to Firebase Hosting." >> $GITHUB_STEP_SUMMARY
+          echo "The Firebase action will also comment on this PR with the preview URL." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Preview URL: ${{ steps.deploy.outputs.details_url }}"
