@@ -2,11 +2,18 @@ import { Reading } from '../types';
 
 interface BookCardProps {
   reading: Reading;
+  onClick: () => void;
 }
 
-export function BookCard({ reading }: BookCardProps) {
+export function BookCard({ reading, onClick }: BookCardProps) {
   return (
-    <div className="bg-white rounded-lg shadow p-4">
+    <div
+      className="bg-white rounded-lg shadow p-4 cursor-pointer hover:shadow-md transition-shadow"
+      onClick={onClick}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => e.key === 'Enter' && onClick()}
+    >
       <h3 className="font-semibold text-gray-900 truncate">{reading.bookTitle}</h3>
       <p className="text-sm text-gray-600 mt-1">by {reading.bookAuthor}</p>
       {reading.tiles.length > 0 && (
