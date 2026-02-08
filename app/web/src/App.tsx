@@ -1,10 +1,18 @@
+import { useState } from 'react';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { signInWithPopup, signOut } from 'firebase/auth';
 import { auth, googleProvider } from './lib/firebase';
+import { useToast } from './lib/ToastContext';
+import { createReading } from './lib/books';
 import { BookList } from './components/BookList';
+import { Modal } from './components/Modal';
+import { BookForm, BookFormData } from './components/BookForm';
 
 function App() {
   const [user, loading, error] = useAuthState(auth);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { showSuccess, showError } = useToast();
 
   const handleSignIn = async () => {
     try {
@@ -19,6 +27,21 @@ function App() {
       await signOut(auth);
     } catch (err) {
       console.error('Sign out error:', err);
+    }
+  };
+
+  const handleAddBook = async (data: BookFormData) => {
+    if (!user) return;
+    setIsSubmitting(true);
+    try {
+      await createReading(user.uid, data.title, data.author);
+      showSuccess('Book added successfully');
+      setIsAddModalOpen(false);
+    } catch (err) {
+      showError('Failed to add book');
+      console.error('Add book error:', err);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -65,7 +88,29 @@ function App() {
 
       <main className="max-w-4xl mx-auto px-4 py-6">
         {user ? (
-          <BookList user={user} />
+          <>
+            <BookList user={user} />
+            <button
+              onClick={() => setIsAddModalOpen(true)}
+              className="fixed bottom-6 right-6 bg-blue-600 text-white rounded-full p-4 shadow-lg hover:bg-blue-700 transition-colors"
+              aria-label="Add book"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+            </button>
+            <Modal
+              isOpen={isAddModalOpen}
+              onClose={() => setIsAddModalOpen(false)}
+              title="Add Book"
+            >
+              <BookForm
+                onSubmit={handleAddBook}
+                onCancel={() => setIsAddModalOpen(false)}
+                isSubmitting={isSubmitting}
+              />
+            </Modal>
+          </>
         ) : (
           <div className="text-center py-12">
             <h2 className="text-3xl font-bold text-gray-900 mb-4">
