@@ -14,9 +14,22 @@ jobs:
       - run: npm ci && npm run build
         working-directory: app/web
       - uses: FirebaseExtended/action-hosting-deploy@v0
+        id: deploy
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
           firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_BOOKBINGO_3FDB1 }}
           channelId: live
           projectId: bookbingo-3fdb1
           entryPoint: app/web
+      - name: Display deployment URL
+        run: |
+          echo "## Deployment Successful! 🚀" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Live Site URL:" >> $GITHUB_STEP_SUMMARY
+          echo "🔗 **${{ steps.deploy.outputs.details_url }}**" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "---" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Your application has been deployed to Firebase Hosting." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Live URL: ${{ steps.deploy.outputs.details_url }}"
