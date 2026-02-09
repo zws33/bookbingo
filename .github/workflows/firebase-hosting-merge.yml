@@ -33,10 +33,8 @@ jobs:
           echo "## Deployment Successful! 🚀" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Live Site URL:" >> $GITHUB_STEP_SUMMARY
-          echo "🔗 **${{ steps.deploy.outputs.details_url }}**" >> $GITHUB_STEP_SUMMARY
+          echo "🔗 **[https://bookbingo-3fdb1.web.app](https://bookbingo-3fdb1.web.app)**" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "---" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "Your application has been deployed to Firebase Hosting." >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "Live URL: ${{ steps.deploy.outputs.details_url }}"
