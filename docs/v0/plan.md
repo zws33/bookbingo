@@ -11,6 +11,5 @@
 - Nonfunctional Requirements
   - This will most often be viewed on a mobile browser but can also be viewed on a computer. Use responsive design/libraries when implementing
   - Use React including all the up to date best practices for modern react webapps.
-  - This should probably be a progressive web app
   - We will need to host/deploy this application somewhere create a document to outline the suggested method of hosting/deploying that is idiomatic with firebase applications
 

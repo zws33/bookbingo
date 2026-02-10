@@ -1,20 +1,42 @@
-# Book Bingo Overview
-The goal is to build a MVP implementation of book Bingo.
-This is a competition amongst friends. Each user will log books that they've read and tag them with up to 3 defined categories. Scoring will be impacted by the following qualities: 
-- Rewards both volume AND variety
-- Penalizes imbalanced reading with diminishing returns
-- Supports multi-user from the start
-- there are 49 total categories
-- 3-category limit: Each book can count toward max 3 categories
-- **One freebie**: One designated book can count for unlimited categories
+# Book Bingo
+
+Book Bingo is a book reading competition among friends. Users log books they've read, tag them with bingo tile categories, and earn scores that reward both volume and variety of reading.
+
+## Core Rules
+
+- 49 total bingo tiles (43 book-assignable + 6 manual)
+- Each book can be tagged with up to 3 tiles
+- One designated "freebie" book can count for unlimited tiles
+- Scoring rewards volume AND variety, penalizes imbalanced reading with diminishing returns
+- Multi-user from the start
+
+## Tech Stack
+
+- **Language**: TypeScript (strict mode, ESM only)
+- **Web app**: React 18 + Vite + Tailwind CSS
+- **Backend**: Firebase (Auth, Firestore, Hosting)
+- **Testing**: Node built-in test runner (`node:test` + `node:assert`)
+
+## Project Structure
+
+- `lib/core/` — Scoring engine, validation, tile definitions, statistics
+- `lib/data/` — Data access layer (in-memory, JSON file)
+- `lib/types/` — Shared type definitions
+- `app/web/` — React web application (Vite + Firebase)
+- `app/cli/` — Command-line interface
+- `docs/` — Planning and design documents
 
 ## Future Work
-This is a list of potential future work we might implement. Listing this here in case it's relevant to designing architecture and data structures
 
-- Tagging a book with up to 3 of the 49 bingo tiles
-- Updating tiles for a given book
 - Viewing books indexed by tiles
-- Calculating current score
+- Calculating and displaying current score
 - Suggesting options to rebalance tiles for a higher score
-- view the book list and scores of other in the competition
-- a leaderboard of users and their scores
+- View the book list and scores of others in the competition
+- Leaderboard of users and their scores
+- Progressive Web App (installable, offline support)
+
+## Related Docs
+
+- [Scoring Plan](SCORING_PLAN.md) — Scoring formula, design rationale, architecture
+- [V0 Plan](v0/plan.md) — V0 requirements
+- [V0 Web App Plan](v0/WEB_APP_PLAN.md) — Detailed web app implementation plan
