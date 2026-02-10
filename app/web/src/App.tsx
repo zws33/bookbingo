@@ -34,7 +34,7 @@ function App() {
     if (!user) return;
     setIsSubmitting(true);
     try {
-      await createReading(user.uid, data.title, data.author);
+      await createReading(user.uid, data.title, data.author, data.tiles, data.isFreebie);
       showSuccess('Book added successfully');
       setIsAddModalOpen(false);
     } catch (err) {

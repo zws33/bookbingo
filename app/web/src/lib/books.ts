@@ -4,13 +4,15 @@ import { db } from './firebase';
 export async function createReading(
   userId: string,
   title: string,
-  author: string
+  author: string,
+  tiles: string[],
+  isFreebie: boolean
 ): Promise<string> {
   const docRef = await addDoc(collection(db, 'users', userId, 'readings'), {
     bookTitle: title,
     bookAuthor: author,
-    tiles: [],
-    isFreebie: false,
+    tiles,
+    isFreebie,
     readAt: serverTimestamp(),
     createdAt: serverTimestamp(),
   });
@@ -21,11 +23,15 @@ export async function updateReading(
   userId: string,
   readingId: string,
   title: string,
-  author: string
+  author: string,
+  tiles: string[],
+  isFreebie: boolean
 ): Promise<void> {
   await updateDoc(doc(db, 'users', userId, 'readings', readingId), {
     bookTitle: title,
     bookAuthor: author,
+    tiles,
+    isFreebie,
     updatedAt: serverTimestamp(),
   });
 }

@@ -48,7 +48,7 @@ export function BookList({ user }: BookListProps) {
     if (!selectedReading) return;
     setIsSubmitting(true);
     try {
-      await updateReading(user.uid, selectedReading.id, data.title, data.author);
+      await updateReading(user.uid, selectedReading.id, data.title, data.author, data.tiles, data.isFreebie);
       showSuccess('Book updated successfully');
       setSelectedReading(null);
     } catch (err) {
@@ -120,6 +120,8 @@ export function BookList({ user }: BookListProps) {
               initialData={{
                 title: selectedReading.bookTitle,
                 author: selectedReading.bookAuthor,
+                tiles: selectedReading.tiles ?? [],
+                isFreebie: selectedReading.isFreebie ?? false,
               }}
               onSubmit={handleEdit}
               onCancel={() => setSelectedReading(null)}
