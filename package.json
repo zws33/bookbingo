@@ -9,7 +9,7 @@
     "test": "node --import tsx --test \"lib/**/*.test.ts\"",
     "lint": "eslint \"app/**/*.ts\" \"lib/**/*.ts\"",
     "format": "prettier --write \"app/**/*.ts\" \"lib/**/*.ts\"",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "cd lib && tsc --noEmit && cd ../app/web && tsc --noEmit && cd ../cli && tsc --noEmit"
   },
   "keywords": [],
   "author": "",

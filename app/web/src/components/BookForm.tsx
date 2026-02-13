@@ -1,8 +1,12 @@
 import { useState, FormEvent } from 'react';
+import { TileSelector } from './TileSelector';
+import { FreebieToggle } from './FreebieToggle';
 
 export interface BookFormData {
   title: string;
   author: string;
+  tiles: string[];
+  isFreebie: boolean;
 }
 
 interface BookFormProps {
@@ -15,13 +19,15 @@ interface BookFormProps {
 export function BookForm({ initialData, onSubmit, onCancel, isSubmitting }: BookFormProps) {
   const [title, setTitle] = useState(initialData?.title ?? '');
   const [author, setAuthor] = useState(initialData?.author ?? '');
+  const [tiles, setTiles] = useState<string[]>(initialData?.tiles ?? []);
+  const [isFreebie, setIsFreebie] = useState(initialData?.isFreebie ?? false);
 
   const isValid = title.trim() !== '' && author.trim() !== '';
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     if (!isValid || isSubmitting) return;
-    onSubmit({ title: title.trim(), author: author.trim() });
+    onSubmit({ title: title.trim(), author: author.trim(), tiles, isFreebie });
   };
 
   return (
@@ -54,6 +60,11 @@ export function BookForm({ initialData, onSubmit, onCancel, isSubmitting }: Book
           disabled={isSubmitting}
         />
       </div>
+
+      <FreebieToggle isFreebie={isFreebie} onChange={setIsFreebie} />
+
+      <TileSelector selectedTiles={tiles} onChange={setTiles} isFreebie={isFreebie} />
+
       <div className="flex justify-end gap-3 pt-2">
         <button
           type="button"

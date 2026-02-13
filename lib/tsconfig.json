@@ -17,6 +17,6 @@
     "allowJs": true,
     "checkJs": false
   },
-  "include": ["app/**/*", "lib/**/*"],
+  "include": ["core/**/*", "data/**/*", "types/**/*"],
   "exclude": ["node_modules", "dist"]
 }
