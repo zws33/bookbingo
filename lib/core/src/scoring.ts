@@ -1,4 +1,4 @@
-import type { UserBook, ScoreBreakdown } from '@lib/types/index.js';
+import type { UserBook, ScoreBreakdown } from '@bookbingo/lib-types';
 import { calculateCV, calculateTileCounts } from './statistics.js';
 
 /**

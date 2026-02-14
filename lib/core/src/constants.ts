@@ -1,4 +1,4 @@
-import type { Tile } from '@lib/types/index.js';
+import type { Tile } from '@bookbingo/lib-types';
 
 export const TILES: Tile[] = [
   { id: 't01', name: "reread a book you didn't finish", isManual: false },

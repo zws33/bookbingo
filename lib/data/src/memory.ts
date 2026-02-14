@@ -1,5 +1,5 @@
 import { randomUUID } from 'crypto';
-import type { User, UserBook, DataAccess } from '@lib/types/index.js';
+import type { User, UserBook, DataAccess } from '@bookbingo/lib-types';
 
 /**
  * Extended interface for the memory store that includes test utilities.

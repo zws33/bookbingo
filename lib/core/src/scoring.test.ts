@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import { strict as assert } from 'node:assert';
 import { calculateScore, getScoreBreakdown } from './scoring.js';
-import type { UserBook } from '@lib/types/index.js';
+import type { UserBook } from '@bookbingo/lib-types';
 
 test('Scoring Core', async (t) => {
   await t.test('calculateScore', async (t) => {

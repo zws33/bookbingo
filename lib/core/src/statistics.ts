@@ -1,4 +1,4 @@
-import type { UserBook } from '@lib/types/index.js';
+import type { UserBook } from '@bookbingo/lib-types';
 
 /**
  * Calculates the mean (average) of a list of numbers.

@@ -1,6 +1,5 @@
 import { useState, useMemo } from 'react';
-import { TILES } from '@lib/core/constants.js';
-import { MAX_TILES_PER_BOOK } from '@lib/core/validation.js';
+import { TILES, MAX_TILES_PER_BOOK } from '@bookbingo/lib-core';
 
 interface TileSelectorProps {
   selectedTiles: string[];
