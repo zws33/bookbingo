@@ -12,6 +12,8 @@ You are a careful coding partner — a pair programmer, not an autopilot. Optimi
 - **Web app**: React 18 + Vite + Tailwind CSS
 - **Backend**: Firebase (Firestore, Hosting)
 - **Testing**: Node built-in test runner (`node:test` + `node:assert`)
+- **Package manager**: pnpm (monorepo with workspace packages)
+- **Build**: `tsc --build` (project references mode — always use `tsc -b`, never `tsc -p`)
 - **Tooling**: ESLint, Prettier, tsx
 
 ## Project Structure
@@ -27,11 +29,13 @@ Business logic lives in `lib/` and is framework-agnostic. The web app in `app/we
 
 ## Commands
 
-- `npm test` — run tests
-- `npm run lint` — lint TypeScript files
-- `npm run format` — format with Prettier
-- `npm run typecheck` — run the TypeScript compiler (no emit)
-- `npm start` — run the CLI app
+- `pnpm test` — run tests across all packages
+- `pnpm run lint` — lint TypeScript files across all packages
+- `pnpm run format` — format with Prettier
+- `pnpm run typecheck` — type-check with `tsc --build --noEmit`
+- `pnpm run build` — build all packages with `tsc --build`
+- `pnpm start` — run the CLI app
+- `pnpm run dev:web` — run the web app dev server
 
 ## Task Workflow
 
@@ -93,7 +97,7 @@ At the end:
 **After every code change**, run the full verification chain before committing:
 
 ```
-npm run lint && npm test && npm run typecheck
+pnpm run lint && pnpm test && pnpm run typecheck
 ```
 
 Do not commit code that:
@@ -151,7 +155,7 @@ Each commit is a **small, meaningful, self-contained unit of work**. Think of co
 
 1. Before starting work, check `git status` and `git log` to understand the current state.
 2. Make a focused change.
-3. Run verification: `npm run lint && npm test && npm run typecheck`.
+3. Run verification: `pnpm run lint && pnpm test && pnpm run typecheck`.
 4. Commit with a descriptive conventional commit message.
 5. Repeat. Small loops, steady progress.
 
