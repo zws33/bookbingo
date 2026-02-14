@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
-import { TILES } from '@core/constants';
-import { MAX_TILES_PER_BOOK } from '@core/validation';
+import { TILES } from '@lib/core/constants.js';
+import { MAX_TILES_PER_BOOK } from '@lib/core/validation.js';
 
 interface TileSelectorProps {
   selectedTiles: string[];
@@ -8,7 +8,7 @@ interface TileSelectorProps {
   isFreebie: boolean;
 }
 
-const bookAssignableTiles = TILES.filter((t) => !t.isManual);
+const bookAssignableTiles = TILES;
 
 export function TileSelector({ selectedTiles, onChange, isFreebie }: TileSelectorProps) {
   const [search, setSearch] = useState('');

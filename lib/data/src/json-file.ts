@@ -1,7 +1,7 @@
 import { randomUUID } from 'crypto';
 import { promises as fs } from 'fs';
 import path from 'path';
-import type { User, UserBook, DataAccess } from '../types/index.js';
+import type { User, UserBook, DataAccess } from '@lib/types/index.js';
 
 interface Database {
   users: User[];

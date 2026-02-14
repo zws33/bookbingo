@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import { strict as assert } from 'node:assert';
 import { canAssignTile, validateBookTiles, validateFreebie, MAX_TILES_PER_BOOK } from './validation.js';
-import type { UserBook } from '../types/index.js';
+import type { UserBook } from '@lib/types/index.js';
 
 test('Validation Core', async (t) => {
   await t.test('canAssignTile', async (t) => {

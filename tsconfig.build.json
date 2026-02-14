@@ -1,0 +1,21 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "skipLibCheck": true,
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "composite": true,
+    "incremental": true
+  },
+  "references": [
+    { "path": "./lib/core" },
+    { "path": "./lib/data" },
+    { "path": "./lib/types" },
+    { "path": "./app/cli" },
+    { "path": "./app/web" }
+  ]
+}

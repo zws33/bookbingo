@@ -1,4 +1,4 @@
-import type { UserBook, ScoreBreakdown } from '../types/index.js';
+import type { UserBook, ScoreBreakdown } from '@lib/types/index.js';
 import { calculateCV, calculateTileCounts } from './statistics.js';
 
 /**

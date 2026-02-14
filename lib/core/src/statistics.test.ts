@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import { strict as assert } from 'node:assert';
 import { calculateMean, calculateStdDev, calculateCV, calculateTileCounts } from './statistics.js';
-import type { UserBook } from '../types/index.js';
+import type { UserBook } from '@lib/types/index.js';
 
 test('Statistics Core', async (t) => {
   await t.test('calculateMean', async (t) => {

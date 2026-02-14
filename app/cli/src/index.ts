@@ -1,8 +1,8 @@
 import process from 'node:process';
 import readline from 'readline';
-import { jsonFile as db } from '../../lib/data/json-file.js';
-import core from '../../lib/core/index.js';
-import type { User } from '../../lib/types/index.js';
+import { jsonFile as db } from '@lib/data/json-file.js';
+import core from '@lib/core/index.js';
+import type { User } from '@lib/types/index.js';
 
 interface ParsedArgs {
   user?: string;
@@ -29,7 +29,7 @@ async function main(): Promise<void> {
 
   if (args.user) {
     const username = args.user;
-    let foundUser = users.find((u) => u.name === username);
+    let foundUser = users.find((u: User) => u.name === username);
     if (!foundUser) {
       foundUser = await db.createUser(username);
     }

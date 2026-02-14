@@ -13,4 +13,4 @@
  */
 
 // Re-export types from the shared types module
-export type { User, UserBook, DataAccess } from '../types/index.js';
+export type { User, UserBook, DataAccess } from '@lib/types/index.js';

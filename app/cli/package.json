@@ -1,0 +1,14 @@
+{
+  "name": "@bookbingo/cli",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "node --import tsx src/index.ts",
+    "build": "tsc -p tsconfig.build.json"
+  },
+  "dependencies": {
+    "@bookbingo/lib-core": "workspace:*",
+    "@bookbingo/lib-data": "workspace:*",
+    "@bookbingo/lib-types": "workspace:*"
+  }
+}

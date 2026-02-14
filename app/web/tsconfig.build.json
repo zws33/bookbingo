@@ -1,0 +1,15 @@
+{
+  "extends": "../../tsconfig.build.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "rootDir": "src",
+    "jsx": "react-jsx"
+  },
+  "include": ["src/**/*"],
+  "exclude": ["dist/**/*", "node_modules"],
+  "references": [
+    { "path": "../../lib/core" },
+    { "path": "../../lib/data" },
+    { "path": "../../lib/types" }
+  ]
+}

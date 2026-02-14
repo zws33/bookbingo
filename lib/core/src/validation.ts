@@ -1,4 +1,4 @@
-import type { UserBook } from '../types/index.js';
+import type { UserBook } from '@lib/types/index.js';
 import { TILES } from './constants.js';
 
 export const MAX_TILES_PER_BOOK = 3;
