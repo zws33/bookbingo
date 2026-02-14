@@ -19,13 +19,33 @@ You are a careful coding partner — a pair programmer, not an autopilot. Optimi
 ## Project Structure
 
 ```
-lib/          # Shared business logic (scoring, validation, statistics, data layer)
-app/web/      # React web application (Vite + Firebase)
-app/cli/      # CLI interface
-docs/         # Planning and design documents
+lib/types/src/    # Shared TypeScript types (Tile, UserBook, DataAccess, etc.)
+lib/core/src/     # Business logic (scoring, validation, statistics, tiles, constants)
+lib/data/src/     # Data access layer (memory store, JSON file store)
+app/web/src/      # React web application (Vite + Firebase)
+app/cli/src/      # CLI interface
+docs/             # Planning and design documents
 ```
 
+Each `lib/` and `app/` directory is a separate pnpm workspace package. All source lives under `src/` subdirectories. Packages reference each other as `@bookbingo/*` workspace dependencies (e.g., `@bookbingo/lib-core`, `@bookbingo/lib-types`).
+
 Business logic lives in `lib/` and is framework-agnostic. The web app in `app/web/` consumes `lib/` and handles UI + Firebase integration. Keep this separation clean — never import React or Firebase in `lib/`.
+
+## TypeScript Build Configuration
+
+The project uses a dual-tsconfig pattern:
+
+- **`tsconfig.build.json`** — Base config for compilation. All sub-project `tsconfig.build.json` files extend this. Contains `composite`, `incremental`, and project `references`. This is what `tsc --build` uses.
+- **`tsconfig.json`** — Extends `tsconfig.build.json`. Adds `paths` aliases, `jsx`, and broad `include` globs for IDE support and `tsc --build --noEmit` typechecking.
+
+Each workspace package has its own `tsconfig.build.json` (for builds) and `tsconfig.json` (for IDE). The build configs extend the **root `tsconfig.build.json`**.
+
+**Critical**: In `tsc --build` mode, each sub-project is compiled using its own tsconfig chain independently. Settings in the root `tsconfig.json` do **not** apply to sub-projects. Any compiler options that sub-projects need (like `paths` for resolving `@bookbingo/*` imports) must be in `tsconfig.build.json`, not just `tsconfig.json`.
+
+### Import conventions
+
+- **Cross-package imports**: Use `@bookbingo/*` workspace package names (e.g., `import { TILES } from '@bookbingo/lib-core'`). Do not use `@lib/*` path aliases — those are stale.
+- **Within-package imports**: Use relative paths with `.js` extensions (e.g., `import { TILES } from './constants.js'`).
 
 ## Commands
 
@@ -91,6 +111,13 @@ At the end:
 
 - Recap what changed, referencing the plan steps.
 - Highlight any remaining TODOs, tradeoffs, or follow-up tasks.
+- **Review your diff for CLAUDE.md staleness.** Check if any of your changes affect something documented in this file. Update CLAUDE.md if you made any of the following kinds of changes:
+  - Added, removed, or renamed a workspace package or module in `lib/core/src/`
+  - Changed TypeScript configuration (tsconfig files, paths, references)
+  - Changed import conventions or package aliases
+  - Added or changed build/test/lint commands or scripts
+  - Moved or renamed files referenced in Architecture Guidance
+  - Changed architectural patterns (data flow, module boundaries, new dependencies)
 
 ## Verification Workflow
 
@@ -106,6 +133,12 @@ Do not commit code that:
 - Has not been formatted with Prettier
 
 If any check fails, fix the issue before moving on. Do not skip checks or defer fixes.
+
+When changing **build or TypeScript configuration**, also verify from a clean state to ensure the fix doesn't depend on stale `dist/` artifacts:
+
+```
+rm -rf lib/*/dist app/*/dist && pnpm run typecheck
+```
 
 ## Code Style
 
@@ -164,7 +197,9 @@ Do not batch up many changes into a single large commit. If a task takes multipl
 ## Architecture Guidance
 
 - **Firestore rules** are in `app/web/firestore.rules`. Update them when data model changes.
-- **Scoring logic** is in `lib/core/scoring.ts`. The scoring algorithm rewards volume and variety while penalizing imbalance. See `docs/SCORING_PLAN.md` for design rationale.
-- **Validation** is in `lib/core/validation.ts`. Enforce constraints here (e.g., max 3 categories per book, freebie rules).
+- **Scoring logic** is in `lib/core/src/scoring.ts`. The scoring algorithm rewards volume and variety while penalizing imbalance. See `docs/SCORING_PLAN.md` for design rationale.
+- **Validation** is in `lib/core/src/validation.ts`. Enforce constraints here (e.g., max 3 categories per book, freebie rules).
+- **Tile lookup** is in `lib/core/src/tiles.ts`. Provides `getTileById()` for resolving tile IDs to names.
+- **Shared types** are in `lib/types/src/index.ts`. All type definitions (`Tile`, `UserBook`, `DataAccess`, etc.) live here.
 - When adding new features, start with `lib/` (logic + tests), then wire it into `app/web/` (UI).
 - For larger features, create a planning doc in `docs/` before writing code. This is especially important when the task involves new data models, scoring changes, or architectural decisions.
