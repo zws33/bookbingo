@@ -9,7 +9,10 @@
       "@app/web/*": ["app/web/src/*"],
       "@lib/core/*": ["lib/core/src/*"],
       "@lib/data/*": ["lib/data/src/*"],
-      "@lib/types/*": ["lib/types/src/*", "app/web/src/types/*"]
+      "@lib/types/*": ["lib/types/src/*", "app/web/src/types/*"],
+      "@bookbingo/lib-core": ["lib/core/src/index.ts"],
+      "@bookbingo/lib-data": ["lib/data/src/index.ts"],
+      "@bookbingo/lib-types": ["lib/types/src/index.ts"]
     }
   },
   "include": ["app/**/*", "lib/**/*", "docs/**/*"],

@@ -12,10 +12,10 @@
     "incremental": true
   },
   "references": [
-    { "path": "./lib/core" },
-    { "path": "./lib/data" },
-    { "path": "./lib/types" },
-    { "path": "./app/cli" },
-    { "path": "./app/web" }
+    { "path": "./lib/types/tsconfig.build.json" },
+    { "path": "./lib/core/tsconfig.build.json" },
+    { "path": "./lib/data/tsconfig.build.json" },
+    { "path": "./app/cli/tsconfig.build.json" },
+    { "path": "./app/web/tsconfig.build.json" }
   ]
 }
