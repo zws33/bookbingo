@@ -1,11 +1,16 @@
-import { Reading } from '../types';
+import { getTileById } from '@bookbingo/lib-core';
 
 interface BookCardProps {
-  reading: Reading;
+  bookTitle: string;
+  bookAuthor: string;
+  tiles: string[];
   onClick: () => void;
 }
 
-export function BookCard({ reading, onClick }: BookCardProps) {
+const truncate = (s: string, max: number) =>
+  s.length > max ? s.slice(0, max) + '…' : s;
+
+export function BookCard({ bookTitle, bookAuthor, tiles, onClick }: BookCardProps) {
   return (
     <div
       className="bg-white rounded-lg shadow p-4 cursor-pointer hover:shadow-md transition-shadow"
@@ -14,18 +19,22 @@ export function BookCard({ reading, onClick }: BookCardProps) {
       tabIndex={0}
       onKeyDown={(e) => e.key === 'Enter' && onClick()}
     >
-      <h3 className="font-semibold text-gray-900 truncate">{reading.bookTitle}</h3>
-      <p className="text-sm text-gray-600 mt-1">by {reading.bookAuthor}</p>
-      {reading.tiles.length > 0 && (
+      <h3 className="font-semibold text-gray-900 truncate">{bookTitle}</h3>
+      <p className="text-sm text-gray-600 mt-1">by {bookAuthor}</p>
+      {tiles.length > 0 && (
         <div className="mt-2 flex flex-wrap gap-1">
-          {reading.tiles.map((tile) => (
-            <span
-              key={tile}
-              className="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded"
-            >
-              {tile}
-            </span>
-          ))}
+          {tiles.map((tile) => {
+            const name = getTileById(tile)?.name ?? tile;
+            return (
+              <span
+                key={tile}
+                title={name}
+                className="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded"
+              >
+                {truncate(name, 25)}
+              </span>
+            );
+          })}
         </div>
       )}
     </div>

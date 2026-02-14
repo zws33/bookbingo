@@ -12,14 +12,13 @@ Replace raw tile IDs with truncated human-readable tile names in the BookCard ch
 
 - BookCard chips display truncated tile names instead of IDs.
 - Full tile name is visible on hover (via `title` attribute).
-- Manual tiles (`m01`–`m06`) are visually distinguished from auto tiles.
 - No new components beyond a utility function for tile lookup.
 - All existing tests pass; new unit tests cover the lookup utility.
 - Verification chain passes: `npm run lint && npm test && npm run typecheck`.
 
 ## Current State
 
-- `BookCard` receives a `Reading` object with `tiles: string[]` (array of IDs).
+- `BookCard` receives a `Reading` object with `tiles: string[]` (array of IDs). The component's props couple it to the `Reading` type unnecessarily.
 - `TILES` constant in `lib/core/constants.ts` has all 49 tiles with `{ id, name, isManual }`.
 - `TileSelector` already imports `TILES` from `@core/constants` — same import path works in web app components.
 - Tile names vary in length: short ("smut", 4 chars) to long ("Interactive/nonlinear book (nonlinear reading order not nonlinear storytelling order)", 82 chars).
@@ -29,7 +28,6 @@ Replace raw tile IDs with truncated human-readable tile names in the BookCard ch
 
 - **Truncation length**: 25 characters, with `…` appended when truncated. This balances readability with card space — most names fit or are recognizable when truncated (e.g., "anthropomorphic non-huma…").
 - **Tooltip**: Use the native `title` attribute for full name on hover. No custom tooltip component needed — keeps it simple.
-- **Manual tile distinction**: Manual tiles get a different color scheme (purple instead of blue) so users can visually distinguish "you verified this externally" tiles from standard ones.
 - **Tile lookup utility**: Create a small utility in `lib/core/tiles.ts` that provides lookup-by-ID. This keeps the lookup logic in `lib/` (framework-agnostic) and testable independently.
 
 ## Implementation Steps
@@ -41,33 +39,33 @@ Replace raw tile IDs with truncated human-readable tile names in the BookCard ch
 Create a utility module that provides:
 
 ```typescript
-export function getTileById(id: string): Tile | undefined
-export function getTileName(id: string): string  // returns name or id as fallback
-export function isManualTile(id: string): boolean
+export function getTileById(id: string): Tile | undefined;
 ```
 
-Internally, build a `Map<string, Tile>` from the `TILES` array for O(1) lookup.
+Internally, build a `Map<string, Tile>` from the `TILES` array for O(1) lookup. Callers can access `.name` and `.isManual` directly from the returned `Tile` object, so dedicated `getTileName` and `isManualTile` wrappers are unnecessary.
+
+Export `getTileById` from `lib/core/src/index.ts` so consumers can import it via `@bookbingo/lib-core`.
 
 **Tests** (`lib/core/tiles.test.ts`):
+
 - `getTileById` returns correct tile for known ID.
+- `getTileById` returns correct manual tile for known manual ID.
 - `getTileById` returns `undefined` for unknown ID.
-- `getTileName` returns name for known ID.
-- `getTileName` returns the raw ID string as fallback for unknown ID.
-- `isManualTile` returns `true` for `m01`–`m06`, `false` for `t01`–`t43`.
 
 **Commit**: `feat: add tile lookup utility`
 
 ### Step 2: Update `BookCard` to display tile names
 
-**Files**: `app/web/src/components/BookCard.tsx`
+**Files**: `app/web/src/components/BookCard.tsx`, `app/web/src/components/BookList.tsx`
 
 Changes:
-- Import `getTileName` and `isManualTile` from `@core/tiles`.
-- In the tile chip render, replace `{tile}` with `{truncate(getTileName(tile), 25)}`.
+
+- Refactor `BookCard` props from `{ reading: Reading }` to individual props `{ bookTitle, bookAuthor, tiles }`. This decouples the component from the `Reading` type and makes it more reusable.
+- Update `BookList` to pass the individual props to `BookCard`.
+- Import `getTileById` from `@bookbingo/lib-core`.
+- In the tile chip render, resolve the tile name via `getTileById(tile)?.name ?? tile` (falling back to the raw ID for unknown tiles).
+- Truncate the displayed name to 25 characters with `…` using a local `truncate` helper.
 - Add a `title` attribute with the full tile name for hover.
-- Apply different chip colors for manual vs. auto tiles:
-  - Auto tiles: keep current `bg-blue-100 text-blue-800`.
-  - Manual tiles: `bg-purple-100 text-purple-800`.
 - Define a local `truncate` helper (inline, not worth extracting):
   ```typescript
   const truncate = (s: string, max: number) =>

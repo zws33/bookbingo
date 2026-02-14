@@ -102,7 +102,9 @@ export function BookList({ user }: BookListProps) {
           {filteredReadings.map((reading) => (
             <BookCard
               key={reading.id}
-              reading={reading}
+              bookTitle={reading.bookTitle}
+              bookAuthor={reading.bookAuthor}
+              tiles={reading.tiles}
               onClick={() => setSelectedReading(reading)}
             />
           ))}
