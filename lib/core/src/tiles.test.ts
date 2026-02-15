@@ -7,7 +7,7 @@ test('getTileById', async (t) => {
     const tile = getTileById('t01');
     assert.ok(tile);
     assert.equal(tile.id, 't01');
-    assert.equal(tile.name, "reread a book you didn't finish");
+    assert.equal(tile.name, 'unfinished reread');
     assert.equal(tile.isManual, false);
   });
 
