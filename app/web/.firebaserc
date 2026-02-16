@@ -1,5 +1,9 @@
 {
   "projects": {
-    "default": "bookbingo-3fdb1"
-  }
+    "default": "bookbingo-3fdb1",
+    "prod": "bookbingo-3fdb1",
+    "staging": "bookbingo-staging"
+  },
+  "targets": {},
+  "etags": {}
 }
