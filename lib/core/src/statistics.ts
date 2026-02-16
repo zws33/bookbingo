@@ -39,7 +39,9 @@ export function calculateCV(values: number[]): number {
 /**
  * Counts the number of books assigned to each tile.
  */
-export function calculateTileCounts(userBooks: UserBook[]): Map<string, number> {
+export function calculateTileCounts(
+  userBooks: UserBook[],
+): Map<string, number> {
   const tileCounts = new Map<string, number>();
   for (const book of userBooks) {
     for (const tileId of book.tiles) {

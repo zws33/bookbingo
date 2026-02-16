@@ -1,4 +1,11 @@
-import { addDoc, collection, deleteDoc, doc, serverTimestamp, updateDoc } from 'firebase/firestore';
+import {
+  addDoc,
+  collection,
+  deleteDoc,
+  doc,
+  serverTimestamp,
+  updateDoc,
+} from 'firebase/firestore';
 import { db } from './firebase';
 
 export async function createReading(
@@ -6,7 +13,7 @@ export async function createReading(
   title: string,
   author: string,
   tiles: string[],
-  isFreebie: boolean
+  isFreebie: boolean,
 ): Promise<string> {
   const docRef = await addDoc(collection(db, 'users', userId, 'readings'), {
     bookTitle: title,
@@ -25,7 +32,7 @@ export async function updateReading(
   title: string,
   author: string,
   tiles: string[],
-  isFreebie: boolean
+  isFreebie: boolean,
 ): Promise<void> {
   await updateDoc(doc(db, 'users', userId, 'readings', readingId), {
     bookTitle: title,
@@ -38,7 +45,7 @@ export async function updateReading(
 
 export async function deleteReading(
   userId: string,
-  readingId: string
+  readingId: string,
 ): Promise<void> {
   await deleteDoc(doc(db, 'users', userId, 'readings', readingId));
 }

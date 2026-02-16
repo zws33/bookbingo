@@ -5,3 +5,14 @@ packages:
 ignoredBuiltDependencies:
   - esbuild
   - protobufjs
+
+onlyBuiltDependencies:
+  - b
+  - d
+  - e
+  - esbuild
+  - i
+  - l
+  - protobufjs
+  - s
+  - u

@@ -5,22 +5,23 @@ interface BookRowProps {
   bookAuthor: string;
   tiles: string[];
   isFreebie: boolean;
-  onClick: () => void;
+  onClick?: () => void;
+  readOnly?: boolean;
 }
 
 const MAX_DOTS = 5;
 
-export function BookRow({ bookTitle, bookAuthor, tiles, isFreebie, onClick }: BookRowProps) {
+export function BookRow({ bookTitle, bookAuthor, tiles, isFreebie, onClick, readOnly }: BookRowProps) {
   const visibleTiles = tiles.slice(0, MAX_DOTS);
   const overflow = tiles.length - MAX_DOTS;
 
   return (
     <div
-      className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-gray-50 transition-colors"
-      onClick={onClick}
-      role="button"
-      tabIndex={0}
-      onKeyDown={(e) => e.key === 'Enter' && onClick()}
+      className={`flex items-center gap-3 px-4 py-3${readOnly ? '' : ' cursor-pointer hover:bg-gray-50'} transition-colors`}
+      onClick={readOnly ? undefined : onClick}
+      role={readOnly ? undefined : 'button'}
+      tabIndex={readOnly ? undefined : 0}
+      onKeyDown={readOnly ? undefined : (e) => e.key === 'Enter' && onClick?.()}
     >
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">

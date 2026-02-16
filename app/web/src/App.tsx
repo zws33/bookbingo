@@ -1,26 +1,22 @@
-import { useState } from 'react';
+import { NavLink, Routes, Route } from 'react-router-dom';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { signInWithPopup, signOut } from 'firebase/auth';
 import { auth, googleProvider } from './lib/firebase';
-import { useToast } from './lib/ToastContext';
+import { saveUserProfile } from './lib/users';
 import { useReadings } from './hooks/useReadings';
-import { createReading } from './lib/books';
 import { BingoBoard } from './components/BingoBoard';
-import { BookList } from './components/BookList';
-import { Modal } from './components/Modal';
-import { BookForm, BookFormData } from './components/BookForm';
+import { MyBooksPage } from './pages/MyBooksPage';
+import { UsersPage } from './pages/UsersPage';
+import { UserBooksPage } from './pages/UserBooksPage';
 
 function App() {
   const [user, loading, error] = useAuthState(auth);
-  const [activeTab, setActiveTab] = useState<'books' | 'board'>('books');
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const { showSuccess, showError } = useToast();
-  const { readings, loading: readingsLoading, error: readingsError } = useReadings(user?.uid ?? '');
+  const { readings } = useReadings(user?.uid ?? '');
 
   const handleSignIn = async () => {
     try {
-      await signInWithPopup(auth, googleProvider);
+      const result = await signInWithPopup(auth, googleProvider);
+      await saveUserProfile(result.user);
     } catch (err) {
       console.error('Sign in error:', err);
     }
@@ -31,21 +27,6 @@ function App() {
       await signOut(auth);
     } catch (err) {
       console.error('Sign out error:', err);
-    }
-  };
-
-  const handleAddBook = async (data: BookFormData) => {
-    if (!user) return;
-    setIsSubmitting(true);
-    try {
-      await createReading(user.uid, data.title, data.author, data.tiles, data.isFreebie);
-      showSuccess('Book added successfully');
-      setIsAddModalOpen(false);
-    } catch (err) {
-      showError('Failed to add book');
-      console.error('Add book error:', err);
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
@@ -94,52 +75,39 @@ function App() {
         {user ? (
           <>
             <div className="flex gap-4 border-b border-gray-200 mb-6">
-              <button
-                onClick={() => setActiveTab('books')}
-                className={`pb-2 text-sm font-medium ${activeTab === 'books' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
+              <NavLink
+                to="/"
+                end
+                className={({ isActive }) =>
+                  `pb-2 text-sm font-medium ${isActive ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700'}`
+                }
               >
                 My Books
-              </button>
-              <button
-                onClick={() => setActiveTab('board')}
-                className={`pb-2 text-sm font-medium ${activeTab === 'board' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
+              </NavLink>
+              <NavLink
+                to="/board"
+                className={({ isActive }) =>
+                  `pb-2 text-sm font-medium ${isActive ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700'}`
+                }
               >
                 Bingo Board
-              </button>
+              </NavLink>
+              <NavLink
+                to="/users"
+                className={({ isActive }) =>
+                  `pb-2 text-sm font-medium ${isActive ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700'}`
+                }
+              >
+                People
+              </NavLink>
             </div>
 
-            {activeTab === 'books' ? (
-              <>
-                <BookList
-                  userId={user.uid}
-                  readings={readings}
-                  loading={readingsLoading}
-                  error={readingsError}
-                />
-                <button
-                  onClick={() => setIsAddModalOpen(true)}
-                  className="fixed bottom-6 right-6 bg-blue-600 text-white rounded-full p-4 shadow-lg hover:bg-blue-700 transition-colors"
-                  aria-label="Add book"
-                >
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                  </svg>
-                </button>
-                <Modal
-                  isOpen={isAddModalOpen}
-                  onClose={() => setIsAddModalOpen(false)}
-                  title="Add Book"
-                >
-                  <BookForm
-                    onSubmit={handleAddBook}
-                    onCancel={() => setIsAddModalOpen(false)}
-                    isSubmitting={isSubmitting}
-                  />
-                </Modal>
-              </>
-            ) : (
-              <BingoBoard readings={readings} />
-            )}
+            <Routes>
+              <Route path="/" element={<MyBooksPage userId={user.uid} />} />
+              <Route path="/board" element={<BingoBoard readings={readings} />} />
+              <Route path="/users" element={<UsersPage />} />
+              <Route path="/users/:userId" element={<UserBooksPage />} />
+            </Routes>
           </>
         ) : (
           <div className="text-center py-12">

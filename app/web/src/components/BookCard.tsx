@@ -4,20 +4,21 @@ interface BookCardProps {
   bookTitle: string;
   bookAuthor: string;
   tiles: string[];
-  onClick: () => void;
+  onClick?: () => void;
+  readOnly?: boolean;
 }
 
 const truncate = (s: string, max: number) =>
   s.length > max ? s.slice(0, max) + '…' : s;
 
-export function BookCard({ bookTitle, bookAuthor, tiles, onClick }: BookCardProps) {
+export function BookCard({ bookTitle, bookAuthor, tiles, onClick, readOnly }: BookCardProps) {
   return (
     <div
-      className="bg-white rounded-lg shadow p-4 cursor-pointer hover:shadow-md transition-shadow"
-      onClick={onClick}
-      role="button"
-      tabIndex={0}
-      onKeyDown={(e) => e.key === 'Enter' && onClick()}
+      className={`bg-white rounded-lg shadow p-4${readOnly ? '' : ' cursor-pointer hover:shadow-md'} transition-shadow`}
+      onClick={readOnly ? undefined : onClick}
+      role={readOnly ? undefined : 'button'}
+      tabIndex={readOnly ? undefined : 0}
+      onKeyDown={readOnly ? undefined : (e) => e.key === 'Enter' && onClick?.()}
     >
       <h3 className="font-semibold text-gray-900 truncate">{bookTitle}</h3>
       <p className="text-sm text-gray-600 mt-1">by {bookAuthor}</p>

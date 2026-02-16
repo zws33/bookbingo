@@ -4,14 +4,17 @@ import { memory } from './memory.js';
 
 test('Memory Data Store', async (t) => {
   await t.test('Users', async (t) => {
-    await t.test('createUser returns user with id, name, and createdAt', async () => {
-      memory._reset();
-      const user = await memory.createUser('alice');
+    await t.test(
+      'createUser returns user with id, name, and createdAt',
+      async () => {
+        memory._reset();
+        const user = await memory.createUser('alice');
 
-      assert.ok(user.id, 'user should have an id');
-      assert.equal(user.name, 'alice');
-      assert.ok(user.createdAt instanceof Date, 'createdAt should be a Date');
-    });
+        assert.ok(user.id, 'user should have an id');
+        assert.equal(user.name, 'alice');
+        assert.ok(user.createdAt instanceof Date, 'createdAt should be a Date');
+      },
+    );
 
     await t.test('getAllUsers returns all created users', async () => {
       memory._reset();
@@ -65,52 +68,58 @@ test('Memory Data Store', async (t) => {
       assert.equal(book.userId, user.id);
     });
 
-    await t.test("getBooksByUserId returns only that user's books", async () => {
-      memory._reset();
-      const alice = await memory.createUser('alice');
-      const bob = await memory.createUser('bob');
+    await t.test(
+      "getBooksByUserId returns only that user's books",
+      async () => {
+        memory._reset();
+        const alice = await memory.createUser('alice');
+        const bob = await memory.createUser('bob');
 
-      await memory.createBook({
-        userId: alice.id,
-        title: 'Alice Book 1',
-        author: 'Author',
-        tiles: [],
-        isFreebie: false,
-        readAt: new Date(),
-      });
-      await memory.createBook({
-        userId: bob.id,
-        title: 'Bob Book 1',
-        author: 'Author',
-        tiles: [],
-        isFreebie: false,
-        readAt: new Date(),
-      });
-      await memory.createBook({
-        userId: alice.id,
-        title: 'Alice Book 2',
-        author: 'Author',
-        tiles: [],
-        isFreebie: false,
-        readAt: new Date(),
-      });
+        await memory.createBook({
+          userId: alice.id,
+          title: 'Alice Book 1',
+          author: 'Author',
+          tiles: [],
+          isFreebie: false,
+          readAt: new Date(),
+        });
+        await memory.createBook({
+          userId: bob.id,
+          title: 'Bob Book 1',
+          author: 'Author',
+          tiles: [],
+          isFreebie: false,
+          readAt: new Date(),
+        });
+        await memory.createBook({
+          userId: alice.id,
+          title: 'Alice Book 2',
+          author: 'Author',
+          tiles: [],
+          isFreebie: false,
+          readAt: new Date(),
+        });
 
-      const aliceBooks = await memory.getBooksByUserId(alice.id);
-      const bobBooks = await memory.getBooksByUserId(bob.id);
+        const aliceBooks = await memory.getBooksByUserId(alice.id);
+        const bobBooks = await memory.getBooksByUserId(bob.id);
 
-      assert.equal(aliceBooks.length, 2);
-      assert.equal(bobBooks.length, 1);
-      assert.ok(aliceBooks.every((b) => b.userId === alice.id));
-      assert.ok(bobBooks.every((b) => b.userId === bob.id));
-    });
+        assert.equal(aliceBooks.length, 2);
+        assert.equal(bobBooks.length, 1);
+        assert.ok(aliceBooks.every((b) => b.userId === alice.id));
+        assert.ok(bobBooks.every((b) => b.userId === bob.id));
+      },
+    );
 
-    await t.test('getBooksByUserId returns empty array for user with no books', async () => {
-      memory._reset();
-      const user = await memory.createUser('alice');
+    await t.test(
+      'getBooksByUserId returns empty array for user with no books',
+      async () => {
+        memory._reset();
+        const user = await memory.createUser('alice');
 
-      const books = await memory.getBooksByUserId(user.id);
+        const books = await memory.getBooksByUserId(user.id);
 
-      assert.deepEqual(books, []);
-    });
+        assert.deepEqual(books, []);
+      },
+    );
   });
 });

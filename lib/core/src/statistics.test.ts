@@ -1,6 +1,11 @@
 import { test } from 'node:test';
 import { strict as assert } from 'node:assert';
-import { calculateMean, calculateStdDev, calculateCV, calculateTileCounts } from './statistics.js';
+import {
+  calculateMean,
+  calculateStdDev,
+  calculateCV,
+  calculateTileCounts,
+} from './statistics.js';
 import type { UserBook } from '@bookbingo/lib-types';
 
 test('Statistics Core', async (t) => {
@@ -9,16 +14,22 @@ test('Statistics Core', async (t) => {
       assert.equal(calculateMean([]), 0);
     });
 
-    await t.test('should calculate the correct mean for an array of numbers', () => {
-      assert.equal(calculateMean([1, 2, 3, 4, 5]), 3);
-    });
+    await t.test(
+      'should calculate the correct mean for an array of numbers',
+      () => {
+        assert.equal(calculateMean([1, 2, 3, 4, 5]), 3);
+      },
+    );
   });
 
   await t.test('calculateStdDev', async (t) => {
-    await t.test('should return 0 for an array with less than 2 elements', () => {
-      assert.equal(calculateStdDev([]), 0);
-      assert.equal(calculateStdDev([1]), 0);
-    });
+    await t.test(
+      'should return 0 for an array with less than 2 elements',
+      () => {
+        assert.equal(calculateStdDev([]), 0);
+        assert.equal(calculateStdDev([1]), 0);
+      },
+    );
 
     await t.test('should calculate the correct standard deviation', () => {
       const values = [1, 2, 3, 4, 5];
@@ -37,13 +48,16 @@ test('Statistics Core', async (t) => {
       assert.equal(calculateCV([0, 0, 0]), 0);
     });
 
-    await t.test('should calculate the correct coefficient of variation', () => {
-      const values = [1, 2, 3, 4, 5];
-      const mean = 3;
-      const stdDev = Math.sqrt(2);
-      const expectedCV = stdDev / mean;
-      assert.ok(Math.abs(calculateCV(values) - expectedCV) < 0.001);
-    });
+    await t.test(
+      'should calculate the correct coefficient of variation',
+      () => {
+        const values = [1, 2, 3, 4, 5];
+        const mean = 3;
+        const stdDev = Math.sqrt(2);
+        const expectedCV = stdDev / mean;
+        assert.ok(Math.abs(calculateCV(values) - expectedCV) < 0.001);
+      },
+    );
   });
 
   await t.test('calculateTileCounts', async (t) => {

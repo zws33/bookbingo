@@ -29,7 +29,7 @@ export function canAssignTile(book: UserBook, tileId: string): boolean {
 export function validateBookTiles(book: UserBook): void {
   if (!book.isFreebie && book.tiles.length > MAX_TILES_PER_BOOK) {
     throw new Error(
-      `Book "${book.title}" exceeds the maximum of ${MAX_TILES_PER_BOOK} tiles.`
+      `Book "${book.title}" exceeds the maximum of ${MAX_TILES_PER_BOOK} tiles.`,
     );
   }
   const uniqueTiles = new Set(book.tiles);

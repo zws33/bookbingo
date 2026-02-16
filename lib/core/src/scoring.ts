@@ -19,7 +19,9 @@ export function calculateBasePoints(tileCounts: Map<string, number>): number {
  * Calculates the balance multiplier from the tile counts.
  * BalanceMultiplier = 1 / (1 + CV²), where CV is the coefficient of variation.
  */
-export function calculateBalanceMultiplier(tileCounts: Map<string, number>): number {
+export function calculateBalanceMultiplier(
+  tileCounts: Map<string, number>,
+): number {
   const counts = Array.from(tileCounts.values());
   const cv = calculateCV(counts);
   return 1 / (1 + cv ** 2);

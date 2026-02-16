@@ -27,7 +27,11 @@ export const TILES: Tile[] = [
   { id: 't24', name: 'socially taboo', isManual: false },
   { id: 't25', name: 'genre classic or foundational text', isManual: false },
   { id: 't26', name: 'multiple povs', isManual: false },
-  { id: 't27', name: 'well-behaved women rarely make history', isManual: false },
+  {
+    id: 't27',
+    name: 'well-behaved women rarely make history',
+    isManual: false,
+  },
   { id: 't28', name: 'pre-partition india', isManual: false },
   { id: 't29', name: 'enemies to lovers', isManual: false },
   { id: 't30', name: 'about sports', isManual: false },

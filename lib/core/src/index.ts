@@ -20,7 +20,22 @@ export default core;
 
 // Also export individual modules for direct imports
 export { TILES } from './constants.js';
-export { calculateMean, calculateStdDev, calculateCV, calculateTileCounts } from './statistics.js';
-export { calculateBasePoints, calculateBalanceMultiplier, calculateScore, getScoreBreakdown } from './scoring.js';
-export { MAX_TILES_PER_BOOK, canAssignTile, validateBookTiles, validateFreebie } from './validation.js';
+export {
+  calculateMean,
+  calculateStdDev,
+  calculateCV,
+  calculateTileCounts,
+} from './statistics.js';
+export {
+  calculateBasePoints,
+  calculateBalanceMultiplier,
+  calculateScore,
+  getScoreBreakdown,
+} from './scoring.js';
+export {
+  MAX_TILES_PER_BOOK,
+  canAssignTile,
+  validateBookTiles,
+  validateFreebie,
+} from './validation.js';
 export { getTileById } from './tiles.js';

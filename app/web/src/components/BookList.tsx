@@ -15,9 +15,10 @@ interface BookListProps {
   readings: Reading[];
   loading: boolean;
   error: Error | undefined;
+  readOnly?: boolean;
 }
 
-export function BookList({ userId, readings, loading, error }: BookListProps) {
+export function BookList({ userId, readings, loading, error, readOnly }: BookListProps) {
   const [viewMode, setViewMode] = useState<'cards' | 'list'>('cards');
   const [authorFilter, setAuthorFilter] = useState('');
   const [selectedReading, setSelectedReading] = useState<Reading | null>(null);
@@ -120,7 +121,8 @@ export function BookList({ userId, readings, loading, error }: BookListProps) {
               bookTitle={reading.bookTitle}
               bookAuthor={reading.bookAuthor}
               tiles={reading.tiles}
-              onClick={() => setSelectedReading(reading)}
+              onClick={readOnly ? undefined : () => setSelectedReading(reading)}
+              readOnly={readOnly}
             />
           ))}
         </div>
@@ -133,51 +135,56 @@ export function BookList({ userId, readings, loading, error }: BookListProps) {
               bookAuthor={reading.bookAuthor}
               tiles={reading.tiles}
               isFreebie={reading.isFreebie}
-              onClick={() => setSelectedReading(reading)}
+              onClick={readOnly ? undefined : () => setSelectedReading(reading)}
+              readOnly={readOnly}
             />
           ))}
         </div>
       )}
 
-      <Modal
-        isOpen={selectedReading !== null}
-        onClose={() => setSelectedReading(null)}
-        title="Edit Book"
-      >
-        {selectedReading && (
-          <>
-            <BookForm
-              initialData={{
-                title: selectedReading.bookTitle,
-                author: selectedReading.bookAuthor,
-                tiles: selectedReading.tiles ?? [],
-                isFreebie: selectedReading.isFreebie ?? false,
-              }}
-              onSubmit={handleEdit}
-              onCancel={() => setSelectedReading(null)}
-              isSubmitting={isSubmitting}
-            />
-            <div className="mt-4 pt-4 border-t">
-              <button
-                onClick={() => setShowDeleteConfirm(true)}
-                className="text-red-600 hover:text-red-800 text-sm"
-                disabled={isSubmitting}
-              >
-                Delete this book
-              </button>
-            </div>
-          </>
-        )}
-      </Modal>
+      {!readOnly && (
+        <>
+          <Modal
+            isOpen={selectedReading !== null}
+            onClose={() => setSelectedReading(null)}
+            title="Edit Book"
+          >
+            {selectedReading && (
+              <>
+                <BookForm
+                  initialData={{
+                    title: selectedReading.bookTitle,
+                    author: selectedReading.bookAuthor,
+                    tiles: selectedReading.tiles ?? [],
+                    isFreebie: selectedReading.isFreebie ?? false,
+                  }}
+                  onSubmit={handleEdit}
+                  onCancel={() => setSelectedReading(null)}
+                  isSubmitting={isSubmitting}
+                />
+                <div className="mt-4 pt-4 border-t">
+                  <button
+                    onClick={() => setShowDeleteConfirm(true)}
+                    className="text-red-600 hover:text-red-800 text-sm"
+                    disabled={isSubmitting}
+                  >
+                    Delete this book
+                  </button>
+                </div>
+              </>
+            )}
+          </Modal>
 
-      <ConfirmDialog
-        isOpen={showDeleteConfirm}
-        onClose={() => setShowDeleteConfirm(false)}
-        onConfirm={handleDelete}
-        title="Delete Book"
-        message={`Are you sure you want to delete "${selectedReading?.bookTitle}"? This action cannot be undone.`}
-        confirmLabel="Delete"
-      />
+          <ConfirmDialog
+            isOpen={showDeleteConfirm}
+            onClose={() => setShowDeleteConfirm(false)}
+            onConfirm={handleDelete}
+            title="Delete Book"
+            message={`Are you sure you want to delete "${selectedReading?.bookTitle}"? This action cannot be undone.`}
+            confirmLabel="Delete"
+          />
+        </>
+      )}
     </div>
   );
 }
