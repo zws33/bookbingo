@@ -28,15 +28,11 @@ Book Bingo is a book reading competition among friends. Users log books they've 
 
 ## Future Work
 
-- Viewing books indexed by tiles
 - Calculating and displaying current score
 - Suggesting options to rebalance tiles for a higher score
-- View the book list and scores of others in the competition
 - Leaderboard of users and their scores
 - Progressive Web App (installable, offline support)
 
 ## Related Docs
 
-- [Scoring Plan](SCORING_PLAN.md) — Scoring formula, design rationale, architecture
-- [V0 Plan](v0/plan.md) — V0 requirements
-- [V0 Web App Plan](v0/WEB_APP_PLAN.md) — Detailed web app implementation plan
+- [Scoring Plan](SCORING_PLAN.md) — Scoring formula and design rationale
