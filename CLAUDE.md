@@ -194,6 +194,10 @@ Each commit is a **small, meaningful, self-contained unit of work**. Think of co
 
 Do not batch up many changes into a single large commit. If a task takes multiple steps, commit after each meaningful step.
 
+### Pull Requests
+
+When creating PRs, include a summary of changes but do not include a test plan section.
+
 ## Architecture Guidance
 
 - **Firestore rules** are in `app/web/firestore.rules`. Update them when data model changes.

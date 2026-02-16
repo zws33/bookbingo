@@ -1,8 +1,4 @@
 import { useState, useMemo } from 'react';
-import { useCollection } from 'react-firebase-hooks/firestore';
-import { collection } from 'firebase/firestore';
-import { User } from 'firebase/auth';
-import { db } from '../lib/firebase';
 import { useToast } from '../lib/ToastContext';
 import { deleteReading, updateReading } from '../lib/books';
 import { Reading } from '../types';
@@ -15,28 +11,19 @@ import { Modal } from './Modal';
 import { SearchFilter } from './SearchFilter';
 
 interface BookListProps {
-  user: User;
+  userId: string;
+  readings: Reading[];
+  loading: boolean;
+  error: Error | undefined;
 }
 
-export function BookList({ user }: BookListProps) {
+export function BookList({ userId, readings, loading, error }: BookListProps) {
   const [viewMode, setViewMode] = useState<'cards' | 'list'>('cards');
   const [authorFilter, setAuthorFilter] = useState('');
   const [selectedReading, setSelectedReading] = useState<Reading | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const { showSuccess, showError } = useToast();
-
-  const [snapshot, loading, error] = useCollection(
-    collection(db, 'users', user.uid, 'readings')
-  );
-
-  const readings: Reading[] = useMemo(() => {
-    if (!snapshot) return [];
-    return snapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    })) as Reading[];
-  }, [snapshot]);
+  const { showSuccess, showError: showErrorToast } = useToast();
 
   const filteredReadings = useMemo(() => {
     if (!authorFilter.trim()) return readings;
@@ -50,11 +37,11 @@ export function BookList({ user }: BookListProps) {
     if (!selectedReading) return;
     setIsSubmitting(true);
     try {
-      await updateReading(user.uid, selectedReading.id, data.title, data.author, data.tiles, data.isFreebie);
+      await updateReading(userId, selectedReading.id, data.title, data.author, data.tiles, data.isFreebie);
       showSuccess('Book updated successfully');
       setSelectedReading(null);
     } catch (err) {
-      showError('Failed to update book');
+      showErrorToast('Failed to update book');
       console.error('Update book error:', err);
     } finally {
       setIsSubmitting(false);
@@ -65,12 +52,12 @@ export function BookList({ user }: BookListProps) {
     if (!selectedReading) return;
     setIsSubmitting(true);
     try {
-      await deleteReading(user.uid, selectedReading.id);
+      await deleteReading(userId, selectedReading.id);
       showSuccess('Book deleted successfully');
       setShowDeleteConfirm(false);
       setSelectedReading(null);
     } catch (err) {
-      showError('Failed to delete book');
+      showErrorToast('Failed to delete book');
       console.error('Delete book error:', err);
     } finally {
       setIsSubmitting(false);

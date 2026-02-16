@@ -2,7 +2,11 @@
   "extends": "../../tsconfig.build.json",
   "compilerOptions": {
     "outDir": "dist",
-    "rootDir": "src"
+    "rootDir": "src",
+    "baseUrl": ".",
+    "paths": {
+      "@bookbingo/lib-types": ["../types/src/index.ts"]
+    }
   },
   "include": ["src/**/*"],
   "exclude": ["dist/**/*"],
