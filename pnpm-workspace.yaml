@@ -1,3 +1,7 @@
 packages:
-  - 'app/*'
-  - 'lib/*'
+  - app/*
+  - lib/*
+
+ignoredBuiltDependencies:
+  - esbuild
+  - protobufjs
