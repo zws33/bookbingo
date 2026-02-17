@@ -20,11 +20,9 @@ Book Bingo is a book reading competition among friends. Users log books they've 
 ## Project Structure
 
 - `lib/core/` — Scoring engine, validation, tile definitions, statistics
-- `lib/data/` — Data access layer (in-memory, JSON file)
 - `lib/types/` — Shared type definitions
 - `app/web/` — React web application (Vite + Firebase)
-- `app/cli/` — Command-line interface
-- `docs/` — Planning and design documents
+- `docs/` — Design documents
 
 ## Future Work
 

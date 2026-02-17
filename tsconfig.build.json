@@ -14,8 +14,6 @@
   "references": [
     { "path": "./lib/types/tsconfig.build.json" },
     { "path": "./lib/core/tsconfig.build.json" },
-    { "path": "./lib/data/tsconfig.build.json" },
-    { "path": "./app/cli/tsconfig.build.json" },
     { "path": "./app/web/tsconfig.build.json" }
   ]
 }

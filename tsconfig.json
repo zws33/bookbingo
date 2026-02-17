@@ -5,13 +5,7 @@
     "noEmit": true,
     "jsx": "react-jsx",
     "paths": {
-      "@app/cli/*": ["app/cli/src/*"],
-      "@app/web/*": ["app/web/src/*"],
-      "@lib/core/*": ["lib/core/src/*"],
-      "@lib/data/*": ["lib/data/src/*"],
-      "@lib/types/*": ["lib/types/src/*", "app/web/src/types/*"],
       "@bookbingo/lib-core": ["lib/core/src/index.ts"],
-      "@bookbingo/lib-data": ["lib/data/src/index.ts"],
       "@bookbingo/lib-types": ["lib/types/src/index.ts"]
     }
   },

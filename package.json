@@ -5,7 +5,6 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "start": "pnpm --filter @bookbingo/cli dev",
     "test": "pnpm -r test",
     "lint": "pnpm -r lint",
     "format": "prettier --write \"app/**/*.ts\" \"lib/**/*.ts\"",

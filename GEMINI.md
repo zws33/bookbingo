@@ -19,12 +19,10 @@ You are a careful coding partner — a pair programmer, not an autopilot. Optimi
 ## Project Structure
 
 ```
-lib/types/src/    # Shared TypeScript types (Tile, UserBook, DataAccess, etc.)
+lib/types/src/    # Shared TypeScript types (Tile, UserBook, Reading, ScoreBreakdown, etc.)
 lib/core/src/     # Business logic (scoring, validation, statistics, tiles, constants)
-lib/data/src/     # Data access layer (memory store, JSON file store)
 app/web/src/      # React web application (Vite + Firebase)
-app/cli/src/      # CLI interface
-docs/             # Planning and design documents
+docs/             # Design documents
 ```
 
 Each `lib/` and `app/` directory is a separate pnpm workspace package. All source lives under `src/` subdirectories. Packages reference each other as `@bookbingo/*` workspace dependencies (e.g., `@bookbingo/lib-core`, `@bookbingo/lib-types`).
@@ -54,7 +52,6 @@ Each workspace package has its own `tsconfig.build.json` (for builds) and `tscon
 - `pnpm run format` — format with Prettier
 - `pnpm run typecheck` — type-check with `tsc --build --noEmit`
 - `pnpm run build` — build all packages with `tsc --build`
-- `pnpm start` — run the CLI app
 - `pnpm run dev:web` — run the web app dev server
 
 ## Task Workflow
@@ -204,6 +201,6 @@ When creating PRs, include a summary of changes but do not include a test plan s
 - **Scoring logic** is in `lib/core/src/scoring.ts`. The scoring algorithm rewards volume and variety while penalizing imbalance. See `docs/SCORING_PLAN.md` for design rationale.
 - **Validation** is in `lib/core/src/validation.ts`. Enforce constraints here (e.g., max 3 categories per book, freebie rules).
 - **Tile lookup** is in `lib/core/src/tiles.ts`. Provides `getTileById()` for resolving tile IDs to names.
-- **Shared types** are in `lib/types/src/index.ts`. All type definitions (`Tile`, `UserBook`, `DataAccess`, etc.) live here.
+- **Shared types** are in `lib/types/src/index.ts`. All type definitions (`Tile`, `UserBook`, `Reading`, `ScoreBreakdown`, etc.) live here.
 - When adding new features, start with `lib/` (logic + tests), then wire it into `app/web/` (UI).
 - For larger features, create a planning doc in `docs/` before writing code. This is especially important when the task involves new data models, scoring changes, or architectural decisions.

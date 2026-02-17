@@ -31,12 +31,11 @@ export interface User {
 }
 
 // =============================================================================
-// Book Types (Current CLI Model)
+// Book Types
 // =============================================================================
 
 /**
- * A book associated with a user (current CLI model).
- * In V0 web app, this will be split into Book + Reading.
+ * A book associated with a user, used by the scoring engine in lib/core.
  */
 export interface UserBook {
   id: string;
@@ -51,7 +50,7 @@ export interface UserBook {
 }
 
 // =============================================================================
-// Book Types (Future Web App Model)
+// Firestore Types
 // =============================================================================
 
 /**
@@ -102,17 +101,3 @@ export interface ScoreBreakdown {
   totalBooks: number;
 }
 
-// =============================================================================
-// Data Access Types
-// =============================================================================
-
-/**
- * Interface for data access implementations (memory, json-file, etc.).
- */
-export interface DataAccess {
-  getAllUsers(): Promise<User[]>;
-  getUserById(id: string): Promise<User | undefined>;
-  createUser(name: string): Promise<User>;
-  getBooksByUserId(userId: string): Promise<UserBook[]>;
-  createBook(book: Omit<UserBook, 'id'>): Promise<UserBook>;
-}

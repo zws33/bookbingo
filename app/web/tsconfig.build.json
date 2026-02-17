@@ -9,7 +9,6 @@
   "exclude": ["dist/**/*", "node_modules"],
   "references": [
     { "path": "../../lib/core/tsconfig.build.json" },
-    { "path": "../../lib/data/tsconfig.build.json" },
     { "path": "../../lib/types/tsconfig.build.json" }
   ]
 }

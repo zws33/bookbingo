@@ -39,26 +39,11 @@ importers:
         specifier: ^6.1.1
         version: 6.1.1(typescript@5.9.3)(vite@5.4.21(@types/node@22.19.11))
 
-  app/cli:
-    dependencies:
-      '@bookbingo/lib-core':
-        specifier: workspace:*
-        version: link:../../lib/core
-      '@bookbingo/lib-data':
-        specifier: workspace:*
-        version: link:../../lib/data
-      '@bookbingo/lib-types':
-        specifier: workspace:*
-        version: link:../../lib/types
-
   app/web:
     dependencies:
       '@bookbingo/lib-core':
         specifier: workspace:*
         version: link:../../lib/core
-      '@bookbingo/lib-data':
-        specifier: workspace:*
-        version: link:../../lib/data
       '@bookbingo/lib-types':
         specifier: workspace:*
         version: link:../../lib/types
@@ -104,12 +89,6 @@ importers:
         version: 5.4.21(@types/node@22.19.11)
 
   lib/core:
-    dependencies:
-      '@bookbingo/lib-types':
-        specifier: workspace:*
-        version: link:../types
-
-  lib/data:
     dependencies:
       '@bookbingo/lib-types':
         specifier: workspace:*
