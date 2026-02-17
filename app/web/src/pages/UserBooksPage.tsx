@@ -1,7 +1,11 @@
+import { useMemo } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import { getScoreBreakdown } from '@bookbingo/lib-core';
 import { useReadings } from '../hooks/useReadings';
 import { useUserProfile } from '../hooks/useUserProfile';
 import { BookList } from '../components/BookList';
+import { ScoreDisplay } from '../components/ScoreDisplay';
+import { mapReadingsToUserBooks } from '../lib/mappings';
 
 function getFirstName(fullName: string): string {
   return fullName.split(' ')[0] ?? 'User';
@@ -11,6 +15,12 @@ export function UserBooksPage() {
   const { userId } = useParams<{ userId: string }>();
   const { profile, loading: profileLoading } = useUserProfile(userId ?? '');
   const { readings, loading: readingsLoading, error: readingsError } = useReadings(userId ?? '');
+
+  const scoreBreakdown = useMemo(() => {
+    if (!userId || !readings || readings.length === 0) return null;
+    const userBooks = mapReadingsToUserBooks(readings, userId);
+    return getScoreBreakdown(userBooks);
+  }, [userId, readings]);
 
   if (!userId) {
     return <div className="text-center py-8 text-red-500">Invalid user.</div>;
@@ -25,7 +35,7 @@ export function UserBooksPage() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <div className="flex items-center gap-3">
         <Link
           to="/users"
@@ -40,6 +50,8 @@ export function UserBooksPage() {
           {getFirstName(profile.name)}&apos;s Books
         </h2>
       </div>
+
+      {scoreBreakdown && <ScoreDisplay breakdown={scoreBreakdown} />}
 
       <BookList
         userId={userId}

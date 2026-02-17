@@ -100,4 +100,3 @@ export interface ScoreBreakdown {
   tileCounts: Map<string, number>;
   totalBooks: number;
 }
-
