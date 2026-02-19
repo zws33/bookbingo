@@ -25,10 +25,12 @@ export {
   calculateStdDev,
   calculateCV,
   calculateTileCounts,
+  harmonicSum,
 } from './statistics.js';
 export {
-  calculateBasePoints,
-  calculateBalanceMultiplier,
+  calculateVarietyPoints,
+  calculateVolumePoints,
+  calculateBalanceFactor,
   calculateScore,
   getScoreBreakdown,
 } from './scoring.js';

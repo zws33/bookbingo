@@ -1,170 +1,164 @@
 import { test } from 'node:test';
 import { strict as assert } from 'node:assert';
-import { calculateScore, getScoreBreakdown } from './scoring.js';
+import {
+  calculateVarietyPoints,
+  calculateVolumePoints,
+  calculateBalanceFactor,
+  calculateScore,
+  getScoreBreakdown,
+} from './scoring.js';
+import { harmonicSum } from './statistics.js';
 import type { UserBook } from '@bookbingo/lib-types';
 
-test('Scoring Core', async (t) => {
-  await t.test('calculateScore', async (t) => {
-    await t.test('should return 0 for a user with no books', () => {
-      const userBooks: UserBook[] = [];
-      assert.equal(calculateScore(userBooks), 0);
+function makeBook(tiles: string[]): UserBook {
+  return {
+    id: '',
+    userId: '',
+    title: '',
+    author: '',
+    tiles,
+    isFreebie: false,
+    readAt: new Date(),
+  };
+}
+
+test('Scoring', async (t) => {
+  await t.test('calculateVarietyPoints', async (t) => {
+    await t.test('should count unique tiles', () => {
+      const tileCounts = new Map([['a', 3], ['b', 1], ['c', 2]]);
+      assert.equal(calculateVarietyPoints(tileCounts), 3);
     });
 
-    await t.test(
-      'should calculate the correct score for a single book in one tile',
-      () => {
-        const userBooks: UserBook[] = [
-          {
-            id: '1',
-            userId: 'user1',
-            title: 'The Hobbit',
-            author: 'J.R.R. Tolkien',
-            tiles: ['t01'],
-            isFreebie: false,
-            readAt: new Date(),
-          },
-        ];
-        // BasePoints = 1 + log2(1) = 1
-        // BalanceMultiplier = 1 / (1 + 0^2) = 1
-        // Score = 1 * 1 = 1
-        assert.equal(calculateScore(userBooks), 1);
-      },
-    );
+    await t.test('should return 0 for empty map', () => {
+      assert.equal(calculateVarietyPoints(new Map()), 0);
+    });
+  });
 
-    await t.test(
-      'should calculate the correct score for multiple books in the same tile',
-      () => {
-        const userBooks = [
-          { title: 'Book 1', tiles: ['t01'] },
-          { title: 'Book 2', tiles: ['t01'] },
-          { title: 'Book 3', tiles: ['t01'] },
-          { title: 'Book 4', tiles: ['t01'] },
-        ] as UserBook[];
-        // BasePoints = 1 + log2(4) = 3
-        // BalanceMultiplier = 1
-        // Score = 3 * 1 = 3
-        assert.equal(calculateScore(userBooks), 3);
-      },
-    );
+  await t.test('calculateVolumePoints', async (t) => {
+    await t.test('should return 0 when all tiles have exactly 1 book', () => {
+      const tileCounts = new Map([['a', 1], ['b', 1], ['c', 1]]);
+      assert.equal(calculateVolumePoints(tileCounts), 0);
+    });
 
-    await t.test(
-      'should calculate a lower score for an unbalanced reader',
-      () => {
-        // 2 books in each of 5 tiles, 10 books in one tile (20 books, 6 tiles)
-        const unbalancedBooks: UserBook[] = [];
-        for (let i = 0; i < 5; i++) {
-          unbalancedBooks.push({
-            title: `Book ${i}`,
-            tiles: [`t${i + 1}`],
-          } as UserBook);
-          unbalancedBooks.push({
-            title: `Book ${i + 5}`,
-            tiles: [`t${i + 1}`],
-          } as UserBook);
-        }
-        for (let i = 0; i < 10; i++) {
-          unbalancedBooks.push({
-            title: `Book ${i + 10}`,
-            tiles: ['t06'],
-          } as UserBook);
-        }
+    await t.test('should return H(n)-1 for a single tile with n books', () => {
+      const tileCounts = new Map([['a', 5]]);
+      const expected = harmonicSum(5) - 1;
+      assert.ok(Math.abs(calculateVolumePoints(tileCounts) - expected) < 1e-10);
+    });
 
-        // 1 book in each of 20 tiles (perfectly balanced)
-        const balancedBooks: UserBook[] = [];
-        for (let i = 0; i < 20; i++) {
-          balancedBooks.push({
-            title: `Book ${i}`,
-            tiles: [`t${i + 1}`],
-          } as UserBook);
-        }
+    await t.test('should sum across multiple tiles', () => {
+      const tileCounts = new Map([['a', 3], ['b', 2]]);
+      const expected = (harmonicSum(3) - 1) + (harmonicSum(2) - 1);
+      assert.ok(Math.abs(calculateVolumePoints(tileCounts) - expected) < 1e-10);
+    });
+  });
 
-        const unbalancedScore = calculateScore(unbalancedBooks);
-        const balancedScore = calculateScore(balancedBooks);
+  await t.test('calculateBalanceFactor', async (t) => {
+    await t.test('should return 1.0 for perfectly balanced tiles', () => {
+      const tileCounts = new Map([['a', 2], ['b', 2], ['c', 2]]);
+      assert.equal(calculateBalanceFactor(tileCounts), 1);
+    });
 
-        assert.ok(unbalancedScore < balancedScore);
-      },
-    );
+    await t.test('should return 1.0 for a single tile', () => {
+      const tileCounts = new Map([['a', 5]]);
+      assert.equal(calculateBalanceFactor(tileCounts), 1);
+    });
+
+    await t.test('should return less than 1 for unbalanced tiles', () => {
+      const tileCounts = new Map([['a', 10], ['b', 1]]);
+      const factor = calculateBalanceFactor(tileCounts);
+      assert.ok(factor > 0 && factor < 1);
+    });
+  });
+
+  await t.test('calculateScore', async (t) => {
+    await t.test('should return 0 for empty input', () => {
+      assert.equal(calculateScore([]), 0);
+    });
+
+    await t.test('should return 1 for a single book in one tile', () => {
+      assert.equal(calculateScore([makeBook(['a'])]), 1);
+    });
+
+    await t.test('tiles a,b,c + b,c,d example', () => {
+      const books = [makeBook(['a', 'b', 'c']), makeBook(['b', 'c', 'd'])];
+      // Tile counts: a=1, b=2, c=2, d=1 → 4 unique tiles
+      // Variety: 4
+      // Volume: (H(2)-1) + (H(2)-1) = 0.5 + 0.5 = 1.0
+      // Balance factor: CV of [1,2,2,1] = stdDev/mean = 0.5/1.5 = 0.333...
+      //   → 1/(1+0.333²) = 1/1.111 = 0.9
+      // Score = 4 + 1.0 * 0.9 = 4.9
+      const score = calculateScore(books);
+      assert.ok(Math.abs(score - 4.9) < 0.1);
+    });
+
+    await t.test('balanced reader should score higher than unbalanced', () => {
+      // Balanced: 10 books, 1 per tile across 10 tiles
+      const balanced = Array.from({ length: 10 }, (_, i) =>
+        makeBook([`t${i}`]),
+      );
+      // Unbalanced: 10 books, all in 2 tiles
+      const unbalanced = Array.from({ length: 10 }, (_, i) =>
+        makeBook([i < 5 ? 'a' : 'b']),
+      );
+      assert.ok(calculateScore(balanced) > calculateScore(unbalanced));
+    });
+
+    await t.test('harmonic strategy should not apply balance penalty', () => {
+      const books = [
+        ...Array.from({ length: 5 }, () => makeBook(['a'])),
+        makeBook(['b']),
+      ];
+      const balancedScore = calculateScore(books, 'balanced-harmonic');
+      const harmonicScore = calculateScore(books, 'harmonic');
+      // Harmonic should be >= balanced-harmonic (no penalty)
+      assert.ok(harmonicScore >= balancedScore);
+    });
+
+    await t.test('harmonic and balanced-harmonic should be equal when balanced', () => {
+      const books = [makeBook(['a']), makeBook(['b']), makeBook(['c'])];
+      const balancedScore = calculateScore(books, 'balanced-harmonic');
+      const harmonicScore = calculateScore(books, 'harmonic');
+      // All tiles have count 1, so no volume points. Scores should be equal.
+      assert.equal(balancedScore, harmonicScore);
+    });
   });
 
   await t.test('getScoreBreakdown', async (t) => {
     await t.test('should return zeroed breakdown for empty input', () => {
-      const breakdown = getScoreBreakdown([]);
-
-      assert.equal(breakdown.score, 0);
-      assert.equal(breakdown.basePoints, 0);
-      assert.equal(breakdown.balanceMultiplier, 1);
-      assert.equal(breakdown.totalBooks, 0);
-      assert.equal(breakdown.tileCounts.size, 0);
+      const b = getScoreBreakdown([]);
+      assert.equal(b.score, 0);
+      assert.equal(b.varietyPoints, 0);
+      assert.equal(b.volumePoints, 0);
+      assert.equal(b.balanceFactor, 1);
+      assert.equal(b.totalBooks, 0);
+      assert.equal(b.tileCounts.size, 0);
     });
 
-    await t.test(
-      'should return correct breakdown for a balanced reader',
-      () => {
-        // 1 book per tile across 3 tiles
-        const books = [
-          { title: 'Book 1', tiles: ['t01'] },
-          { title: 'Book 2', tiles: ['t02'] },
-          { title: 'Book 3', tiles: ['t03'] },
-        ] as UserBook[];
-
-        const breakdown = getScoreBreakdown(books);
-
-        // BasePoints: 3 tiles * (1 + log2(1)) = 3
-        // CV = 0 (all counts equal), Multiplier = 1
-        // Score = 3
-        assert.equal(breakdown.totalBooks, 3);
-        assert.equal(breakdown.basePoints, 3);
-        assert.equal(breakdown.balanceMultiplier, 1);
-        assert.equal(breakdown.score, 3);
-        assert.equal(breakdown.tileCounts.size, 3);
-      },
-    );
-
-    await t.test(
-      'should return correct breakdown for an unbalanced reader',
-      () => {
-        // 2 books in each of 5 tiles, 10 books in one tile (20 books, 6 tiles)
-        const books: UserBook[] = [];
-        for (let i = 0; i < 5; i++) {
-          books.push({ title: `Book ${i}`, tiles: [`t${i + 1}`] } as UserBook);
-          books.push({
-            title: `Book ${i + 5}`,
-            tiles: [`t${i + 1}`],
-          } as UserBook);
-        }
-        for (let i = 0; i < 10; i++) {
-          books.push({ title: `Book ${i + 10}`, tiles: ['t06'] } as UserBook);
-        }
-
-        const breakdown = getScoreBreakdown(books);
-
-        // t1-t5: 1 + log2(2) = 2 each = 10
-        // t6: 1 + log2(10) = 1 + 3.3219 = 4.3219
-        // BasePoints = 14.3219
-        assert.equal(breakdown.totalBooks, 20);
-        assert.ok(Math.abs(breakdown.basePoints - 14.32) < 0.01);
-        assert.equal(breakdown.tileCounts.size, 6);
-        assert.equal(breakdown.tileCounts.get('t06'), 10);
-
-        // CV > 0 so multiplier < 1, penalizing imbalance
-        assert.ok(breakdown.balanceMultiplier < 1);
-        assert.ok(breakdown.balanceMultiplier > 0);
-
-        // Score = basePoints * multiplier, should be roughly 7.88
-        assert.ok(Math.abs(breakdown.score - 7.88) < 0.1);
-      },
-    );
-
     await t.test('should be consistent with calculateScore', () => {
-      const books = [
-        { title: 'Book 1', tiles: ['t01', 't02'] },
-        { title: 'Book 2', tiles: ['t02', 't03'] },
-      ] as UserBook[];
-
+      const books = [makeBook(['a', 'b']), makeBook(['b', 'c'])];
       const score = calculateScore(books);
       const breakdown = getScoreBreakdown(books);
-
       assert.equal(breakdown.score, score);
+    });
+
+    await t.test('should be consistent with calculateScore for harmonic', () => {
+      const books = [makeBook(['a', 'b']), makeBook(['b', 'c'])];
+      const score = calculateScore(books, 'harmonic');
+      const breakdown = getScoreBreakdown(books, 'harmonic');
+      assert.equal(breakdown.score, score);
+      assert.equal(breakdown.balanceFactor, 1);
+    });
+
+    await t.test('should report correct tile counts', () => {
+      const books = [makeBook(['a', 'b', 'c']), makeBook(['b', 'c', 'd'])];
+      const b = getScoreBreakdown(books);
+      assert.equal(b.tileCounts.get('a'), 1);
+      assert.equal(b.tileCounts.get('b'), 2);
+      assert.equal(b.tileCounts.get('c'), 2);
+      assert.equal(b.tileCounts.get('d'), 1);
+      assert.equal(b.totalBooks, 2);
+      assert.equal(b.varietyPoints, 4);
     });
   });
 });

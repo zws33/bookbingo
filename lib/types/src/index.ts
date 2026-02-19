@@ -91,12 +91,23 @@ export interface Reading {
 // =============================================================================
 
 /**
+ * The scoring strategy determines how balance affects the score.
+ * - 'balanced-harmonic': Applies a balance factor that penalizes uneven tile distribution
+ * - 'harmonic': Pure harmonic diminishing returns with no balance penalty
+ */
+export type ScoringStrategy = 'harmonic' | 'balanced-harmonic';
+
+/**
  * Detailed breakdown of a score calculation.
  */
 export interface ScoreBreakdown {
   score: number;
-  basePoints: number;
-  balanceMultiplier: number;
+  /** Number of unique tiles with at least one book (1 point each, never penalized) */
+  varietyPoints: number;
+  /** Sum of harmonic diminishing returns for repeat books: Σ (H(countₜ) - 1) */
+  volumePoints: number;
+  /** Balance scaling factor: 1/(1+CV²) for balanced-harmonic, 1.0 for harmonic */
+  balanceFactor: number;
   tileCounts: Map<string, number>;
   totalBooks: number;
 }

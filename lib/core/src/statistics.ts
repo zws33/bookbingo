@@ -50,3 +50,17 @@ export function calculateTileCounts(
   }
   return tileCounts;
 }
+
+/**
+ * Calculates the harmonic sum H(n) = 1 + 1/2 + 1/3 + ... + 1/n.
+ */
+export function harmonicSum(n: number): number {
+  if (n <= 0) {
+    return 0;
+  }
+  let sum = 0;
+  for (let k = 1; k <= n; k++) {
+    sum += 1 / k;
+  }
+  return sum;
+}

@@ -5,6 +5,7 @@ import {
   calculateStdDev,
   calculateCV,
   calculateTileCounts,
+  harmonicSum,
 } from './statistics.js';
 import type { UserBook } from '@bookbingo/lib-types';
 
@@ -58,6 +59,26 @@ test('Statistics Core', async (t) => {
         assert.ok(Math.abs(calculateCV(values) - expectedCV) < 0.001);
       },
     );
+  });
+
+  await t.test('harmonicSum', async (t) => {
+    await t.test('should return 0 for n <= 0', () => {
+      assert.equal(harmonicSum(0), 0);
+      assert.equal(harmonicSum(-1), 0);
+    });
+
+    await t.test('should return 1 for n = 1', () => {
+      assert.equal(harmonicSum(1), 1);
+    });
+
+    await t.test('should return 1.5 for n = 2', () => {
+      assert.equal(harmonicSum(2), 1.5);
+    });
+
+    await t.test('should return correct value for n = 5', () => {
+      const expected = 1 + 1/2 + 1/3 + 1/4 + 1/5;
+      assert.ok(Math.abs(harmonicSum(5) - expected) < 1e-10);
+    });
   });
 
   await t.test('calculateTileCounts', async (t) => {
