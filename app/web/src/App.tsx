@@ -8,6 +8,9 @@ import { BingoBoard } from './components/BingoBoard';
 import { MyBooksPage } from './pages/MyBooksPage';
 import { UsersPage } from './pages/UsersPage';
 import { UserBooksPage } from './pages/UserBooksPage';
+import { StagingBanner } from './components/StagingBanner';
+
+const isStaging = import.meta.env.MODE === 'staging';
 
 function App() {
   const [user, loading, error] = useAuthState(auth);
@@ -47,7 +50,8 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className={`min-h-screen bg-gray-50${isStaging ? ' pt-8' : ''}`}>
+      {isStaging && <StagingBanner />}
       <header className="bg-white shadow">
         <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
           <h1 className="text-xl font-bold text-gray-900">📚 Book Bingo</h1>
