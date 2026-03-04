@@ -8,7 +8,7 @@ const truncate = (s: string, max: number) =>
   s.length > max ? s.slice(0, max) + '…' : s;
 
 function cellColor(count: number): string {
-  if (count === 0) return 'bg-gray-100 text-gray-400';
+  if (count === 0) return 'bg-gray-100 text-gray-600';
   if (count === 1) return 'bg-blue-100 text-blue-800';
   if (count === 2) return 'bg-blue-200 text-blue-900';
   return 'bg-blue-300 text-blue-900';
