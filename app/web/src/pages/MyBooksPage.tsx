@@ -1,10 +1,13 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
+import { getScoreBreakdown } from '@bookbingo/lib-core';
 import { useToast } from '../lib/ToastContext';
 import { useReadings } from '../hooks/useReadings';
 import { createReading } from '../lib/books';
+import { mapReadingsToUserBooks } from '../lib/mappings';
 import { BookList } from '../components/BookList';
 import { Modal } from '../components/Modal';
 import { BookForm, BookFormData } from '../components/BookForm';
+import { ScoreDisplay } from '../components/ScoreDisplay';
 
 interface MyBooksPageProps {
   userId: string;
@@ -15,6 +18,12 @@ export function MyBooksPage({ userId }: MyBooksPageProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { showSuccess, showError } = useToast();
   const { readings, loading, error } = useReadings(userId);
+
+  const scoreBreakdown = useMemo(() => {
+    if (!readings || readings.length === 0) return null;
+    const userBooks = mapReadingsToUserBooks(readings, userId);
+    return getScoreBreakdown(userBooks);
+  }, [readings, userId]);
 
   const handleAddBook = async (data: BookFormData) => {
     setIsSubmitting(true);
@@ -32,12 +41,15 @@ export function MyBooksPage({ userId }: MyBooksPageProps) {
 
   return (
     <>
-      <BookList
-        userId={userId}
-        readings={readings}
-        loading={loading}
-        error={error}
-      />
+      <div className="space-y-6">
+        {scoreBreakdown && <ScoreDisplay breakdown={scoreBreakdown} />}
+        <BookList
+          userId={userId}
+          readings={readings}
+          loading={loading}
+          error={error}
+        />
+      </div>
       <button
         onClick={() => setIsAddModalOpen(true)}
         className="fixed bottom-6 right-6 bg-blue-600 text-white rounded-full p-4 shadow-lg hover:bg-blue-700 transition-colors"
@@ -49,7 +61,10 @@ export function MyBooksPage({ userId }: MyBooksPageProps) {
       </button>
       <Modal
         isOpen={isAddModalOpen}
-        onClose={() => setIsAddModalOpen(false)}
+        onClose={() => {
+          if (isSubmitting) return;
+          setIsAddModalOpen(false);
+        }}
         title="Add Book"
       >
         <BookForm
