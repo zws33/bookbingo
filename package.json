@@ -16,7 +16,9 @@
     "dev:web": "pnpm --filter @bookbingo/web dev",
     "dev:web:emulator": "pnpm --filter @bookbingo/web dev:emulator",
     "dev:web:staging": "pnpm --filter @bookbingo/web dev:staging",
-    "dev:web:prod": "pnpm --filter @bookbingo/web dev:prod"
+    "dev:web:prod": "pnpm --filter @bookbingo/web dev:prod",
+    "deploy:prod": "pnpm --filter @bookbingo/web deploy:prod",
+    "deploy:staging": "pnpm --filter @bookbingo/web deploy:staging"
   },
   "keywords": [],
   "author": "",
