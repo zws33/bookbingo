@@ -8,6 +8,7 @@ import { BingoBoard } from './components/BingoBoard';
 import { MyBooksPage } from './pages/MyBooksPage';
 import { UsersPage } from './pages/UsersPage';
 import { UserBooksPage } from './pages/UserBooksPage';
+import { LeaderboardPage } from './pages/LeaderboardPage';
 import { StagingBanner } from './components/StagingBanner';
 
 const isStaging = import.meta.env.MODE === 'staging';
@@ -104,6 +105,14 @@ function App() {
               >
                 People
               </NavLink>
+              <NavLink
+                to="/leaderboard"
+                className={({ isActive }) =>
+                  `pb-2 text-sm font-medium ${isActive ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700'}`
+                }
+              >
+                Leaderboard
+              </NavLink>
             </div>
 
             <Routes>
@@ -111,6 +120,7 @@ function App() {
               <Route path="/board" element={<BingoBoard readings={readings} />} />
               <Route path="/users" element={<UsersPage />} />
               <Route path="/users/:userId" element={<UserBooksPage />} />
+              <Route path="/leaderboard" element={<LeaderboardPage />} />
             </Routes>
           </>
         ) : (
