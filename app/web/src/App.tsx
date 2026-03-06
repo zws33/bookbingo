@@ -10,6 +10,8 @@ import { UsersPage } from './pages/UsersPage';
 import { UserBooksPage } from './pages/UserBooksPage';
 import { LeaderboardPage } from './pages/LeaderboardPage';
 import { StagingBanner } from './components/StagingBanner';
+import { log } from './lib/logger';
+import { useEffect } from 'react';
 
 const isStaging = import.meta.env.MODE === 'staging';
 
@@ -22,7 +24,7 @@ function App() {
       const result = await signInWithPopup(auth, googleProvider);
       await saveUserProfile(result.user);
     } catch (err) {
-      console.error('Sign in error:', err);
+      log.error('Sign in error:', err);
     }
   };
 
@@ -30,9 +32,15 @@ function App() {
     try {
       await signOut(auth);
     } catch (err) {
-      console.error('Sign out error:', err);
+      log.error('Sign out error:', err);
     }
   };
+
+  useEffect(() => {
+    if (user) {
+      saveUserProfile(user).catch((err) => { log.error('save user error:', err) })
+    }
+  }, [user]);
 
   if (loading) {
     return (
