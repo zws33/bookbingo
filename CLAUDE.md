@@ -120,6 +120,9 @@ Execute the approved plan step by step:
 - Keep changes minimal and aligned with the plan.
 - After each logical change, run the verification chain (see below).
 - If you need to deviate from the plan, **stop**, explain why, and propose a revised plan for approval.
+- Follow a strict Red→Green→Refactor loop for each behavior: write a failing test first, then
+  implement the minimum code to make it pass, then refactor with tests green. Do not write
+  production code that isn't justified by a currently failing test.
 
 At the end:
 
@@ -173,6 +176,20 @@ Treat tests as a first-class part of the plan, not an afterthought.
 - Prefer small, focused test cases with descriptive names.
 - Include happy path, key edge cases, and failure modes.
 - When planning, explicitly state what you will test, where, and what scenarios you will cover.
+
+### TDD Cycle
+
+For every new behavior, follow this order strictly:
+
+1. **Red** — Write a failing test that captures the expected behavior. Do not change production
+   code yet. Confirm the test fails for the right reason.
+2. **Green** — Implement the minimum code required to make the failing test pass. Nothing more.
+   Run the full test suite; all tests must be green before moving on.
+3. **Refactor** — With tests passing, improve the code: rename, extract helpers, remove
+   duplication. Rerun tests after each change to confirm behavior is unchanged.
+
+Complete one full cycle before starting the next behavior. Never write production code that
+isn't justified by a failing test.
 
 ## Git Workflow — Trunk-Based Development
 
