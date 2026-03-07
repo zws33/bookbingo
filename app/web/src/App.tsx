@@ -10,7 +10,7 @@ import { UsersPage } from './pages/UsersPage';
 import { UserBooksPage } from './pages/UserBooksPage';
 import { LeaderboardPage } from './pages/LeaderboardPage';
 import { StagingBanner } from './components/StagingBanner';
-import { log } from './lib/logger';
+import { log } from '@bookbingo/lib-util';
 import { useEffect } from 'react';
 
 const isStaging = import.meta.env.MODE === 'staging';

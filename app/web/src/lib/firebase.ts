@@ -1,7 +1,8 @@
 import { initializeApp } from 'firebase/app';
+import { getAnalytics, logEvent } from 'firebase/analytics';
 import { connectAuthEmulator, getAuth, GoogleAuthProvider } from 'firebase/auth';
 import { connectFirestoreEmulator, getFirestore } from 'firebase/firestore';
-import { log } from './logger';
+import { initLogger, log } from '@bookbingo/lib-util';
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -10,20 +11,32 @@ const firebaseConfig = {
   storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
   messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
   appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID,
 };
-
-log.debug('firebase', 'initializing', {
-  projectId: firebaseConfig.projectId,
-  authDomain: firebaseConfig.authDomain,
-});
 
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
 export const db = getFirestore(app);
 
-if (import.meta.env.VITE_USE_EMULATOR === 'true') {
+const isEmulator = import.meta.env.VITE_USE_EMULATOR === 'true';
+const analytics =
+  !isEmulator && firebaseConfig.measurementId ? getAnalytics(app) : null;
+
+initLogger({
+  isDev: import.meta.env.DEV,
+  dispatch: analytics ? (name, params) => logEvent(analytics, name, params) : null,
+});
+
+log.debug('firebase', 'initializing', {
+  projectId: firebaseConfig.projectId,
+  authDomain: firebaseConfig.authDomain,
+});
+
+if (isEmulator) {
   connectAuthEmulator(auth, 'http://127.0.0.1:9099');
   connectFirestoreEmulator(db, '127.0.0.1', 8080);
   log.debug('firebase', 'connected to local emulators');
 }
+
+export { analytics };

@@ -47,6 +47,9 @@ importers:
       '@bookbingo/lib-types':
         specifier: workspace:*
         version: link:../../lib/types
+      '@bookbingo/lib-util':
+        specifier: workspace:*
+        version: link:../../lib/util
       firebase:
         specifier: ^10.8.0
         version: 10.14.1
@@ -98,6 +101,8 @@ importers:
         version: link:../types
 
   lib/types: {}
+
+  lib/util: {}
 
 packages:
 

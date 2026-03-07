@@ -37,6 +37,7 @@ You are a careful coding partner — a pair programmer, not an autopilot. Optimi
 ```
 lib/types/src/    # Shared TypeScript types (Tile, UserBook, Reading, ScoreBreakdown, etc.)
 lib/core/src/     # Business logic (scoring, validation, statistics, tiles, constants)
+lib/util/src/     # Cross-platform utilities (logger)
 app/web/src/      # React web application (Vite + Firebase)
 docs/             # Design documents
 ```
@@ -218,5 +219,6 @@ When creating PRs, include a summary of changes but do not include a test plan s
 - **Validation** is in `lib/core/src/validation.ts`. Enforce constraints here (e.g., max 3 categories per book, freebie rules).
 - **Tile lookup** is in `lib/core/src/tiles.ts`. Provides `getTileById()` for resolving tile IDs to names.
 - **Shared types** are in `lib/types/src/index.ts`. All type definitions (`Tile`, `UserBook`, `Reading`, `ScoreBreakdown`, etc.) live here.
+- **Logger** is in `lib/util/src/logger.ts` (`@bookbingo/lib-util`). Call `initLogger()` once at app startup (in `firebase.ts`) with a platform-specific dispatcher. Use `log.debug`, `log.error`, and `log.event` everywhere else.
 - When adding new features, start with `lib/` (logic + tests), then wire it into `app/web/` (UI).
 - For larger features, create a planning doc in `docs/` before writing code. This is especially important when the task involves new data models, scoring changes, or architectural decisions.

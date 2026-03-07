@@ -1,0 +1,12 @@
+{
+  "name": "@bookbingo/lib-util",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": ["dist"],
+  "scripts": {
+    "test": "node --import tsx --test \"src/**/*.test.ts\"",
+    "build": "tsc -p tsconfig.build.json"
+  }
+}

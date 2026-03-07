@@ -14,6 +14,7 @@
     "build:staging": "tsc -b tsconfig.build.json && vite build --mode staging",
     "build:prod": "tsc -b tsconfig.build.json && vite build --mode prod",
     "preview": "vite preview",
+    "test": "node --import tsx --test \"src/**/*.test.ts\"",
     "lint": "eslint . --ext ts,tsx --ignore-pattern dist --report-unused-disable-directives --max-warnings 0",
     "deploy:prod": "pnpm run build:prod && firebase deploy --only hosting,firestore:rules",
     "deploy:staging": "pnpm run build:staging && firebase deploy --only hosting,firestore:rules --project staging"
@@ -21,6 +22,7 @@
   "dependencies": {
     "@bookbingo/lib-core": "workspace:*",
     "@bookbingo/lib-types": "workspace:*",
+    "@bookbingo/lib-util": "workspace:*",
     "firebase": "^10.8.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
