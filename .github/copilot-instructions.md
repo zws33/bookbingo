@@ -39,11 +39,12 @@ pnpm run lint && pnpm test && pnpm run typecheck
 
 ## Project Structure
 
-Monorepo with three workspace packages:
+Monorepo with four workspace packages:
 
 ```
 lib/types/src/     # Shared TypeScript types (Tile, UserBook, Reading, ScoreBreakdown)
 lib/core/src/      # Pure business logic (scoring, validation, statistics, tiles)
+lib/util/src/      # Cross-platform utilities (logger — shared across all clients)
 app/web/src/       # React application + Firebase integration
 docs/              # Design documents (SCORING_PLAN.md, etc.)
 ```
@@ -81,6 +82,7 @@ rm -rf lib/*/dist app/*/dist && pnpm run typecheck
 - **Scoring logic**: `lib/core/src/scoring.ts` — Rewards volume and variety
 - **Validation**: `lib/core/src/validation.ts` — Constraints (max 3 categories, etc.)
 - **Tile lookup**: `lib/core/src/tiles.ts` — `getTileById()` utility
+- **Logger**: `lib/util/src/logger.ts` — Call `initLogger()` once at startup; use `log.debug`, `log.error`, `log.event`
 - **Firestore rules**: `app/web/firestore.rules` — Update when data model changes
 - **Design docs**: `docs/SCORING_PLAN.md` — Algorithm rationale
 
