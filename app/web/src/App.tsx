@@ -1,4 +1,4 @@
-import { NavLink, Routes, Route } from 'react-router-dom';
+import { NavLink, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { signInWithPopup, signOut } from 'firebase/auth';
 import { auth, googleProvider } from './lib/firebase';
@@ -6,7 +6,6 @@ import { saveUserProfile } from './lib/users';
 import { useReadings } from './hooks/useReadings';
 import { BingoBoard } from './components/BingoBoard';
 import { MyBooksPage } from './pages/MyBooksPage';
-import { UsersPage } from './pages/UsersPage';
 import { UserBooksPage } from './pages/UserBooksPage';
 import { LeaderboardPage } from './pages/LeaderboardPage';
 import { StagingBanner } from './components/StagingBanner';
@@ -106,14 +105,6 @@ function App() {
                 Bingo Board
               </NavLink>
               <NavLink
-                to="/users"
-                className={({ isActive }) =>
-                  `pb-2 text-sm font-medium ${isActive ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700'}`
-                }
-              >
-                People
-              </NavLink>
-              <NavLink
                 to="/leaderboard"
                 className={({ isActive }) =>
                   `pb-2 text-sm font-medium ${isActive ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700'}`
@@ -126,7 +117,7 @@ function App() {
             <Routes>
               <Route path="/" element={<MyBooksPage userId={user.uid} />} />
               <Route path="/board" element={<BingoBoard readings={readings} />} />
-              <Route path="/users" element={<UsersPage />} />
+              <Route path="/users" element={<Navigate to="/leaderboard" replace />} />
               <Route path="/users/:userId" element={<UserBooksPage />} />
               <Route path="/leaderboard" element={<LeaderboardPage />} />
             </Routes>
