@@ -234,7 +234,8 @@ When creating PRs, include a summary of changes but do not include a test plan s
 
 ## Architecture Guidance
 
-- **Firestore rules** are in `app/web/firestore.rules`. Update them when data model changes.
+- **Firebase config** (`firebase.json`, `.firebaserc`, `firestore.rules`, `firestore.indexes.json`) all live at the repo root. Deploy and emulator commands are run from root via root `package.json` scripts.
+- **Firestore rules** are in `firestore.rules` (repo root). Update them when data model changes.
 - **Scoring logic** is in `lib/core/src/scoring.ts`. The scoring algorithm rewards volume and variety while penalizing imbalance. See `docs/SCORING_PLAN.md` for design rationale.
 - **Validation** is in `lib/core/src/validation.ts`. Enforce constraints here (e.g., max 3 categories per book, freebie rules).
 - **Tile lookup** is in `lib/core/src/tiles.ts`. Provides `getTileById()` for resolving tile IDs to names.
