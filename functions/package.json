@@ -6,8 +6,7 @@
   "main": "lib/index.js",
   "scripts": {
     "build": "tsc -b",
-    "test": "node --import tsx --test \"src/**/*.test.ts\"",
-    "deploy": "firebase deploy --only functions"
+    "test": "node --import tsx --test \"src/**/*.test.ts\""
   },
   "engines": {
     "node": "22"

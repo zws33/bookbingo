@@ -8,7 +8,6 @@
     "dev:emulator": "vite --mode emulator",
     "dev:staging": "vite --mode staging",
     "dev:prod": "vite --mode prod",
-    "emulator:start": "firebase emulators:start --import=./emulator-data --export-on-exit ./emulator-data",
     "emulator:seed": "FIRESTORE_EMULATOR_HOST=localhost:8080 FIREBASE_AUTH_EMULATOR_HOST=localhost:9099 tsx scripts/seed-emulator.ts",
     "build": "pnpm run build:prod",
     "build:staging": "tsc -b tsconfig.build.json && vite build --mode staging",
@@ -18,9 +17,7 @@
     "test:watch": "vitest",
     "test:integration": "vitest run --include 'src/**/*.int.test.*'",
     "test:coverage": "vitest run --coverage",
-    "lint": "eslint . --ext ts,tsx --ignore-pattern dist --report-unused-disable-directives --max-warnings 0",
-    "deploy:prod": "pnpm run build:prod && firebase deploy --only hosting,firestore:rules",
-    "deploy:staging": "pnpm run build:staging && firebase deploy --only hosting,firestore:rules --project staging"
+    "lint": "eslint . --ext ts,tsx --ignore-pattern dist --report-unused-disable-directives --max-warnings 0"
   },
   "dependencies": {
     "@bookbingo/lib-core": "workspace:*",

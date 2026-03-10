@@ -17,8 +17,13 @@
     "dev:web:emulator": "pnpm --filter @bookbingo/web dev:emulator",
     "dev:web:staging": "pnpm --filter @bookbingo/web dev:staging",
     "dev:web:prod": "pnpm --filter @bookbingo/web dev:prod",
-    "deploy:prod": "pnpm --filter @bookbingo/web deploy:prod",
-    "deploy:staging": "pnpm --filter @bookbingo/web deploy:staging"
+    "deploy:staging": "pnpm --filter @bookbingo/web build:staging && firebase deploy --only hosting,firestore:rules --project staging",
+    "deploy:prod": "pnpm --filter @bookbingo/web build:prod && firebase deploy --only hosting,firestore:rules",
+    "deploy:functions": "firebase deploy --only functions",
+    "deploy:all:staging": "pnpm --filter @bookbingo/web build:staging && firebase deploy --project staging",
+    "deploy:all:prod": "pnpm --filter @bookbingo/web build:prod && firebase deploy",
+    "emulator:start": "firebase emulators:start --import=./app/web/emulator-data --export-on-exit ./app/web/emulator-data",
+    "emulator:seed": "pnpm --filter @bookbingo/web emulator:seed"
   },
   "keywords": [],
   "author": "",
