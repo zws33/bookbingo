@@ -1,9 +1,9 @@
-import * as admin from 'firebase-admin';
+import { initializeApp } from 'firebase-admin/app';
 import { onCall } from 'firebase-functions/v2/https';
 import { defineSecret } from 'firebase-functions/params';
 import { submitFeedbackHandler, GITHUB_API_URL } from './handler.js';
 
-admin.initializeApp();
+initializeApp();
 
 const githubPat = defineSecret('GITHUB_PAT');
 
