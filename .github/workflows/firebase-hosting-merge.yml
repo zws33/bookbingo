@@ -22,7 +22,7 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm --filter @bookbingo/web build
+      - run: pnpm --filter @bookbingo/web build:staging
         env:
           VITE_FIREBASE_API_KEY: ${{ secrets.VITE_FIREBASE_API_KEY_STAGING }}
           VITE_FIREBASE_AUTH_DOMAIN: ${{ secrets.VITE_FIREBASE_AUTH_DOMAIN_STAGING }}
@@ -30,6 +30,7 @@ jobs:
           VITE_FIREBASE_STORAGE_BUCKET: ${{ secrets.VITE_FIREBASE_STORAGE_BUCKET_STAGING }}
           VITE_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.VITE_FIREBASE_MESSAGING_SENDER_ID_STAGING }}
           VITE_FIREBASE_APP_ID: ${{ secrets.VITE_FIREBASE_APP_ID_STAGING }}
+          VITE_FIREBASE_MEASUREMENT_ID: ${{ secrets.VITE_FIREBASE_MEASUREMENT_ID_STAGING }}
       - uses: FirebaseExtended/action-hosting-deploy@v0
         id: deploy
         with:
@@ -37,7 +38,7 @@ jobs:
           firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_BOOKBINGO_STAGING }}
           channelId: live
           projectId: bookbingo-staging
-          entryPoint: app/web
+          entryPoint: .
       - name: Display deployment URL
         run: |
           echo "## Deployment Successful! 🚀" >> $GITHUB_STEP_SUMMARY
