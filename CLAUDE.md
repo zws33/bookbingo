@@ -39,12 +39,13 @@ lib/types/src/    # Shared TypeScript types (Tile, UserBook, Reading, ScoreBreak
 lib/core/src/     # Business logic (scoring, validation, statistics, tiles, constants)
 lib/util/src/     # Cross-platform utilities (logger)
 app/web/src/      # React web application (Vite + Firebase)
+functions/src/    # Firebase Cloud Functions (Node.js, ESM)
 docs/             # Design documents
 ```
 
-Each `lib/` and `app/` directory is a separate pnpm workspace package. All source lives under `src/` subdirectories. Packages reference each other as `@bookbingo/*` workspace dependencies (e.g., `@bookbingo/lib-core`, `@bookbingo/lib-types`).
+Each `lib/`, `app/`, and `functions/` directory is a separate pnpm workspace package. All source lives under `src/` subdirectories. Packages reference each other as `@bookbingo/*` workspace dependencies (e.g., `@bookbingo/lib-core`, `@bookbingo/lib-types`).
 
-Business logic lives in `lib/` and is framework-agnostic. The web app in `app/web/` consumes `lib/` and handles UI + Firebase integration. Keep this separation clean — never import React or Firebase in `lib/`.
+Business logic lives in `lib/` and is framework-agnostic. The web app in `app/web/` consumes `lib/` and handles UI + Firebase integration. Keep this separation clean — never import React or Firebase in `lib/`. The `functions/` package is the backend; it uses ESM with `NodeNext` module resolution (separate from the monorepo's root tsconfig chain).
 
 ## TypeScript Build Configuration
 
@@ -57,6 +58,8 @@ Each workspace package has its own `tsconfig.build.json` (for builds) and `tscon
 
 **Critical**: In `tsc --build` mode, each sub-project is compiled using its own tsconfig chain independently. Settings in the root `tsconfig.json` do **not** apply to sub-projects. Any compiler options that sub-projects need (like `paths` for resolving `@bookbingo/*` imports) must be in `tsconfig.build.json`, not just `tsconfig.json`.
 
+**Note on `functions/`**: The `functions/` package uses `NodeNext` module resolution, which is incompatible with the monorepo root's `bundler` resolution. It is therefore excluded from the root `tsconfig.json` `include` glob and typechecked separately via `pnpm --filter @bookbingo/functions exec tsc --noEmit`, which is integrated into `pnpm run typecheck`.
+
 ### Import conventions
 
 - **Cross-package imports**: Use `@bookbingo/*` workspace package names (e.g., `import { TILES } from '@bookbingo/lib-core'`). Do not use `@lib/*` path aliases — those are stale.
@@ -67,7 +70,7 @@ Each workspace package has its own `tsconfig.build.json` (for builds) and `tscon
 - `pnpm test` — run tests across all packages
 - `pnpm run lint` — lint TypeScript files across all packages
 - `pnpm run format` — format with Prettier
-- `pnpm run typecheck` — type-check with `tsc --build --noEmit`
+- `pnpm run typecheck` — type-check `lib/` and `app/web/` with `tsc --build --noEmit`, then `functions/` with `pnpm --filter @bookbingo/functions exec tsc --noEmit`
 - `pnpm run build` — build all packages with `tsc --build`
 - `pnpm run dev:web` — run the web app dev server
 
@@ -237,5 +240,6 @@ When creating PRs, include a summary of changes but do not include a test plan s
 - **Tile lookup** is in `lib/core/src/tiles.ts`. Provides `getTileById()` for resolving tile IDs to names.
 - **Shared types** are in `lib/types/src/index.ts`. All type definitions (`Tile`, `UserBook`, `Reading`, `ScoreBreakdown`, etc.) live here.
 - **Logger** is in `lib/util/src/logger.ts` (`@bookbingo/lib-util`). Call `initLogger()` once at app startup (in `firebase.ts`) with a platform-specific dispatcher. Use `log.debug`, `log.error`, and `log.event` everywhere else.
+- **Feedback / GitHub Issues** — `functions/src/index.ts` contains the `submitFeedback` callable Cloud Function. It reads the `GITHUB_PAT` secret (set via `firebase functions:secrets:set GITHUB_PAT`) and POSTs to the GitHub Issues API. The frontend calls it via `httpsCallable(functions, 'submitFeedback')`. The `FeedbackModal` component in `app/web/src/components/FeedbackModal.tsx` provides the UI.
 - When adding new features, start with `lib/` (logic + tests), then wire it into `app/web/` (UI).
 - For larger features, create a planning doc in `docs/` before writing code. This is especially important when the task involves new data models, scoring changes, or architectural decisions.

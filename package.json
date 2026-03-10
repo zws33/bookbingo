@@ -11,7 +11,7 @@
     "build": "tsc --build",
     "build:libs": "tsc --build lib/*",
     "build:apps": "tsc --build app/*",
-    "typecheck": "tsc --build --noEmit",
+    "typecheck": "tsc --build --noEmit && pnpm --filter @bookbingo/functions exec tsc --noEmit",
     "dev": "pnpm -r dev",
     "dev:web": "pnpm --filter @bookbingo/web dev",
     "dev:web:emulator": "pnpm --filter @bookbingo/web dev:emulator",

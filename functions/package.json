@@ -1,0 +1,22 @@
+{
+  "name": "@bookbingo/functions",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "main": "lib/index.js",
+  "scripts": {
+    "build": "tsc -b",
+    "test": "node --import tsx --test \"src/**/*.test.ts\"",
+    "deploy": "firebase deploy --only functions"
+  },
+  "engines": {
+    "node": "22"
+  },
+  "dependencies": {
+    "firebase-admin": "^13.7.0",
+    "firebase-functions": "^7.1.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.0"
+  }
+}

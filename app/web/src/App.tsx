@@ -9,14 +9,16 @@ import { MyBooksPage } from './pages/MyBooksPage';
 import { UserBooksPage } from './pages/UserBooksPage';
 import { LeaderboardPage } from './pages/LeaderboardPage';
 import { StagingBanner } from './components/StagingBanner';
+import { FeedbackModal } from './components/FeedbackModal';
 import { log } from '@bookbingo/lib-util';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 const isStaging = import.meta.env.MODE === 'staging';
 
 function App() {
   const [user, loading, error] = useAuthState(auth);
   const { readings } = useReadings(user?.uid ?? '');
+  const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
 
   const handleSignIn = async () => {
     try {
@@ -65,6 +67,12 @@ function App() {
           <h1 className="text-xl font-bold text-gray-900">📚 Book Bingo</h1>
           {user && (
             <div className="flex items-center gap-4">
+              <button
+                onClick={() => setIsFeedbackOpen(true)}
+                className="text-sm text-gray-600 hover:text-gray-900"
+              >
+                Send Feedback
+              </button>
               {user.photoURL && (
                 <img
                   src={user.photoURL}
@@ -157,6 +165,7 @@ function App() {
           </div>
         )}
       </main>
+      <FeedbackModal isOpen={isFeedbackOpen} onClose={() => setIsFeedbackOpen(false)} />
     </div>
   );
 }
