@@ -69,7 +69,7 @@ function App() {
             <div className="flex items-center gap-4">
               <button
                 onClick={() => setIsFeedbackOpen(true)}
-                className="text-sm text-gray-600 hover:text-gray-900"
+                className="text-sm text-gray-600 border border-gray-300 rounded-md px-3 py-1.5 hover:bg-gray-50 hover:text-gray-900 transition-colors"
               >
                 Send Feedback
               </button>
@@ -82,7 +82,7 @@ function App() {
               )}
               <button
                 onClick={handleSignOut}
-                className="text-sm text-gray-600 hover:text-gray-900"
+                className="text-sm text-gray-600 border border-gray-300 rounded-md px-3 py-1.5 hover:bg-gray-50 hover:text-gray-900 transition-colors"
               >
                 Sign Out
               </button>
