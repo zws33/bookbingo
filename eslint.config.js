@@ -8,7 +8,7 @@ export default tseslint.config(
   ...tseslint.configs.recommended,
   prettier,
   {
-    ignores: ['coverage/**', 'dist/**'],
+    ignores: ['**/coverage/**', '**/dist/**', 'functions/lib/**'],
   },
   {
     languageOptions: {
@@ -25,6 +25,12 @@ export default tseslint.config(
       parserOptions: {
         projectService: true,
       },
+    },
+    rules: {
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        { argsIgnorePattern: '^_', varsIgnorePattern: '^_' },
+      ],
     },
   },
 );

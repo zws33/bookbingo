@@ -17,7 +17,7 @@
     "test:watch": "vitest",
     "test:integration": "vitest run --include 'src/**/*.int.test.*'",
     "test:coverage": "vitest run --coverage",
-    "lint": "eslint . --ext ts,tsx --ignore-pattern dist --report-unused-disable-directives --max-warnings 0"
+    "lint": "eslint . --max-warnings 0"
   },
   "dependencies": {
     "@bookbingo/lib-core": "workspace:*",

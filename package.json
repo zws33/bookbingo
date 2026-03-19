@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "test": "pnpm -r test",
-    "lint": "pnpm -r lint",
+    "lint": "eslint . --max-warnings 0",
     "format": "prettier --write \"app/**/*.ts\" \"lib/**/*.ts\"",
     "build": "tsc --build",
     "build:libs": "tsc --build lib/*",
