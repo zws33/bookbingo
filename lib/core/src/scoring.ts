@@ -1,4 +1,4 @@
-import type { UserBook, ScoreBreakdown, ScoringStrategy } from '@bookbingo/lib-types';
+import type { ScoringInput, ScoreBreakdown, ScoringStrategy } from '@bookbingo/lib-types';
 import { calculateCV, calculateTileCounts, harmonicSum } from './statistics.js';
 
 const DEFAULT_STRATEGY: ScoringStrategy = 'balanced-harmonic';
@@ -55,13 +55,13 @@ export function calculateBalanceFactor(
  * With 'balanced-harmonic' strategy, balanceFactor = 1/(1+CV²).
  */
 export function calculateScore(
-  userBooks: UserBook[],
+  inputs: ScoringInput[],
   strategy: ScoringStrategy = DEFAULT_STRATEGY,
 ): number {
-  if (!userBooks || userBooks.length === 0) {
+  if (!inputs || inputs.length === 0) {
     return 0;
   }
-  const tileCounts = calculateTileCounts(userBooks);
+  const tileCounts = calculateTileCounts(inputs);
   const varietyPoints = calculateVarietyPoints(tileCounts);
   const volumePoints = calculateVolumePoints(tileCounts);
   const balanceFactor =
@@ -75,10 +75,10 @@ export function calculateScore(
  * Provides a detailed breakdown of the score calculation.
  */
 export function getScoreBreakdown(
-  userBooks: UserBook[],
+  inputs: ScoringInput[],
   strategy: ScoringStrategy = DEFAULT_STRATEGY,
 ): ScoreBreakdown {
-  const totalBooks = userBooks.length;
+  const totalBooks = inputs.length;
   if (totalBooks === 0) {
     return {
       score: 0,
@@ -90,7 +90,7 @@ export function getScoreBreakdown(
     };
   }
 
-  const tileCounts = calculateTileCounts(userBooks);
+  const tileCounts = calculateTileCounts(inputs);
   const varietyPoints = calculateVarietyPoints(tileCounts);
   const volumePoints = calculateVolumePoints(tileCounts);
   const balanceFactor =

@@ -3,11 +3,11 @@ import { getScoreBreakdown } from '@bookbingo/lib-core';
 import { useToast } from '../lib/ToastContext';
 import { useReadings } from '../hooks/useReadings';
 import { createReading } from '../lib/books';
-import { mapReadingsToUserBooks } from '../lib/mappings';
 import { BookList } from '../components/BookList';
 import { Modal } from '../components/Modal';
 import { BookForm, BookFormData } from '../components/BookForm';
 import { ScoreDisplay } from '../components/ScoreDisplay';
+import { log } from '@bookbingo/lib-util';
 
 interface MyBooksPageProps {
   userId: string;
@@ -21,9 +21,8 @@ export function MyBooksPage({ userId }: MyBooksPageProps) {
 
   const scoreBreakdown = useMemo(() => {
     if (!readings || readings.length === 0) return null;
-    const userBooks = mapReadingsToUserBooks(readings, userId);
-    return getScoreBreakdown(userBooks);
-  }, [readings, userId]);
+    return getScoreBreakdown(readings);
+  }, [readings]);
 
   const handleAddBook = async (data: BookFormData) => {
     setIsSubmitting(true);
@@ -33,7 +32,7 @@ export function MyBooksPage({ userId }: MyBooksPageProps) {
       setIsAddModalOpen(false);
     } catch (err) {
       showError('Failed to add book');
-      console.error('Add book error:', err);
+      log.error('Add book error:', err);
     } finally {
       setIsSubmitting(false);
     }

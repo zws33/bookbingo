@@ -7,7 +7,7 @@ import {
   calculateTileCounts,
   harmonicSum,
 } from './statistics.js';
-import type { UserBook } from '@bookbingo/lib-types';
+import type { ScoringInput } from '@bookbingo/lib-types';
 
 test('Statistics Core', async (t) => {
   await t.test('calculateMean', async (t) => {
@@ -83,19 +83,19 @@ test('Statistics Core', async (t) => {
 
   await t.test('calculateTileCounts', async (t) => {
     await t.test('should return an empty map for no books', () => {
-      const userBooks: UserBook[] = [];
-      const tileCounts = calculateTileCounts(userBooks);
+      const inputs: ScoringInput[] = [];
+      const tileCounts = calculateTileCounts(inputs);
       assert.equal(tileCounts.size, 0);
     });
 
     await t.test('should correctly count tiles from a list of books', () => {
-      const userBooks = [
-        { tiles: ['t01', 't02'] },
-        { tiles: ['t01', 't03'] },
-        { tiles: ['t04'] },
-        { tiles: ['t01'] },
-      ] as UserBook[];
-      const tileCounts = calculateTileCounts(userBooks);
+      const inputs: ScoringInput[] = [
+        { tiles: ['t01', 't02'], isFreebie: false },
+        { tiles: ['t01', 't03'], isFreebie: false },
+        { tiles: ['t04'], isFreebie: false },
+        { tiles: ['t01'], isFreebie: false },
+      ];
+      const tileCounts = calculateTileCounts(inputs);
       assert.equal(tileCounts.get('t01'), 3);
       assert.equal(tileCounts.get('t02'), 1);
       assert.equal(tileCounts.get('t03'), 1);

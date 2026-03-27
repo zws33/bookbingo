@@ -8,14 +8,12 @@ test('getTileById', async (t) => {
     assert.ok(tile);
     assert.equal(tile.id, 't01');
     assert.equal(tile.name, 'unfinished reread');
-    assert.equal(tile.isManual, false);
   });
 
-  await t.test('returns correct manual tile', () => {
+  await t.test('returns tile with m-prefix ID', () => {
     const tile = getTileById('m01');
     assert.ok(tile);
     assert.equal(tile.id, 'm01');
-    assert.equal(tile.isManual, true);
   });
 
   await t.test('returns undefined for unknown ID', () => {

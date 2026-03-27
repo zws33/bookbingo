@@ -1,4 +1,4 @@
-import type { UserBook } from '@bookbingo/lib-types';
+import type { ScoringInput } from '@bookbingo/lib-types';
 
 /**
  * Calculates the mean (average) of a list of numbers.
@@ -40,11 +40,11 @@ export function calculateCV(values: number[]): number {
  * Counts the number of books assigned to each tile.
  */
 export function calculateTileCounts(
-  userBooks: UserBook[],
+  inputs: ScoringInput[],
 ): Map<string, number> {
   const tileCounts = new Map<string, number>();
-  for (const book of userBooks) {
-    for (const tileId of book.tiles) {
+  for (const input of inputs) {
+    for (const tileId of input.tiles) {
       tileCounts.set(tileId, (tileCounts.get(tileId) || 0) + 1);
     }
   }

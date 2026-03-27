@@ -12,8 +12,6 @@
 export interface Tile {
   id: string;
   name: string;
-  /** Manual tiles require external verification (e.g., "recommended by a librarian") */
-  isManual: boolean;
 }
 
 // =============================================================================
@@ -35,48 +33,44 @@ export interface User {
 // =============================================================================
 
 /**
- * A book associated with a user, used by the scoring engine in lib/core.
+ * Structured metadata for a book, sourced from external APIs (e.g., Google Books).
  */
-export interface UserBook {
-  id: string;
-  userId: string;
-  title: string;
-  author: string;
-  /** Tile IDs assigned to this book (max 3 unless freebie) */
-  tiles: string[];
-  /** Freebie books can have unlimited tile assignments */
-  isFreebie: boolean;
-  readAt: Date;
+export interface BookMetadata {
+  pageCount: number | null;
+  publishedDate: string | null;
+  categories: string[];
+  language: string | null;
+  isbn: string | null;
+  thumbnailUrl: string | null;
 }
 
-// =============================================================================
-// Firestore Types
-// =============================================================================
-
 /**
- * Shared book metadata (Firestore: /books/{bookId}).
- * Multiple users can reference the same book.
+ * Shared book entity (Firestore: /books/{bookId}).
+ * Multiple users can reference the same book via their readings.
  */
 export interface Book {
   id: string;
   title: string;
   author: string;
-  createdAt: Date;
+  metadata: BookMetadata;
+  /** External catalog ID (e.g., Google Books volume ID) for deduplication */
+  externalId: string | null;
   /** User ID of who first added this book */
   createdBy: string;
+  createdAt: Date;
 }
+
+// =============================================================================
+// Reading Types
+// =============================================================================
 
 /**
  * A user's reading of a book (Firestore: /users/{userId}/readings/{readingId}).
- * Contains user-specific data like tile assignments.
+ * Links a user to a book with user-specific tile assignments.
  */
 export interface Reading {
   id: string;
   bookId: string;
-  /** Denormalized for filtering/display */
-  bookTitle: string;
-  /** Denormalized for filtering/display */
-  bookAuthor: string;
   /** Tile IDs assigned to this reading (max 3 unless freebie) */
   tiles: string[];
   /** Freebie readings can have unlimited tile assignments */
@@ -89,6 +83,14 @@ export interface Reading {
 // =============================================================================
 // Scoring Types
 // =============================================================================
+
+/**
+ * Minimal input for the scoring engine. Any object with tiles and freebie status works.
+ */
+export interface ScoringInput {
+  tiles: string[];
+  isFreebie: boolean;
+}
 
 /**
  * The scoring strategy determines how balance affects the score.

@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom';
 import { getScoreBreakdown } from '@bookbingo/lib-core';
 import { useUsers } from '../hooks/useUsers';
 import { useAllReadings } from '../hooks/useAllReadings';
-import { mapReadingsToUserBooks } from '../lib/mappings';
 
 export function LeaderboardPage() {
   const { users, loading: usersLoading, error: usersError } = useUsers();
@@ -20,8 +19,7 @@ export function LeaderboardPage() {
     return users
       .map((user) => {
         const readings = readingsByUser.get(user.id) ?? [];
-        const userBooks = mapReadingsToUserBooks(readings, user.id);
-        const breakdown = getScoreBreakdown(userBooks);
+        const breakdown = getScoreBreakdown(readings);
         return { user, score: breakdown.score, bookCount: readings.length };
       })
       .sort((a, b) => b.score - a.score);

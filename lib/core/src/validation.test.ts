@@ -6,80 +6,69 @@ import {
   validateFreebie,
   MAX_TILES_PER_BOOK,
 } from './validation.js';
-import type { UserBook } from '@bookbingo/lib-types';
+import type { ScoringInput } from '@bookbingo/lib-types';
 
 test('Validation Core', async (t) => {
   await t.test('canAssignTile', async (t) => {
-    const book: UserBook = {
-      id: '1',
-      userId: 'user1',
-      title: 'The Hobbit',
-      author: 'J.R.R. Tolkien',
+    const input: ScoringInput = {
       tiles: ['t01', 't02'],
       isFreebie: false,
-      readAt: new Date(),
     };
 
     await t.test('should return true for a valid tile assignment', () => {
-      assert.ok(canAssignTile(book, 't03'));
+      assert.ok(canAssignTile(input, 't03'));
     });
 
     await t.test(
       'should return false if the book has reached the tile limit',
       () => {
-        const fullBook: UserBook = { ...book, tiles: ['t01', 't02', 't03'] };
-        assert.equal(canAssignTile(fullBook, 't04'), false);
+        const full: ScoringInput = { ...input, tiles: ['t01', 't02', 't03'] };
+        assert.equal(canAssignTile(full, 't04'), false);
       },
     );
 
     await t.test(
       'should return true if the book is a freebie, even if the tile limit is reached',
       () => {
-        const freebieBook: UserBook = {
-          ...book,
+        const freebie: ScoringInput = {
+          ...input,
           tiles: ['t01', 't02', 't03'],
           isFreebie: true,
         };
-        assert.ok(canAssignTile(freebieBook, 't04'));
+        assert.ok(canAssignTile(freebie, 't04'));
       },
     );
 
     await t.test(
       'should return false if the tile is already assigned to the book',
       () => {
-        assert.equal(canAssignTile(book, 't01'), false);
+        assert.equal(canAssignTile(input, 't01'), false);
       },
     );
 
-    await t.test('should return false for a manual tile', () => {
-      assert.equal(canAssignTile(book, 'm01'), false);
-    });
-
     await t.test('should return false for a non-existent tile', () => {
-      assert.equal(canAssignTile(book, 't99'), false);
+      assert.equal(canAssignTile(input, 't99'), false);
     });
   });
 
   await t.test('validateBookTiles', async (t) => {
     await t.test('should not throw an error for a valid book', () => {
-      const validBook = {
-        title: 'Valid Book',
+      const valid: ScoringInput = {
         tiles: ['t01', 't02'],
         isFreebie: false,
-      } as UserBook;
-      assert.doesNotThrow(() => validateBookTiles(validBook));
+      };
+      assert.doesNotThrow(() => validateBookTiles(valid));
     });
 
     await t.test(
       'should throw an error if a book exceeds the tile limit',
       () => {
-        const invalidBook = {
-          title: 'Invalid Book',
+        const invalid: ScoringInput = {
           tiles: ['t01', 't02', 't03', 't04'],
           isFreebie: false,
-        } as UserBook;
+        };
         assert.throws(
-          () => validateBookTiles(invalidBook),
+          () => validateBookTiles(invalid),
           new RegExp(`exceeds the maximum of ${MAX_TILES_PER_BOOK} tiles`),
         );
       },
@@ -88,23 +77,21 @@ test('Validation Core', async (t) => {
     await t.test(
       'should not throw an error for a freebie book that exceeds the tile limit',
       () => {
-        const freebieBook = {
-          title: 'Freebie Book',
+        const freebie: ScoringInput = {
           tiles: ['t01', 't02', 't03', 't04'],
           isFreebie: true,
-        } as UserBook;
-        assert.doesNotThrow(() => validateBookTiles(freebieBook));
+        };
+        assert.doesNotThrow(() => validateBookTiles(freebie));
       },
     );
 
     await t.test('should throw an error if a book has duplicate tiles', () => {
-      const invalidBook = {
-        title: 'Invalid Book',
+      const invalid: ScoringInput = {
         tiles: ['t01', 't01'],
         isFreebie: false,
-      } as UserBook;
+      };
       assert.throws(
-        () => validateBookTiles(invalidBook),
+        () => validateBookTiles(invalid),
         /has duplicate tile assignments/,
       );
     });
@@ -114,14 +101,14 @@ test('Validation Core', async (t) => {
     await t.test(
       'should not throw an error if there is one or zero freebies',
       () => {
-        const noFreebies = [
-          { isFreebie: false },
-          { isFreebie: false },
-        ] as UserBook[];
-        const oneFreebie = [
-          { isFreebie: true },
-          { isFreebie: false },
-        ] as UserBook[];
+        const noFreebies: ScoringInput[] = [
+          { tiles: [], isFreebie: false },
+          { tiles: [], isFreebie: false },
+        ];
+        const oneFreebie: ScoringInput[] = [
+          { tiles: [], isFreebie: true },
+          { tiles: [], isFreebie: false },
+        ];
         assert.doesNotThrow(() => validateFreebie(noFreebies));
         assert.doesNotThrow(() => validateFreebie(oneFreebie));
       },
@@ -130,10 +117,10 @@ test('Validation Core', async (t) => {
     await t.test(
       'should throw an error if there is more than one freebie',
       () => {
-        const twoFreebies = [
-          { isFreebie: true },
-          { isFreebie: true },
-        ] as UserBook[];
+        const twoFreebies: ScoringInput[] = [
+          { tiles: [], isFreebie: true },
+          { tiles: [], isFreebie: true },
+        ];
         assert.throws(
           () => validateFreebie(twoFreebies),
           /more than one "freebie" book/,

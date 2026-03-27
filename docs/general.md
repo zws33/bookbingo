@@ -13,7 +13,7 @@ Book Bingo is a book reading competition among friends. Users log books they've 
 ## Tech Stack
 
 - **Language**: TypeScript (strict mode, ESM only)
-- **Web app**: React 18 + Vite + Tailwind CSS
+- **Web app**: React 19 + Vite + Tailwind CSS
 - **Backend**: Firebase (Auth, Firestore, Hosting)
 - **Testing**: Node built-in test runner (`node:test` + `node:assert`)
 
@@ -26,9 +26,7 @@ Book Bingo is a book reading competition among friends. Users log books they've 
 
 ## Future Work
 
-- Calculating and displaying current score
 - Suggesting options to rebalance tiles for a higher score
-- Leaderboard of users and their scores
 - Progressive Web App (installable, offline support)
 
 ## Related Docs

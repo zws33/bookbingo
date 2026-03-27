@@ -5,7 +5,6 @@ import { useReadings } from '../hooks/useReadings';
 import { useUserProfile } from '../hooks/useUserProfile';
 import { BookList } from '../components/BookList';
 import { ScoreDisplay } from '../components/ScoreDisplay';
-import { mapReadingsToUserBooks } from '../lib/mappings';
 
 function getFirstName(fullName: string): string {
   return fullName.split(' ')[0] ?? 'User';
@@ -18,8 +17,7 @@ export function UserBooksPage() {
 
   const scoreBreakdown = useMemo(() => {
     if (!userId || !readings || readings.length === 0) return null;
-    const userBooks = mapReadingsToUserBooks(readings, userId);
-    return getScoreBreakdown(userBooks);
+    return getScoreBreakdown(readings);
   }, [userId, readings]);
 
   if (!userId) {

@@ -8,17 +8,12 @@ import {
   getScoreBreakdown,
 } from './scoring.js';
 import { harmonicSum } from './statistics.js';
-import type { UserBook } from '@bookbingo/lib-types';
+import type { ScoringInput } from '@bookbingo/lib-types';
 
-function makeBook(tiles: string[]): UserBook {
+function makeBook(tiles: string[]): ScoringInput {
   return {
-    id: '',
-    userId: '',
-    title: '',
-    author: '',
     tiles,
     isFreebie: false,
-    readAt: new Date(),
   };
 }
 
