@@ -10,6 +10,6 @@
       "@bookbingo/lib-util": ["lib/util/src/index.ts"]
     }
   },
-  "include": ["app/**/*", "lib/**/*", "docs/**/*"],
+  "include": ["app/**/*", "lib/**/*", "docs/**/*", "scripts/**/*"],
   "exclude": ["**/node_modules", "**/dist", "**/build"]
 }

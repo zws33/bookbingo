@@ -4,6 +4,7 @@ import { signInWithPopup, signOut } from 'firebase/auth';
 import { auth, googleProvider } from './lib/firebase';
 import { saveUserProfile } from './lib/users';
 import { useReadings } from './hooks/useReadings';
+import { useBooks } from './hooks/useBooks';
 import { BingoBoard } from './components/BingoBoard';
 import { MyBooksPage } from './pages/MyBooksPage';
 import { UserBooksPage } from './pages/UserBooksPage';
@@ -18,6 +19,7 @@ const isStaging = import.meta.env.MODE === 'staging';
 function App() {
   const [user, loading, error] = useAuthState(auth);
   const { readings } = useReadings(user?.uid ?? '');
+  const { booksById } = useBooks();
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
 
   const handleSignIn = async () => {
@@ -124,7 +126,7 @@ function App() {
 
             <Routes>
               <Route path="/" element={<MyBooksPage userId={user.uid} />} />
-              <Route path="/board" element={<BingoBoard readings={readings} />} />
+              <Route path="/board" element={<BingoBoard readings={readings} booksById={booksById} />} />
               <Route path="/users" element={<Navigate to="/leaderboard" replace />} />
               <Route path="/users/:userId" element={<UserBooksPage />} />
               <Route path="/leaderboard" element={<LeaderboardPage />} />

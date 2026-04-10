@@ -21,7 +21,13 @@ export function useAllReadings(): {
       const userId = doc.ref.parent.parent?.id;
       if (!userId) continue;
 
-      const reading: Reading = { id: doc.id, ...(doc.data() as Omit<Reading, 'id'>) };
+      const data = doc.data();
+      const reading: Reading = {
+        id: doc.id,
+        // Fallback to empty string for legacy data missing bookId
+        bookId: data.bookId || '',
+        ...data,
+      } as Reading;
       const existing = map.get(userId);
       if (existing) {
         existing.push(reading);

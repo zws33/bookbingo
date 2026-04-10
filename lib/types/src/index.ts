@@ -71,6 +71,10 @@ export interface Book {
 export interface Reading {
   id: string;
   bookId: string;
+  /** Legacy field for Parallel Change migration */
+  bookTitle?: string;
+  /** Legacy field for Parallel Change migration */
+  bookAuthor?: string;
   /** Tile IDs assigned to this reading (max 3 unless freebie) */
   tiles: string[];
   /** Freebie readings can have unlimited tile assignments */

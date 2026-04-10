@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useToast } from '../lib/ToastContext';
-import { deleteReading, updateReading } from '../lib/books';
-import { Reading } from '../types';
+import { deleteReading, updateReading, getOrCreateBook } from '../lib/books';
+import { Reading, Book } from '../types';
 import { BookCard } from './BookCard';
 import { BookForm, BookFormData } from './BookForm';
 import { BookRow } from './BookRow';
@@ -9,16 +9,20 @@ import { ConfirmDialog } from './ConfirmDialog';
 import { EmptyState } from './EmptyState';
 import { Modal } from './Modal';
 import { SearchFilter } from './SearchFilter';
+import { log } from '@bookbingo/lib-util';
 
 interface BookListProps {
   userId: string;
   readings: Reading[];
+  booksById: Map<string, Book>;
   loading: boolean;
   error: Error | undefined;
   readOnly?: boolean;
 }
 
-export function BookList({ userId, readings, loading, error, readOnly }: BookListProps) {
+const UNKNOWN_BOOK = { title: 'Unknown Book', author: 'Unknown Author' };
+
+export function BookList({ userId, readings, booksById, loading, error, readOnly }: BookListProps) {
   const [viewMode, setViewMode] = useState<'cards' | 'list'>('cards');
   const [authorFilter, setAuthorFilter] = useState('');
   const [selectedReading, setSelectedReading] = useState<Reading | null>(null);
@@ -29,21 +33,32 @@ export function BookList({ userId, readings, loading, error, readOnly }: BookLis
   const filteredReadings = useMemo(() => {
     if (!authorFilter.trim()) return readings;
     const filter = authorFilter.toLowerCase();
-    return readings.filter((r) =>
-      r.bookAuthor.toLowerCase().includes(filter)
-    );
-  }, [readings, authorFilter]);
+    return readings.filter((r) => {
+      const book = booksById.get(r.bookId);
+      const author = book?.author ?? r.bookAuthor ?? 'Unknown Author';
+      return author.toLowerCase().includes(filter);
+    });
+  }, [readings, authorFilter, booksById]);
 
   const handleEdit = async (data: BookFormData) => {
     if (!selectedReading) return;
     setIsSubmitting(true);
     try {
-      await updateReading(userId, selectedReading.id, data.title, data.author, data.tiles, data.isFreebie);
+      const bookId = await getOrCreateBook(data.title, data.author, userId);
+      await updateReading(
+        userId,
+        selectedReading.id,
+        bookId,
+        data.title,
+        data.author,
+        data.tiles,
+        data.isFreebie,
+      );
       showSuccess('Book updated successfully');
       setSelectedReading(null);
     } catch (err) {
       showErrorToast('Failed to update book');
-      console.error('Update book error:', err);
+      log.error('Update book error:', err);
     } finally {
       setIsSubmitting(false);
     }
@@ -59,7 +74,7 @@ export function BookList({ userId, readings, loading, error, readOnly }: BookLis
       setSelectedReading(null);
     } catch (err) {
       showErrorToast('Failed to delete book');
-      console.error('Delete book error:', err);
+      log.error('Delete book error:', err);
     } finally {
       setIsSubmitting(false);
     }
@@ -72,6 +87,13 @@ export function BookList({ userId, readings, loading, error, readOnly }: BookLis
   if (error) {
     return <div className="text-center py-8 text-red-500">Error: {error.message}</div>;
   }
+
+  const selectedBook = selectedReading
+    ? booksById.get(selectedReading.bookId) ?? {
+        title: selectedReading.bookTitle ?? 'Unknown Book',
+        author: selectedReading.bookAuthor ?? 'Unknown Author',
+      }
+    : UNKNOWN_BOOK;
 
   return (
     <div className="space-y-4">
@@ -115,30 +137,42 @@ export function BookList({ userId, readings, loading, error, readOnly }: BookLis
         )
       ) : viewMode === 'cards' ? (
         <div className="grid gap-4 sm:grid-cols-2">
-          {filteredReadings.map((reading) => (
-            <BookCard
-              key={reading.id}
-              bookTitle={reading.bookTitle}
-              bookAuthor={reading.bookAuthor}
-              tiles={reading.tiles}
-              onClick={readOnly ? undefined : () => setSelectedReading(reading)}
-              readOnly={readOnly}
-            />
-          ))}
+          {filteredReadings.map((reading) => {
+            const book = booksById.get(reading.bookId) ?? {
+              title: reading.bookTitle ?? 'Unknown Book',
+              author: reading.bookAuthor ?? 'Unknown Author',
+            };
+            return (
+              <BookCard
+                key={reading.id}
+                bookTitle={book.title}
+                bookAuthor={book.author}
+                tiles={reading.tiles}
+                onClick={readOnly ? undefined : () => setSelectedReading(reading)}
+                readOnly={readOnly}
+              />
+            );
+          })}
         </div>
       ) : (
         <div className="divide-y divide-gray-200 bg-white rounded-lg shadow">
-          {filteredReadings.map((reading) => (
-            <BookRow
-              key={reading.id}
-              bookTitle={reading.bookTitle}
-              bookAuthor={reading.bookAuthor}
-              tiles={reading.tiles}
-              isFreebie={reading.isFreebie}
-              onClick={readOnly ? undefined : () => setSelectedReading(reading)}
-              readOnly={readOnly}
-            />
-          ))}
+          {filteredReadings.map((reading) => {
+            const book = booksById.get(reading.bookId) ?? {
+              title: reading.bookTitle ?? 'Unknown Book',
+              author: reading.bookAuthor ?? 'Unknown Author',
+            };
+            return (
+              <BookRow
+                key={reading.id}
+                bookTitle={book.title}
+                bookAuthor={book.author}
+                tiles={reading.tiles}
+                isFreebie={reading.isFreebie}
+                onClick={readOnly ? undefined : () => setSelectedReading(reading)}
+                readOnly={readOnly}
+              />
+            );
+          })}
         </div>
       )}
 
@@ -153,8 +187,8 @@ export function BookList({ userId, readings, loading, error, readOnly }: BookLis
               <>
                 <BookForm
                   initialData={{
-                    title: selectedReading.bookTitle,
-                    author: selectedReading.bookAuthor,
+                    title: selectedBook.title,
+                    author: selectedBook.author,
                     tiles: selectedReading.tiles ?? [],
                     isFreebie: selectedReading.isFreebie ?? false,
                   }}
@@ -180,7 +214,7 @@ export function BookList({ userId, readings, loading, error, readOnly }: BookLis
             onClose={() => setShowDeleteConfirm(false)}
             onConfirm={handleDelete}
             title="Delete Book"
-            message={`Are you sure you want to delete "${selectedReading?.bookTitle}"? This action cannot be undone.`}
+            message={`Are you sure you want to delete "${selectedBook.title}"? This action cannot be undone.`}
             confirmLabel="Delete"
           />
         </>

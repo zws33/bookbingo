@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { getScoreBreakdown } from '@bookbingo/lib-core';
 import { useReadings } from '../hooks/useReadings';
+import { useBooks } from '../hooks/useBooks';
 import { useUserProfile } from '../hooks/useUserProfile';
 import { BookList } from '../components/BookList';
 import { ScoreDisplay } from '../components/ScoreDisplay';
@@ -14,6 +15,10 @@ export function UserBooksPage() {
   const { userId } = useParams<{ userId: string }>();
   const { profile, loading: profileLoading } = useUserProfile(userId ?? '');
   const { readings, loading: readingsLoading, error: readingsError } = useReadings(userId ?? '');
+  const { booksById, loading: booksLoading, error: booksError } = useBooks();
+
+  const loading = readingsLoading || booksLoading;
+  const error = readingsError || booksError;
 
   const scoreBreakdown = useMemo(() => {
     if (!userId || !readings || readings.length === 0) return null;
@@ -25,7 +30,7 @@ export function UserBooksPage() {
   }
 
   if (profileLoading) {
-    return <div className="text-center py-8 text-gray-500">Loading...</div>;
+    return <div className="text-center py-8 text-gray-500">Loading profile...</div>;
   }
 
   if (!profile) {
@@ -54,8 +59,9 @@ export function UserBooksPage() {
       <BookList
         userId={userId}
         readings={readings}
-        loading={readingsLoading}
-        error={readingsError}
+        booksById={booksById}
+        loading={loading}
+        error={error}
         readOnly
       />
     </div>

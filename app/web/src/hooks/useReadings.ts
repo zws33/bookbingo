@@ -24,10 +24,15 @@ export function useReadings(userId: string) {
 
   const readings: Reading[] = useMemo(() => {
     if (!snapshot) return [];
-    return snapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    })) as Reading[];
+    return snapshot.docs.map((doc) => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        // Fallback to empty string for legacy data missing bookId
+        bookId: data.bookId || '',
+        ...data,
+      } as Reading;
+    });
   }, [snapshot]);
 
   return { readings, loading, error };

@@ -22,8 +22,9 @@
     "deploy:functions": "firebase deploy --only functions",
     "deploy:all:staging": "pnpm --filter @bookbingo/web build:staging && firebase deploy --project staging",
     "deploy:all:prod": "pnpm --filter @bookbingo/web build:prod && firebase deploy",
-    "emulator:start": "firebase emulators:start --import=./app/web/emulator-data --export-on-exit ./app/web/emulator-data",
-    "emulator:seed": "pnpm --filter @bookbingo/web emulator:seed"
+    "emulator:start": "firebase emulators:start --project demo-bookbingo --import=./emulator-data --export-on-exit ./emulator-data",
+    "emulator:seed": "FIRESTORE_EMULATOR_HOST=localhost:8080 FIREBASE_AUTH_EMULATOR_HOST=localhost:9099 tsx scripts/seed-emulator.ts",
+    "dev:local": "pnpm run emulator:start & sleep 5 && pnpm run dev:web:emulator"
   },
   "keywords": [],
   "author": "",

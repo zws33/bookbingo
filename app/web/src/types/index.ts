@@ -4,11 +4,21 @@ export interface UserProfile {
   photoURL?: string;
 }
 
+export interface Book {
+  id: string;
+  title: string;
+  author: string;
+  createdBy: string;
+  createdAt: Date;
+}
+
 export interface Reading {
   id: string;
   bookId: string;
-  bookTitle: string;
-  bookAuthor: string;
+  /** Legacy field for Parallel Change migration */
+  bookTitle?: string;
+  /** Legacy field for Parallel Change migration */
+  bookAuthor?: string;
   tiles: string[];
   isFreebie: boolean;
   readAt: Date;

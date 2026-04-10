@@ -7,14 +7,20 @@
  * Run with:
  *   pnpm --filter @bookbingo/web test:integration
  */
-import { describe, it, expect, afterEach } from 'vitest';
+import { describe, it, expect, afterEach, beforeAll } from 'vitest';
 import { doc, getDoc, deleteDoc } from 'firebase/firestore';
-import { db } from './firebase';
-import { createReading, updateReading, deleteReading } from './books';
+import { signInAnonymously } from 'firebase/auth';
+import { db, auth } from './firebase';
+import { createReading, updateReading, deleteReading, getOrCreateBook } from './books';
 
 // Each test uses a unique userId to avoid cross-test interference
 let createdReadingId: string | null = null;
-const TEST_USER_ID = `test-user-int-${Date.now()}`;
+let TEST_USER_ID: string;
+
+beforeAll(async () => {
+  const userCredential = await signInAnonymously(auth);
+  TEST_USER_ID = userCredential.user.uid;
+});
 
 afterEach(async () => {
   if (createdReadingId) {
@@ -25,51 +31,89 @@ afterEach(async () => {
 
 describe('books integration (emulator)', () => {
   it('createReading writes correct fields to Firestore', async () => {
+    const bookTitle = 'The Left Hand of Darkness';
+    const bookAuthor = 'Ursula K. Le Guin';
+    
+    const bookId = await getOrCreateBook(bookTitle, bookAuthor, TEST_USER_ID);
+    expect(bookId).toBeTruthy();
+
     createdReadingId = await createReading(
       TEST_USER_ID,
-      'The Left Hand of Darkness',
-      'Ursula K. Le Guin',
+      bookId,
+      bookTitle,
+      bookAuthor,
       ['sci-fi'],
       false,
     );
 
     expect(createdReadingId).toBeTruthy();
 
-    const snap = await getDoc(doc(db, 'users', TEST_USER_ID, 'readings', createdReadingId));
-    expect(snap.exists()).toBe(true);
-    const data = snap.data()!;
-    expect(data.bookTitle).toBe('The Left Hand of Darkness');
-    expect(data.bookAuthor).toBe('Ursula K. Le Guin');
-    expect(data.tiles).toEqual(['sci-fi']);
-    expect(data.isFreebie).toBe(false);
-    expect(data.createdAt).toBeTruthy();
+    // Verify reading doc
+    const readingSnap = await getDoc(doc(db, 'users', TEST_USER_ID, 'readings', createdReadingId));
+    expect(readingSnap.exists()).toBe(true);
+    const readingData = readingSnap.data()!;
+    expect(readingData.bookId).toBe(bookId);
+    expect(readingData.bookTitle).toBe(bookTitle);
+    expect(readingData.bookAuthor).toBe(bookAuthor);
+    expect(readingData.tiles).toEqual(['sci-fi']);
+    expect(readingData.isFreebie).toBe(false);
+    expect(readingData.createdAt).toBeTruthy();
+
+    // Verify book doc
+    const bookSnap = await getDoc(doc(db, 'books', bookId));
+    expect(bookSnap.exists()).toBe(true);
+    const bookData = bookSnap.data()!;
+    expect(bookData.title).toBe(bookTitle);
+    expect(bookData.author).toBe(bookAuthor);
+    expect(bookData.titleLower).toBe(bookTitle.toLowerCase());
+    expect(bookData.authorLower).toBe(bookAuthor.toLowerCase());
   });
 
-  it('updateReading updates title, author, tiles, and sets updatedAt', async () => {
+  it('updateReading updates bookId, tiles, and sets updatedAt', async () => {
+    const oldTitle = 'Old Title';
+    const oldAuthor = 'Old Author';
+    const oldBookId = await getOrCreateBook(oldTitle, oldAuthor, TEST_USER_ID);
     createdReadingId = await createReading(
       TEST_USER_ID,
-      'Old Title',
-      'Old Author',
+      oldBookId,
+      oldTitle,
+      oldAuthor,
       ['mystery'],
       false,
     );
 
-    await updateReading(TEST_USER_ID, createdReadingId, 'New Title', 'New Author', ['sci-fi'], true);
+    const newTitle = 'New Title';
+    const newAuthor = 'New Author';
+    const newBookId = await getOrCreateBook(newTitle, newAuthor, TEST_USER_ID);
+    await updateReading(
+      TEST_USER_ID,
+      createdReadingId,
+      newBookId,
+      newTitle,
+      newAuthor,
+      ['sci-fi'],
+      true,
+    );
 
     const snap = await getDoc(doc(db, 'users', TEST_USER_ID, 'readings', createdReadingId));
     const data = snap.data()!;
-    expect(data.bookTitle).toBe('New Title');
-    expect(data.bookAuthor).toBe('New Author');
+    expect(data.bookId).toBe(newBookId);
+    expect(data.bookTitle).toBe(newTitle);
+    expect(data.bookAuthor).toBe(newAuthor);
     expect(data.tiles).toEqual(['sci-fi']);
     expect(data.isFreebie).toBe(true);
     expect(data.updatedAt).toBeTruthy();
   });
 
   it('deleteReading removes the document', async () => {
+    const title = 'To Be Deleted';
+    const author = 'Some Author';
+    const bookId = await getOrCreateBook(title, author, TEST_USER_ID);
     createdReadingId = await createReading(
       TEST_USER_ID,
-      'To Be Deleted',
-      'Some Author',
+      bookId,
+      title,
+      author,
       [],
       false,
     );

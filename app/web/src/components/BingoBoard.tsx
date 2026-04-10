@@ -1,14 +1,17 @@
 import { useState, useMemo } from 'react';
 import { TILES } from '@bookbingo/lib-core';
-import { Reading } from '../types';
+import { Reading, Book } from '../types';
 import { BoardCell } from './BoardCell';
 import { Modal } from './Modal';
 
 interface BingoBoardProps {
   readings: Reading[];
+  booksById: Map<string, Book>;
 }
 
-export function BingoBoard({ readings }: BingoBoardProps) {
+const UNKNOWN_BOOK = { title: 'Unknown Book', author: 'Unknown Author' };
+
+export function BingoBoard({ readings, booksById }: BingoBoardProps) {
   const [selectedTileId, setSelectedTileId] = useState<string | null>(null);
 
   const tileReadings = useMemo(() => {
@@ -53,12 +56,15 @@ export function BingoBoard({ readings }: BingoBoardProps) {
           <p className="text-gray-500">No books tagged with this tile yet.</p>
         ) : (
           <ul className="divide-y divide-gray-100">
-            {selectedBooks.map((reading) => (
-              <li key={reading.id} className="py-2">
-                <div className="font-medium text-gray-900">{reading.bookTitle}</div>
-                <div className="text-sm text-gray-500">{reading.bookAuthor}</div>
-              </li>
-            ))}
+            {selectedBooks.map((reading) => {
+              const book = booksById.get(reading.bookId) ?? UNKNOWN_BOOK;
+              return (
+                <li key={reading.id} className="py-2">
+                  <div className="font-medium text-gray-900">{book.title}</div>
+                  <div className="text-sm text-gray-500">{book.author}</div>
+                </li>
+              );
+            })}
           </ul>
         )}
       </Modal>

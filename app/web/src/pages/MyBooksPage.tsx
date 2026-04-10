@@ -2,7 +2,8 @@ import { useState, useMemo } from 'react';
 import { getScoreBreakdown } from '@bookbingo/lib-core';
 import { useToast } from '../lib/ToastContext';
 import { useReadings } from '../hooks/useReadings';
-import { createReading } from '../lib/books';
+import { useBooks } from '../hooks/useBooks';
+import { createReading, getOrCreateBook } from '../lib/books';
 import { BookList } from '../components/BookList';
 import { Modal } from '../components/Modal';
 import { BookForm, BookFormData } from '../components/BookForm';
@@ -17,7 +18,11 @@ export function MyBooksPage({ userId }: MyBooksPageProps) {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { showSuccess, showError } = useToast();
-  const { readings, loading, error } = useReadings(userId);
+  const { readings, loading: readingsLoading, error: readingsError } = useReadings(userId);
+  const { booksById, loading: booksLoading, error: booksError } = useBooks();
+
+  const loading = readingsLoading || booksLoading;
+  const error = readingsError || booksError;
 
   const scoreBreakdown = useMemo(() => {
     if (!readings || readings.length === 0) return null;
@@ -27,7 +32,8 @@ export function MyBooksPage({ userId }: MyBooksPageProps) {
   const handleAddBook = async (data: BookFormData) => {
     setIsSubmitting(true);
     try {
-      await createReading(userId, data.title, data.author, data.tiles, data.isFreebie);
+      const bookId = await getOrCreateBook(data.title, data.author, userId);
+      await createReading(userId, bookId, data.title, data.author, data.tiles, data.isFreebie);
       showSuccess('Book added successfully');
       setIsAddModalOpen(false);
     } catch (err) {
@@ -45,6 +51,7 @@ export function MyBooksPage({ userId }: MyBooksPageProps) {
         <BookList
           userId={userId}
           readings={readings}
+          booksById={booksById}
           loading={loading}
           error={error}
         />

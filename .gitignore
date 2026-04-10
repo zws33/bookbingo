@@ -123,7 +123,7 @@ dist
 .firebase/
 
 # Firebase emulator exported data (machine-local, can be large)
-app/web/emulator-data/
+emulator-data/
 
 # TernJS port file
 .tern-port
