@@ -19,10 +19,13 @@ You are a careful coding partner — a pair programmer, not an autopilot. Optimi
 ## Project Structure
 
 ```
-lib/types/src/    # Shared TypeScript types (Tile, UserBook, Reading, ScoreBreakdown, etc.)
+lib/types/src/    # Shared TypeScript types (expanded for migration)
 lib/core/src/     # Business logic (scoring, validation, statistics, tiles, constants)
 app/web/src/      # React web application (Vite + Firebase)
-docs/             # Design documents
+scripts/          # Root-level management scripts (e.g. seeding)
+emulator-data/    # Shared emulator data (imported/exported)
+docs/             # Project documentation and planning
+docs/archive/     # Obsolete or completed project records
 ```
 
 Each `lib/` and `app/` directory is a separate pnpm workspace package. All source lives under `src/` subdirectories. Packages reference each other as `@bookbingo/*` workspace dependencies (e.g., `@bookbingo/lib-core`, `@bookbingo/lib-types`).
@@ -47,12 +50,16 @@ Each workspace package has its own `tsconfig.build.json` (for builds) and `tscon
 
 ## Commands
 
-- `pnpm test` — run tests across all packages
+- `pnpm test` — run unit tests across all packages
+- `pnpm run test:integration` — run integration tests (requires emulator)
 - `pnpm run lint` — lint TypeScript files across all packages
 - `pnpm run format` — format with Prettier
 - `pnpm run typecheck` — type-check with `tsc --build --noEmit`
 - `pnpm run build` — build all packages with `tsc --build`
 - `pnpm run dev:web` — run the web app dev server
+- `pnpm run dev:local` — start emulator and web dev server together
+- `pnpm run emulator:start` — start Firebase emulators (root data/scripts)
+- `pnpm run emulator:seed` — seed emulators with test data
 
 ## Task Workflow
 
@@ -121,7 +128,7 @@ At the end:
 **After every code change**, run the full verification chain before committing:
 
 ```
-pnpm run lint && pnpm test && pnpm run typecheck
+pnpm run lint && pnpm test && pnpm run test:integration && pnpm run typecheck
 ```
 
 Do not commit code that:

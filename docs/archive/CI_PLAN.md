@@ -1,5 +1,7 @@
 # CI Plan
 
+**Status: Completed** (Implemented in `.github/workflows/ci.yml`)
+
 ## Problem
 
 The only existing GitHub Actions workflow (`firebase-hosting-merge.yml`) is a deploy pipeline.

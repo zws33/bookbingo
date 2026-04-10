@@ -293,15 +293,16 @@ The user does NOT manually pick which 3 tiles are "active." They curate eligible
 ### Phase 1: Enriched Book Model + Migration
 - Remove `isManual` from `Tile` type and all tile definitions
 - Remove `UserBook` type; introduce `ScoringInput` for scoring engine
-- Remove `bookTitle`/`bookAuthor` from `Reading`; add `bookId` reference
+- Relax `Reading` type to include optional `bookTitle`/`bookAuthor`; add `bookId` reference
 - Add `BookMetadata` interface and enrich `Book` type
 - Update scoring engine, validation, and statistics to use `ScoringInput`
 - Create `/books/` Firestore collection and update `firestore.rules`
-- Update data layer (`createReading`, `updateReading`) to create/link Book docs
+- Implement **Dual Writing** in `createReading` and `updateReading` to support both `bookId` and legacy fields
+- Implement **Cooperative UI** fallbacks in `BookList`, `BookCard`, and `BookRow`
 - Add `useBooks()` hook; update pages/components to join readings with books
 - Remove `mapReadingsToUserBooks` mapping layer
-- Write and run migration script for existing data
-- Update all tests and fixtures
+- Create and run migration script for existing data (Phase 2)
+- Update all tests and fixtures to support dual-writing assertions
 
 ### Phase 2: Community Library (issue #36)
 - New `/library` route, `LibraryPage` component, and navigation tab

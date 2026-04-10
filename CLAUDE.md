@@ -15,13 +15,17 @@ Book reading bingo card tracker — a hobby project for a book club competition 
 ## Project Structure
 
 ```
-lib/types/src/    # Shared TypeScript types (Tile, UserBook, Reading, ScoreBreakdown, etc.)
+lib/types/src/    # Shared TypeScript types (Tile, UserBook, Reading, etc.)
 lib/core/src/     # Business logic (scoring, validation, statistics, tiles, constants)
 lib/util/src/     # Cross-platform utilities (logger)
 app/web/src/      # React web application (Vite + Firebase)
 functions/src/    # Firebase Cloud Functions (Node.js, ESM)
-docs/             # Design documents
+scripts/          # Root-level management scripts (e.g., seeding)
+emulator-data/    # Shared emulator data (imported/exported)
+docs/             # Project documentation and planning
+docs/archive/     # Obsolete or completed project records
 ```
+
 
 Each `lib/`, `app/`, and `functions/` directory is a separate pnpm workspace package. All source lives under `src/` subdirectories. Packages reference each other as `@bookbingo/*` workspace dependencies (e.g., `@bookbingo/lib-core`, `@bookbingo/lib-types`).
 
@@ -47,12 +51,16 @@ Each workspace package has its own `tsconfig.build.json` (for builds) and `tscon
 
 ## Commands
 
-- `pnpm test` — run tests across all packages
+- `pnpm test` — run unit tests across all packages
+- `pnpm run test:integration` — run integration tests (requires emulator)
 - `pnpm run lint` — lint all packages (ESLint from repo root)
 - `pnpm run format` — format with Prettier
 - `pnpm run typecheck` — type-check `lib/` and `app/web/` with `tsc --build --noEmit`, then `functions/` separately
 - `pnpm run build` — build all packages with `tsc --build`
 - `pnpm run dev:web` — run the web app dev server
+- `pnpm run dev:local` — start emulator and web dev server together
+- `pnpm run emulator:start` — start Firebase emulators (root data/scripts)
+- `pnpm run emulator:seed` — seed emulators with test data
 
 ## Task Workflow Addenda
 
