@@ -23,10 +23,10 @@ export function useAllReadings(): {
 
       const data = doc.data();
       const reading: Reading = {
-        id: doc.id,
+        ...data,
         // Fallback to empty string for legacy data missing bookId
         bookId: data.bookId || '',
-        ...data,
+        id: doc.id,
       } as Reading;
       const existing = map.get(userId);
       if (existing) {

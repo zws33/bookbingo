@@ -14,60 +14,15 @@ Bugs are grouped by severity. Resolved items should be moved to the archive.
 | B6 | `scripts/migrate-readings.ts` | "Shared Books Created" counter corrected to distinguish between unique books processed and new creations. |
 | B7 | `app/web/src/lib/books.ts` | Redundant `id` field removed from Firestore documents; hydration fixed in `getBook`. |
 | S1 | `lib/types/src/index.ts` | `metadata` and `externalId` marked optional in `Book` type to reflect current data state. |
+| B3 | `app/web/src/hooks/useReadings.ts` | Reading hooks fixed to prevent internal `id` field from overwriting document ID. |
+| B4 | `firestore.rules` | Migrated books allowed to be updated by any authenticated user (escape hatch). |
+| B5 | `scripts/migrate-readings.ts` | Dry-run mode now caches fake IDs to provide accurate log output and statistics. |
 
 ---
 
 ## Open — Medium
 
-### B3 — `useReadings` + `useAllReadings`: spread overwrites `id`
-**Files:** `app/web/src/hooks/useReadings.ts:29`, `app/web/src/hooks/useAllReadings.ts:26`
-
-The `id: doc.id` assignment is placed **before** `...data` in the spread. If the Firestore document has a stored `id` field, it silently overwrites `doc.id`.
-
-Currently benign: seeded data uses `doc(readingsRef, reading.bookId)` so `doc.id === data.id`; `addDoc`-created readings have no stored `id`. But the invariant is fragile.
-
-**Fix:** move `id: doc.id` after the spread so it always wins:
-```ts
-return {
-  ...data,
-  bookId: data.bookId || '',
-  id: doc.id,
-} as Reading;
-```
-Apply the same fix to `useAllReadings`.
-
----
-
-### B4 — Firestore rules: migration books are permanently un-updatable
-**File:** `firestore.rules:9`
-
-```
-allow update: if request.auth != null && request.auth.uid == resource.data.createdBy;
-```
-
-The migration script creates books with `createdBy: 'system-migration'`. No real user has that UID, so any book the script creates can never be updated through the app — including during Phase 3 cleanup or if a user needs to correct a title/author.
-
-**Options (pick one):**
-- Set `createdBy` to the resolving user's UID in the migration script (requires passing a sentinel user ID)
-- Relax the rule to allow any authenticated user to update any book: `allow update: if request.auth != null`
-- Add an escape hatch: also allow update when `resource.data.createdBy == 'system-migration'`
-
----
-
-### B5 — `migrate-readings.ts`: dry-run fake IDs aren't cached
-**File:** `scripts/migrate-readings.ts:70-73`
-
-`findOrCreateBookId` returns a fake ID in dry-run mode without caching it. If 10 readings reference the same book that doesn't exist yet, the dry-run logs "Would create book: X" 10 times instead of once — inflating the apparent creation count and making the output misleading.
-
-**Fix:** cache the fake ID before returning:
-```ts
-if (DRY_RUN) {
-  const fakeId = `dry-run-${titleLower}`;
-  bookCache.set(key, fakeId);
-  console.log(`  [DRY-RUN] Would create book: "${title}" by ${author}`);
-  return fakeId;
-}
-```
+(None)
 
 ---
 
