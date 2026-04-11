@@ -52,9 +52,9 @@ export interface Book {
   id: string;
   title: string;
   author: string;
-  metadata: BookMetadata;
+  metadata?: BookMetadata;
   /** External catalog ID (e.g., Google Books volume ID) for deduplication */
-  externalId: string | null;
+  externalId?: string | null;
   /** User ID of who first added this book */
   createdBy: string;
   createdAt: Date;

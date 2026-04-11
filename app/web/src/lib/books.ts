@@ -14,6 +14,7 @@ import {
 } from 'firebase/firestore';
 import { db } from './firebase';
 import { log } from '@bookbingo/lib-util';
+import { Book } from '@bookbingo/lib-types';
 
 export async function getOrCreateBook(
   title: string,
@@ -40,7 +41,6 @@ export async function getOrCreateBook(
   // 2. Create new book if not found
   const newBookRef = doc(collection(db, 'books'));
   await setDoc(newBookRef, {
-    id: newBookRef.id,
     title: title.trim(),
     author: author.trim(),
     titleLower,
@@ -57,7 +57,10 @@ export async function getBook(bookId: string) {
   if (!snap.exists()) {
     return null;
   }
-  return snap.data();
+  return {
+    id: snap.id,
+    ...snap.data(),
+  } as Book;
 }
 
 export async function createReading(

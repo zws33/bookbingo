@@ -14,6 +14,16 @@ const UNKNOWN_BOOK = { title: 'Unknown Book', author: 'Unknown Author' };
 export function BingoBoard({ readings, booksById }: BingoBoardProps) {
   const [selectedTileId, setSelectedTileId] = useState<string | null>(null);
 
+  const tileReadingCounts = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const reading of readings) {
+      for (const tileId of reading.tiles) {
+        map.set(tileId, (map.get(tileId) ?? 0) + 1);
+      }
+    }
+    return map;
+  }, [readings]);
+
   const selectedTile = selectedTileId ? getTileById(selectedTileId) : null;
   const selectedBooks = useMemo(() => {
     if (!selectedTileId) return [];
@@ -23,21 +33,18 @@ export function BingoBoard({ readings, booksById }: BingoBoardProps) {
   return (
     <>
       <div className="grid grid-cols-5 gap-1 sm:gap-2 max-w-2xl mx-auto p-1 sm:p-2 bg-gray-100 rounded-lg shadow-inner">
-        {TILES.map((tile) => {
-          const reading = readings.find((r) => r.tiles.includes(tile.id));
-          return (
-            <BoardCell
-              key={tile.id}
-              tileName={tile.name}
-              bookCount={reading ? 1 : 0} // Assuming 1 book per tile for board view
-              onClick={() => setSelectedTileId(tile.id)}
-            />
-          );
-        })}
+        {TILES.map((tile) => (
+          <BoardCell
+            key={tile.id}
+            tileName={tile.name}
+            bookCount={tileReadingCounts.get(tile.id) ?? 0}
+            onClick={() => setSelectedTileId(tile.id)}
+          />
+        ))}
       </div>
 
       <Modal
-        isOpen={selectedTile !== undefined}
+        isOpen={selectedTileId !== null}
         onClose={() => setSelectedTileId(null)}
         title={selectedTile?.name ?? ''}
       >

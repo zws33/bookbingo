@@ -33,6 +33,7 @@ function normalize(val: string): string {
  * Local cache to avoid redundant queries and creations for the same book within a single run.
  */
 const bookCache = new Map<string, string>(); // normalizationKey -> bookId
+let newBooksCreated = 0;
 
 /**
  * Generates a consistent key for looking up books in the cache.
@@ -82,6 +83,7 @@ async function findOrCreateBookId(title: string, author: string): Promise<string
   });
 
   const newId = newBookRef.id;
+  newBooksCreated++;
   bookCache.set(key, newId);
   return newId;
 }
@@ -162,8 +164,9 @@ async function run() {
   console.log(`- Total Readings Processed: ${processedCount}`);
   console.log(`- Readings Updated:         ${updatedCount}`);
   console.log(`- Readings Skipped:         ${skippedCount}`);
+  console.log(`- Unique Books Processed:   ${bookCache.size}`);
   if (!DRY_RUN) {
-    console.log(`- Shared Books Created:     ${bookCache.size}`); // Local cache size approx equals books handled
+    console.log(`- New Shared Books Created: ${newBooksCreated}`);
   }
   
   console.log(`\nFinished.`);
