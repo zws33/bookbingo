@@ -69,8 +69,10 @@ async function findOrCreateBookId(title: string, author: string): Promise<string
 
   // 3. Create new shared book (unless dry-run)
   if (DRY_RUN) {
+    const fakeId = `new-book-id-for-${titleLower}`;
     console.log(`  [DRY-RUN] Would create book: "${title}" by ${author}`);
-    return `new-book-id-for-${titleLower}`;
+    bookCache.set(key, fakeId);
+    return fakeId;
   }
 
   const newBookRef = await booksRef.add({

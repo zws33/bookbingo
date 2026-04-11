@@ -27,10 +27,10 @@ export function useReadings(userId: string) {
     return snapshot.docs.map((doc) => {
       const data = doc.data();
       return {
-        id: doc.id,
+        ...data,
         // Fallback to empty string for legacy data missing bookId
         bookId: data.bookId || '',
-        ...data,
+        id: doc.id,
       } as Reading;
     });
   }, [snapshot]);

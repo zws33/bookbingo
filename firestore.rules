@@ -6,7 +6,7 @@ service cloud.firestore {
     match /books/{bookId} {
       allow read, list: if request.auth != null;
       allow create: if request.auth != null;
-      allow update: if request.auth != null && request.auth.uid == resource.data.createdBy;
+      allow update: if request.auth != null && (request.auth.uid == resource.data.createdBy || resource.data.createdBy == 'system-migration');
     }
 
     // User profiles and their private readings
