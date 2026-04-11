@@ -50,6 +50,7 @@ Each workspace package has its own `tsconfig.build.json` (for builds) and `tscon
 
 ## Commands
 
+- `pnpm run verify` — run full verification suite (lint, test, test:integration, typecheck)
 - `pnpm test` — run unit tests across all packages
 - `pnpm run test:integration` — run integration tests (requires emulator)
 - `pnpm run lint` — lint TypeScript files across all packages
@@ -128,7 +129,7 @@ At the end:
 **After every code change**, run the full verification chain before committing:
 
 ```
-pnpm run lint && pnpm test && pnpm run test:integration && pnpm run typecheck
+pnpm run verify
 ```
 
 Do not commit code that:
@@ -192,7 +193,7 @@ Each commit is a **small, meaningful, self-contained unit of work**. Think of co
 
 1. Before starting work, check `git status` and `git log` to understand the current state.
 2. Make a focused change.
-3. Run verification: `pnpm run lint && pnpm test && pnpm run typecheck`.
+3. Run verification: `pnpm run verify`.
 4. Commit with a descriptive conventional commit message.
 5. Repeat. Small loops, steady progress.
 

@@ -51,6 +51,7 @@ Each workspace package has its own `tsconfig.build.json` (for builds) and `tscon
 
 ## Commands
 
+- `pnpm run verify` — run full verification suite (lint, test, test:integration, typecheck)
 - `pnpm test` — run unit tests across all packages
 - `pnpm run test:integration` — run integration tests (requires emulator)
 - `pnpm run lint` — lint all packages (ESLint from repo root)
@@ -80,7 +81,7 @@ Task workflow follows the standard 4-phase process (Clarify → Research → Pla
 **After every code change**, run the full verification chain before committing:
 
 ```
-pnpm run lint && pnpm test && pnpm run typecheck
+pnpm run verify
 ```
 
 Do not commit code that fails checks, contains `console.log` debug statements, or has not been formatted with Prettier.
