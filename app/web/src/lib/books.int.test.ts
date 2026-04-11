@@ -122,6 +122,6 @@ describe('books integration (emulator)', () => {
 
     const snap = await getDoc(doc(db, 'users', TEST_USER_ID, 'readings', createdReadingId));
     expect(snap.exists()).toBe(false);
-    createdReadingId = null; // already deleted, skip afterEach cleanup
+    createdReadingId = null;
   });
 });

@@ -24,6 +24,7 @@
     "deploy:all:prod": "pnpm --filter @bookbingo/web build:prod && firebase deploy",
     "emulator:start": "firebase emulators:start --project demo-bookbingo --import=./emulator-data --export-on-exit ./emulator-data",
     "emulator:seed": "FIRESTORE_EMULATOR_HOST=localhost:8080 FIREBASE_AUTH_EMULATOR_HOST=localhost:9099 tsx scripts/seed-emulator.ts",
+    "migrate:readings": "FIRESTORE_EMULATOR_HOST=localhost:8080 tsx scripts/migrate-readings.ts",
     "dev:local": "pnpm run emulator:start & sleep 5 && pnpm run dev:web:emulator"
   },
   "keywords": [],
@@ -42,5 +43,8 @@
     "typescript": "^5.4.0",
     "typescript-eslint": "^8.18.0",
     "vite-tsconfig-paths": "^6.1.1"
+  },
+  "dependencies": {
+    "firebase-admin": "^13.7.0"
   }
 }

@@ -7,6 +7,10 @@ settings:
 importers:
 
   .:
+    dependencies:
+      firebase-admin:
+        specifier: ^13.7.0
+        version: 13.7.0
     devDependencies:
       '@eslint/js':
         specifier: ^9.39.2
@@ -23,9 +27,6 @@ importers:
       eslint-config-prettier:
         specifier: ^10.1.8
         version: 10.1.8(eslint@9.39.2(jiti@1.21.7))
-      firebase-admin:
-        specifier: ^13.7.0
-        version: 13.7.0
       globals:
         specifier: ^17.0.0
         version: 17.3.0

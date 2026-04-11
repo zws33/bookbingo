@@ -1,63 +1,63 @@
 import {
-  addDoc,
   collection,
+  addDoc,
+  updateDoc,
   deleteDoc,
   doc,
-  getDocs,
+  getDoc,
+  setDoc,
   query,
-  serverTimestamp,
-  updateDoc,
   where,
+  getDocs,
+  limit,
+  serverTimestamp,
 } from 'firebase/firestore';
 import { db } from './firebase';
 import { log } from '@bookbingo/lib-util';
 
-/**
- * Normalizes title and author for case-insensitive lookup, then finds or creates
- * a shared book document in the /books/ collection.
- */
 export async function getOrCreateBook(
   title: string,
   author: string,
-  createdBy: string,
+  userId: string,
 ): Promise<string> {
   const titleLower = title.trim().toLowerCase();
   const authorLower = author.trim().toLowerCase();
 
-  log.debug('books', 'getOrCreateBook', { title, author });
+  // 1. Try to find existing book (case-insensitive)
+  const booksRef = collection(db, 'books');
+  const q = query(
+    booksRef,
+    where('titleLower', '==', titleLower),
+    where('authorLower', '==', authorLower),
+    limit(1),
+  );
 
-  try {
-    const booksRef = collection(db, 'books');
-    const q = query(
-      booksRef,
-      where('titleLower', '==', titleLower),
-      where('authorLower', '==', authorLower),
-    );
-
-    const snapshot = await getDocs(q);
-
-    if (!snapshot.empty) {
-      const bookId = snapshot.docs[0].id;
-      log.debug('books', 'found existing book', { bookId });
-      return bookId;
-    }
-
-    // Not found, create a new one
-    const newBookRef = await addDoc(booksRef, {
-      title,
-      author,
-      titleLower,
-      authorLower,
-      createdBy,
-      createdAt: serverTimestamp(),
-    });
-
-    log.debug('books', 'created new shared book', { bookId: newBookRef.id });
-    return newBookRef.id;
-  } catch (error) {
-    log.error('books', 'getOrCreateBook error', error);
-    throw error;
+  const snapshot = await getDocs(q);
+  if (!snapshot.empty) {
+    return snapshot.docs[0].id;
   }
+
+  // 2. Create new book if not found
+  const newBookRef = doc(collection(db, 'books'));
+  await setDoc(newBookRef, {
+    id: newBookRef.id,
+    title: title.trim(),
+    author: author.trim(),
+    titleLower,
+    authorLower,
+    createdBy: userId,
+    createdAt: serverTimestamp(),
+  });
+
+  return newBookRef.id;
+}
+
+export async function getBook(bookId: string) {
+  const snap = await getDoc(doc(db, 'books', bookId));
+  if (!snap.exists()) {
+    return null;
+  }
+  return snap.data();
 }
 
 export async function createReading(

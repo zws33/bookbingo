@@ -1,28 +1,35 @@
 import { useState, useMemo } from 'react';
-import { useToast } from '../lib/ToastContext';
-import { deleteReading, updateReading, getOrCreateBook } from '../lib/books';
-import { Reading, Book } from '../types';
+import type { Reading, Book } from '../types';
 import { BookCard } from './BookCard';
-import { BookForm, BookFormData } from './BookForm';
 import { BookRow } from './BookRow';
+import { Modal } from './Modal';
+import { BookForm, type BookFormData } from './BookForm';
 import { ConfirmDialog } from './ConfirmDialog';
 import { EmptyState } from './EmptyState';
-import { Modal } from './Modal';
 import { SearchFilter } from './SearchFilter';
+import { useToast } from '../lib/ToastContext';
+import { getOrCreateBook, updateReading, deleteReading } from '../lib/books';
 import { log } from '@bookbingo/lib-util';
 
 interface BookListProps {
   userId: string;
   readings: Reading[];
   booksById: Map<string, Book>;
-  loading: boolean;
-  error: Error | undefined;
+  loading?: boolean;
+  error?: Error | null;
   readOnly?: boolean;
 }
 
 const UNKNOWN_BOOK = { title: 'Unknown Book', author: 'Unknown Author' };
 
-export function BookList({ userId, readings, booksById, loading, error, readOnly }: BookListProps) {
+export function BookList({
+  userId,
+  readings,
+  booksById,
+  loading,
+  error,
+  readOnly = false,
+}: BookListProps) {
   const [viewMode, setViewMode] = useState<'cards' | 'list'>('cards');
   const [authorFilter, setAuthorFilter] = useState('');
   const [selectedReading, setSelectedReading] = useState<Reading | null>(null);
@@ -179,34 +186,31 @@ export function BookList({ userId, readings, booksById, loading, error, readOnly
       {!readOnly && (
         <>
           <Modal
-            isOpen={selectedReading !== null}
+            isOpen={!!selectedReading && !showDeleteConfirm}
             onClose={() => setSelectedReading(null)}
             title="Edit Book"
           >
-            {selectedReading && (
-              <>
-                <BookForm
-                  initialData={{
-                    title: selectedBook.title,
-                    author: selectedBook.author,
-                    tiles: selectedReading.tiles ?? [],
-                    isFreebie: selectedReading.isFreebie ?? false,
-                  }}
-                  onSubmit={handleEdit}
-                  onCancel={() => setSelectedReading(null)}
-                  isSubmitting={isSubmitting}
-                />
-                <div className="mt-4 pt-4 border-t">
-                  <button
-                    onClick={() => setShowDeleteConfirm(true)}
-                    className="text-red-600 hover:text-red-800 text-sm"
-                    disabled={isSubmitting}
-                  >
-                    Delete this book
-                  </button>
-                </div>
-              </>
-            )}
+            <BookForm
+              initialData={{
+                title: selectedBook.title,
+                author: selectedBook.author,
+                tiles: selectedReading?.tiles ?? [],
+                isFreebie: selectedReading?.isFreebie ?? false,
+              }}
+              onSubmit={handleEdit}
+              onCancel={() => setSelectedReading(null)}
+              isSubmitting={isSubmitting}
+            />
+            <div className="mt-4 pt-4 border-t border-gray-100 flex justify-center">
+              <button
+                type="button"
+                onClick={() => setShowDeleteConfirm(true)}
+                className="text-sm text-red-600 hover:text-red-800"
+                disabled={isSubmitting}
+              >
+                Delete this reading
+              </button>
+            </div>
           </Modal>
 
           <ConfirmDialog
@@ -215,7 +219,6 @@ export function BookList({ userId, readings, booksById, loading, error, readOnly
             onConfirm={handleDelete}
             title="Delete Book"
             message={`Are you sure you want to delete "${selectedBook.title}"? This action cannot be undone.`}
-            confirmLabel="Delete"
           />
         </>
       )}

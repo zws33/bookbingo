@@ -1,6 +1,6 @@
-import { useState, useMemo } from 'react';
-import { TILES } from '@bookbingo/lib-core';
-import { Reading, Book } from '../types';
+import { useMemo, useState } from 'react';
+import { TILES, getTileById } from '@bookbingo/lib-core';
+import type { Reading, Book } from '../types';
 import { BoardCell } from './BoardCell';
 import { Modal } from './Modal';
 
@@ -14,37 +14,26 @@ const UNKNOWN_BOOK = { title: 'Unknown Book', author: 'Unknown Author' };
 export function BingoBoard({ readings, booksById }: BingoBoardProps) {
   const [selectedTileId, setSelectedTileId] = useState<string | null>(null);
 
-  const tileReadings = useMemo(() => {
-    const map = new Map<string, Reading[]>();
-    for (const reading of readings) {
-      for (const tileId of reading.tiles) {
-        const list = map.get(tileId);
-        if (list) {
-          list.push(reading);
-        } else {
-          map.set(tileId, [reading]);
-        }
-      }
-    }
-    return map;
-  }, [readings]);
-
-  const selectedTile = TILES.find((t) => t.id === selectedTileId);
-  const selectedBooks = selectedTileId ? tileReadings.get(selectedTileId) ?? [] : [];
+  const selectedTile = selectedTileId ? getTileById(selectedTileId) : null;
+  const selectedBooks = useMemo(() => {
+    if (!selectedTileId) return [];
+    return readings.filter((r) => r.tiles.includes(selectedTileId));
+  }, [readings, selectedTileId]);
 
   return (
     <>
-      <div className="overflow-x-auto p-1">
-        <div className="grid grid-cols-3 sm:grid-cols-7 gap-1">
-          {TILES.map((tile) => (
+      <div className="grid grid-cols-5 gap-1 sm:gap-2 max-w-2xl mx-auto p-1 sm:p-2 bg-gray-100 rounded-lg shadow-inner">
+        {TILES.map((tile) => {
+          const reading = readings.find((r) => r.tiles.includes(tile.id));
+          return (
             <BoardCell
               key={tile.id}
               tileName={tile.name}
-              bookCount={tileReadings.get(tile.id)?.length ?? 0}
+              bookCount={reading ? 1 : 0} // Assuming 1 book per tile for board view
               onClick={() => setSelectedTileId(tile.id)}
             />
-          ))}
-        </div>
+          );
+        })}
       </div>
 
       <Modal
