@@ -37,14 +37,7 @@ export function MyBooksPage({ userId }: MyBooksPageProps) {
     setIsSubmitting(true);
     try {
       const bookId = await getOrCreateBook(data.title, data.author, userId);
-      await createReading(
-        userId,
-        bookId,
-        data.title,
-        data.author,
-        data.tiles,
-        data.isFreebie,
-      );
+      await createReading(userId, bookId, data.tiles, data.isFreebie);
       showSuccess('Book added successfully');
       setIsAddModalOpen(false);
     } catch (err) {

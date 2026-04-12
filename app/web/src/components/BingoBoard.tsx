@@ -53,10 +53,7 @@ export function BingoBoard({ readings, booksById }: BingoBoardProps) {
         ) : (
           <ul className="divide-y divide-gray-100">
             {selectedBooks.map((reading) => {
-              const book = booksById.get(reading.bookId) ?? {
-                title: reading.bookTitle ?? UNKNOWN_BOOK.title,
-                author: reading.bookAuthor ?? UNKNOWN_BOOK.author,
-              };
+              const book = booksById.get(reading.bookId) ?? UNKNOWN_BOOK;
               return (
                 <li key={reading.id} className="py-2">
                   <div className="font-medium text-gray-900">{book.title}</div>

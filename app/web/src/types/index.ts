@@ -15,10 +15,6 @@ export interface Book {
 export interface Reading {
   id: string;
   bookId: string;
-  /** Legacy field for Parallel Change migration */
-  bookTitle?: string;
-  /** Legacy field for Parallel Change migration */
-  bookAuthor?: string;
   tiles: string[];
   isFreebie: boolean;
   readAt: Date;

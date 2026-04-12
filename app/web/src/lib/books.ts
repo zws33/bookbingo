@@ -66,17 +66,13 @@ export async function getBook(bookId: string) {
 export async function createReading(
   userId: string,
   bookId: string,
-  bookTitle: string,
-  bookAuthor: string,
   tiles: string[],
   isFreebie: boolean,
 ): Promise<string> {
-  log.debug('books', 'createReading', { bookId, bookTitle, bookAuthor, tiles, isFreebie });
+  log.debug('books', 'createReading', { bookId, tiles, isFreebie });
   try {
     const docRef = await addDoc(collection(db, 'users', userId, 'readings'), {
       bookId,
-      bookTitle,
-      bookAuthor,
       tiles,
       isFreebie,
       readAt: serverTimestamp(),
@@ -94,17 +90,13 @@ export async function updateReading(
   userId: string,
   readingId: string,
   bookId: string,
-  bookTitle: string,
-  bookAuthor: string,
   tiles: string[],
   isFreebie: boolean,
 ): Promise<void> {
-  log.debug('books', 'updateReading', { readingId, bookId, bookTitle, bookAuthor, tiles, isFreebie });
+  log.debug('books', 'updateReading', { readingId, bookId, tiles, isFreebie });
   try {
     await updateDoc(doc(db, 'users', userId, 'readings', readingId), {
       bookId,
-      bookTitle,
-      bookAuthor,
       tiles,
       isFreebie,
       updatedAt: serverTimestamp(),

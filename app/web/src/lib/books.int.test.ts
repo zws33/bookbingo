@@ -33,18 +33,11 @@ describe('books integration (emulator)', () => {
   it('createReading writes correct fields to Firestore', async () => {
     const bookTitle = 'The Left Hand of Darkness';
     const bookAuthor = 'Ursula K. Le Guin';
-    
+
     const bookId = await getOrCreateBook(bookTitle, bookAuthor, TEST_USER_ID);
     expect(bookId).toBeTruthy();
 
-    createdReadingId = await createReading(
-      TEST_USER_ID,
-      bookId,
-      bookTitle,
-      bookAuthor,
-      ['sci-fi'],
-      false,
-    );
+    createdReadingId = await createReading(TEST_USER_ID, bookId, ['sci-fi'], false);
 
     expect(createdReadingId).toBeTruthy();
 
@@ -53,8 +46,6 @@ describe('books integration (emulator)', () => {
     expect(readingSnap.exists()).toBe(true);
     const readingData = readingSnap.data()!;
     expect(readingData.bookId).toBe(bookId);
-    expect(readingData.bookTitle).toBe(bookTitle);
-    expect(readingData.bookAuthor).toBe(bookAuthor);
     expect(readingData.tiles).toEqual(['sci-fi']);
     expect(readingData.isFreebie).toBe(false);
     expect(readingData.createdAt).toBeTruthy();
@@ -70,53 +61,23 @@ describe('books integration (emulator)', () => {
   });
 
   it('updateReading updates bookId, tiles, and sets updatedAt', async () => {
-    const oldTitle = 'Old Title';
-    const oldAuthor = 'Old Author';
-    const oldBookId = await getOrCreateBook(oldTitle, oldAuthor, TEST_USER_ID);
-    createdReadingId = await createReading(
-      TEST_USER_ID,
-      oldBookId,
-      oldTitle,
-      oldAuthor,
-      ['mystery'],
-      false,
-    );
+    const oldBookId = await getOrCreateBook('Old Title', 'Old Author', TEST_USER_ID);
+    createdReadingId = await createReading(TEST_USER_ID, oldBookId, ['mystery'], false);
 
-    const newTitle = 'New Title';
-    const newAuthor = 'New Author';
-    const newBookId = await getOrCreateBook(newTitle, newAuthor, TEST_USER_ID);
-    await updateReading(
-      TEST_USER_ID,
-      createdReadingId,
-      newBookId,
-      newTitle,
-      newAuthor,
-      ['sci-fi'],
-      true,
-    );
+    const newBookId = await getOrCreateBook('New Title', 'New Author', TEST_USER_ID);
+    await updateReading(TEST_USER_ID, createdReadingId, newBookId, ['sci-fi'], true);
 
     const snap = await getDoc(doc(db, 'users', TEST_USER_ID, 'readings', createdReadingId));
     const data = snap.data()!;
     expect(data.bookId).toBe(newBookId);
-    expect(data.bookTitle).toBe(newTitle);
-    expect(data.bookAuthor).toBe(newAuthor);
     expect(data.tiles).toEqual(['sci-fi']);
     expect(data.isFreebie).toBe(true);
     expect(data.updatedAt).toBeTruthy();
   });
 
   it('deleteReading removes the document', async () => {
-    const title = 'To Be Deleted';
-    const author = 'Some Author';
-    const bookId = await getOrCreateBook(title, author, TEST_USER_ID);
-    createdReadingId = await createReading(
-      TEST_USER_ID,
-      bookId,
-      title,
-      author,
-      [],
-      false,
-    );
+    const bookId = await getOrCreateBook('To Be Deleted', 'Some Author', TEST_USER_ID);
+    createdReadingId = await createReading(TEST_USER_ID, bookId, [], false);
 
     await deleteReading(TEST_USER_ID, createdReadingId);
 

@@ -6,17 +6,29 @@
  * book documents as needed.
  *
  * Usage:
- *   pnpm run migrate:readings [--dry-run]
+ *   tsx scripts/migrate-readings.ts --project <project-id> [--dry-run]
+ *
+ * Examples:
+ *   tsx scripts/migrate-readings.ts --project bookbingo-staging --dry-run
+ *   tsx scripts/migrate-readings.ts --project bookbingo-staging
+ *   tsx scripts/migrate-readings.ts --project bookbingo-3fdb1
  */
 
 import { initializeApp } from 'firebase-admin/app';
 import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 
-const PROJECT_ID = 'demo-bookbingo';
-const DRY_RUN = process.argv.includes('--dry-run');
+const args = process.argv.slice(2);
+const projectFlagIndex = args.indexOf('--project');
+if (projectFlagIndex === -1 || !args[projectFlagIndex + 1]) {
+  console.error('Error: --project <project-id> is required.');
+  console.error('  Example: tsx scripts/migrate-readings.ts --project bookbingo-staging --dry-run');
+  process.exit(1);
+}
+const PROJECT_ID = args[projectFlagIndex + 1];
+const DRY_RUN = args.includes('--dry-run');
 
-if (!process.env.FIRESTORE_EMULATOR_HOST) {
-  console.warn('Warning: FIRESTORE_EMULATOR_HOST not set. Running against production if credentials exist.');
+if (process.env.FIRESTORE_EMULATOR_HOST) {
+  console.log(`Note: FIRESTORE_EMULATOR_HOST is set — connecting to local emulator.`);
 }
 
 initializeApp({ projectId: PROJECT_ID });

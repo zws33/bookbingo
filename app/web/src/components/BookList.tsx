@@ -41,9 +41,8 @@ export function BookList({
     if (!authorFilter.trim()) return readings;
     const filter = authorFilter.toLowerCase();
     return readings.filter((r) => {
-      const book = booksById.get(r.bookId);
-      const author = book?.author ?? r.bookAuthor ?? 'Unknown Author';
-      return author.toLowerCase().includes(filter);
+      const book = booksById.get(r.bookId) ?? UNKNOWN_BOOK;
+      return book.author.toLowerCase().includes(filter);
     });
   }, [readings, authorFilter, booksById]);
 
@@ -52,15 +51,7 @@ export function BookList({
     setIsSubmitting(true);
     try {
       const bookId = await getOrCreateBook(data.title, data.author, userId);
-      await updateReading(
-        userId,
-        selectedReading.id,
-        bookId,
-        data.title,
-        data.author,
-        data.tiles,
-        data.isFreebie,
-      );
+      await updateReading(userId, selectedReading.id, bookId, data.tiles, data.isFreebie);
       showSuccess('Book updated successfully');
       setSelectedReading(null);
     } catch (err) {
@@ -96,10 +87,7 @@ export function BookList({
   }
 
   const selectedBook = selectedReading
-    ? booksById.get(selectedReading.bookId) ?? {
-        title: selectedReading.bookTitle ?? 'Unknown Book',
-        author: selectedReading.bookAuthor ?? 'Unknown Author',
-      }
+    ? booksById.get(selectedReading.bookId) ?? UNKNOWN_BOOK
     : UNKNOWN_BOOK;
 
   return (
@@ -145,10 +133,7 @@ export function BookList({
       ) : viewMode === 'cards' ? (
         <div className="grid gap-4 sm:grid-cols-2">
           {filteredReadings.map((reading) => {
-            const book = booksById.get(reading.bookId) ?? {
-              title: reading.bookTitle ?? 'Unknown Book',
-              author: reading.bookAuthor ?? 'Unknown Author',
-            };
+            const book = booksById.get(reading.bookId) ?? UNKNOWN_BOOK;
             return (
               <BookCard
                 key={reading.id}
@@ -164,10 +149,7 @@ export function BookList({
       ) : (
         <div className="divide-y divide-gray-200 bg-white rounded-lg shadow">
           {filteredReadings.map((reading) => {
-            const book = booksById.get(reading.bookId) ?? {
-              title: reading.bookTitle ?? 'Unknown Book',
-              author: reading.bookAuthor ?? 'Unknown Author',
-            };
+            const book = booksById.get(reading.bookId) ?? UNKNOWN_BOOK;
             return (
               <BookRow
                 key={reading.id}
