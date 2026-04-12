@@ -8,7 +8,7 @@ export default tseslint.config(
   ...tseslint.configs.recommended,
   prettier,
   {
-    ignores: ['**/coverage/**', '**/dist/**', 'functions/lib/**'],
+    ignores: ['**/coverage/**', '**/dist/**', 'functions/lib/**', '.gemini/**'],
   },
   {
     languageOptions: {
@@ -20,7 +20,7 @@ export default tseslint.config(
     },
   },
   {
-    files: ['**/*.ts'],
+    files: ['**/*.ts', '**/*.tsx'],
     languageOptions: {
       parserOptions: {
         projectService: true,
@@ -31,6 +31,7 @@ export default tseslint.config(
         'error',
         { argsIgnorePattern: '^_', varsIgnorePattern: '^_' },
       ],
+      '@typescript-eslint/no-deprecated': 'error',
     },
   },
 );

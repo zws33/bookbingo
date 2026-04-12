@@ -1,4 +1,4 @@
-import { useState, FormEvent } from 'react';
+import { useState, SubmitEvent } from 'react';
 import { TileSelector } from './TileSelector';
 import { FreebieToggle } from './FreebieToggle';
 
@@ -24,7 +24,7 @@ export function BookForm({ initialData, onSubmit, onCancel, isSubmitting }: Book
 
   const isValid = title.trim() !== '' && author.trim() !== '';
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = (e: SubmitEvent) => {
     e.preventDefault();
     if (!isValid || isSubmitting) return;
     onSubmit({ title: title.trim(), author: author.trim(), tiles, isFreebie });
