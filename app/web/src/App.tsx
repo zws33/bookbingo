@@ -12,7 +12,7 @@ import { LeaderboardPage } from './pages/LeaderboardPage';
 import { StagingBanner } from './components/StagingBanner';
 import { FeedbackModal } from './components/FeedbackModal';
 import { log } from '@bookbingo/lib-util';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 
 const isStaging = import.meta.env.MODE === 'staging';
 
@@ -38,6 +38,8 @@ function App() {
       log.error('Sign out error:', err);
     }
   };
+
+  const handleCloseFeedback = useCallback(() => setIsFeedbackOpen(false), []);
 
   useEffect(() => {
     if (user) {
@@ -167,7 +169,7 @@ function App() {
           </div>
         )}
       </main>
-      <FeedbackModal isOpen={isFeedbackOpen} onClose={() => setIsFeedbackOpen(false)} />
+      <FeedbackModal isOpen={isFeedbackOpen} onClose={handleCloseFeedback} />
     </div>
   );
 }

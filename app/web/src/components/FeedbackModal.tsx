@@ -1,4 +1,4 @@
-import { useState, FormEvent } from 'react';
+import { useState, useCallback, SubmitEvent } from 'react';
 import { httpsCallable } from 'firebase/functions';
 import { functions } from '../lib/firebase';
 import { Modal } from './Modal';
@@ -22,19 +22,19 @@ export function FeedbackModal({ isOpen, onClose }: FeedbackModalProps) {
 
   const isValid = title.trim().length > 0 && description.trim().length > 0;
 
-  const resetForm = () => {
+  const resetForm = useCallback(() => {
     setTitle('');
     setDescription('');
     setType('bug');
-  };
+  }, []);
 
-  const handleClose = () => {
+  const handleClose = useCallback(() => {
     if (isSubmitting) return;
     resetForm();
     onClose();
-  };
+  }, [isSubmitting, resetForm, onClose]);
 
-  const handleSubmit = async (e: FormEvent) => {
+  const handleSubmit = async (e: SubmitEvent) => {
     e.preventDefault();
     if (!isValid || isSubmitting) return;
 

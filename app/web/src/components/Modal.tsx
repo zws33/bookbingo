@@ -11,6 +11,12 @@ export function Modal({ isOpen, onClose, title, children }: ModalProps) {
   const modalRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    if (isOpen) {
+      modalRef.current?.focus();
+    }
+  }, [isOpen]);
+
+  useEffect(() => {
     if (!isOpen) return;
 
     const handleEscape = (e: KeyboardEvent) => {
@@ -20,7 +26,6 @@ export function Modal({ isOpen, onClose, title, children }: ModalProps) {
     };
 
     document.addEventListener('keydown', handleEscape);
-    modalRef.current?.focus();
 
     return () => {
       document.removeEventListener('keydown', handleEscape);
