@@ -32,15 +32,17 @@ export function BingoBoard({ readings, booksById }: BingoBoardProps) {
 
   return (
     <>
-      <div className="grid grid-cols-5 gap-1 sm:gap-2 max-w-2xl mx-auto p-1 sm:p-2 bg-gray-100 rounded-lg shadow-inner">
-        {TILES.map((tile) => (
-          <BoardCell
-            key={tile.id}
-            tileName={tile.name}
-            bookCount={tileReadingCounts.get(tile.id) ?? 0}
-            onClick={() => setSelectedTileId(tile.id)}
-          />
-        ))}
+      <div className="overflow-x-auto p-1 sm:p-2 max-w-2xl mx-auto bg-gray-100 rounded-lg shadow-inner">
+        <div className="grid grid-cols-3 sm:grid-cols-7 gap-1 sm:gap-2">
+          {TILES.map((tile) => (
+            <BoardCell
+              key={tile.id}
+              tileName={tile.name}
+              bookCount={tileReadingCounts.get(tile.id) ?? 0}
+              onClick={() => setSelectedTileId(tile.id)}
+            />
+          ))}
+        </div>
       </div>
 
       <Modal
