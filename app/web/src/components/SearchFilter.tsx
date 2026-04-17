@@ -1,3 +1,5 @@
+import { Input } from './ui/index.js';
+
 interface SearchFilterProps {
   value: string;
   onChange: (value: string) => void;
@@ -22,12 +24,12 @@ export function SearchFilter({ value, onChange, placeholder = 'Filter by author.
           />
         </svg>
       </div>
-      <input
+      <Input
         type="text"
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+        className="pl-10 pr-3"
       />
     </div>
   );

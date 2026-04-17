@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { TILES, MAX_TILES_PER_BOOK } from '@bookbingo/lib-core';
+import { Input, Label } from './ui/index.js';
 
 interface TileSelectorProps {
   selectedTiles: string[];
@@ -31,15 +32,15 @@ export function TileSelector({ selectedTiles, onChange, isFreebie }: TileSelecto
 
   return (
     <div>
-      <label className="block text-sm font-medium text-gray-700 mb-1">
+      <Label className="mb-1">
         Tiles {isFreebie ? '(unlimited)' : `(up to ${MAX_TILES_PER_BOOK})`}
-      </label>
-      <input
+      </Label>
+      <Input
         type="text"
         value={search}
         onChange={(e) => setSearch(e.target.value)}
         placeholder="Search tiles..."
-        className="w-full px-3 py-2 mb-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+        className="mb-2 text-sm"
       />
       <div className="max-h-48 overflow-y-auto border border-gray-200 rounded-lg p-2 grid grid-cols-1 sm:grid-cols-2 gap-1">
         {filteredTiles.map((tile) => {

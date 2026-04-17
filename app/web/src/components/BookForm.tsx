@@ -1,6 +1,7 @@
 import { useState, SubmitEvent } from 'react';
 import { TileSelector } from './TileSelector';
 import { FreebieToggle } from './FreebieToggle';
+import { Input, Label, Button } from './ui/index.js';
 
 export interface BookFormData {
   title: string;
@@ -33,29 +34,27 @@ export function BookForm({ initialData, onSubmit, onCancel, isSubmitting }: Book
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
-        <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-1">
+        <Label htmlFor="title" className="mb-1">
           Title
-        </label>
-        <input
+        </Label>
+        <Input
           id="title"
           type="text"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           placeholder="Enter book title"
           disabled={isSubmitting}
         />
       </div>
       <div>
-        <label htmlFor="author" className="block text-sm font-medium text-gray-700 mb-1">
+        <Label htmlFor="author" className="mb-1">
           Author
-        </label>
-        <input
+        </Label>
+        <Input
           id="author"
           type="text"
           value={author}
           onChange={(e) => setAuthor(e.target.value)}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           placeholder="Enter author name"
           disabled={isSubmitting}
         />
@@ -66,21 +65,12 @@ export function BookForm({ initialData, onSubmit, onCancel, isSubmitting }: Book
       <TileSelector selectedTiles={tiles} onChange={setTiles} isFreebie={isFreebie} />
 
       <div className="flex justify-end gap-3 pt-2">
-        <button
-          type="button"
-          onClick={onCancel}
-          className="px-4 py-2 text-gray-700 hover:text-gray-900"
-          disabled={isSubmitting}
-        >
+        <Button type="button" variant="ghost" onClick={onCancel} disabled={isSubmitting}>
           Cancel
-        </button>
-        <button
-          type="submit"
-          disabled={!isValid || isSubmitting}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
+        </Button>
+        <Button type="submit" disabled={!isValid || isSubmitting}>
           {isSubmitting ? 'Saving...' : 'Save'}
-        </button>
+        </Button>
       </div>
     </form>
   );
