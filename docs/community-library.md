@@ -186,3 +186,185 @@ Manual checks:
 - Loading state shows during initial Firestore fetch
 - Empty state shows if `/books/` collection is empty
 - No console errors
+
+---
+
+## Iteration 2 — Detailed Implementation
+
+### Objective
+
+Enrich each row in the library table with:
+- **N readers** — how many distinct users have a reading for that book
+- **Tile pills** — all unique bingo tiles assigned to that book across all readers
+
+### Hooks used
+
+| Hook | Returns | Needed for |
+|------|---------|-----------|
+| `useBooks()` | `booksById: Map<string, Book>` | Book metadata (title, author) |
+| `useAllReadings()` | `readingsByUser: Map<string, Reading[]>` | Read count + tile aggregation |
+
+`useUsers()` is **deferred to Iteration 3** — user profiles are only needed for the per-reader detail expansion. Fetching them in Iteration 2 would be unnecessary Firestore reads.
+
+### New type
+
+Add a local `BookSummary` interface inside `LibraryPage.tsx` (not exported — it's only used here):
+
+```ts
+interface BookSummary {
+  book: Book;
+  readCount: number;
+  uniqueTiles: string[];
+}
+```
+
+### Data join (`useMemo`)
+
+Replace the Iteration 1 `useMemo` (which only sorted books) with a join that also aggregates readings:
+
+```ts
+const bookSummaries = useMemo((): BookSummary[] => {
+  // Pass 1: group readings by bookId, counting readers and collecting tiles
+  const byBook = new Map<string, { readCount: number; tiles: Set<string> }>();
+
+  for (const readings of readingsByUser.values()) {
+    for (const reading of readings) {
+      if (!reading.bookId) continue; // guard against legacy data with missing bookId
+      const entry = byBook.get(reading.bookId);
+      if (entry) {
+        entry.readCount += 1;
+        reading.tiles.forEach((t) => entry.tiles.add(t));
+      } else {
+        byBook.set(reading.bookId, {
+          readCount: 1,
+          tiles: new Set(reading.tiles),
+        });
+      }
+    }
+  }
+
+  // Pass 2: map booksById into sorted BookSummary array
+  return [...booksById.values()]
+    .map((book) => {
+      const stats = byBook.get(book.id);
+      return {
+        book,
+        readCount: stats?.readCount ?? 0,
+        uniqueTiles: stats ? [...stats.tiles] : [],
+      };
+    })
+    .sort((a, b) => a.book.title.localeCompare(b.book.title));
+}, [booksById, readingsByUser]);
+```
+
+**Why two passes?** The first pass builds an intermediate index keyed by `bookId`. This avoids an O(n²) nested loop when joining books with readings — each reading is visited once regardless of how many books there are.
+
+### Combined loading and error state
+
+Both hooks must resolve before rendering data. Replace the existing `loading`/`error` checks:
+
+```ts
+const { booksById, loading: booksLoading, error: booksError } = useBooks();
+const { readingsByUser, loading: readingsLoading, error: readingsError } = useAllReadings();
+
+const loading = booksLoading || readingsLoading;
+const error = booksError ?? readingsError;
+```
+
+The existing `if (loading)` and `if (error)` guards remain unchanged.
+
+### Updated imports
+
+```ts
+import { useMemo } from 'react';
+import { getTileById } from '@bookbingo/lib-core';
+import { useBooks } from '../hooks/useBooks';
+import { useAllReadings } from '../hooks/useAllReadings';
+import { Book } from '../types';
+```
+
+### UI changes
+
+The table gains two new columns. Updated `<thead>`:
+
+```tsx
+<tr className="border-b border-gray-200 text-left text-gray-500 text-xs uppercase tracking-wide">
+  <th className="px-4 py-3">Title</th>
+  <th className="px-4 py-3">Author</th>
+  <th className="px-4 py-3">Readers</th>
+  <th className="px-4 py-3">Tiles</th>
+</tr>
+```
+
+Updated `<tbody>` row — iterate `bookSummaries` instead of `books`:
+
+```tsx
+{bookSummaries.map(({ book, readCount, uniqueTiles }) => (
+  <tr key={book.id} className="hover:bg-gray-50 transition-colors">
+    <td className="px-4 py-3 font-medium text-gray-900">{book.title}</td>
+    <td className="px-4 py-3 text-gray-600">{book.author}</td>
+    <td className="px-4 py-3 text-gray-500 text-xs whitespace-nowrap">
+      {readCount > 0
+        ? `${readCount} ${readCount === 1 ? 'reader' : 'readers'}`
+        : '—'}
+    </td>
+    <td className="px-4 py-3">
+      <div className="flex flex-wrap gap-1">
+        {uniqueTiles.map((tile) => {
+          const name = getTileById(tile)?.name ?? tile;
+          return (
+            <span
+              key={tile}
+              title={name}
+              className="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded"
+            >
+              {name}
+            </span>
+          );
+        })}
+      </div>
+    </td>
+  </tr>
+))}
+```
+
+Tile pill style matches `BookCard.tsx` exactly: `bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded`. Display name resolved via `getTileById(tile)?.name ?? tile` — same fallback pattern used in `BookCard` and `BookRow`.
+
+### Files changed
+
+| File | Action |
+|------|--------|
+| `app/web/src/pages/LibraryPage.tsx` | Edit — new hook, useMemo join, two new table columns |
+
+No other files change in this iteration.
+
+### Test scenarios
+
+These are manual verification scenarios (no new unit tests — the join logic is thin transformation code that lives entirely in a `useMemo`, and the existing hook-level tests cover data fetching):
+
+| Scenario | Expected result |
+|----------|----------------|
+| Book with no readings | Shows `—` in Readers column, empty Tiles column |
+| Book with 1 reading, 2 tiles | Shows `1 reader`, 2 tile pills |
+| Book with 3 readings, all same tile | Shows `3 readers`, 1 deduplicated tile pill |
+| Book with 3 readings, mixed tiles | Shows `3 readers`, union of all unique tiles |
+| Reading with empty `tiles` array | No tile pills for that reading's contribution; reader still counted |
+| Reading with missing `bookId` | Skipped — does not crash, does not appear in any book's count |
+| Readings loading while books done | Loading state held until readings resolve |
+| Books error | Error state shown, readings hook not waited on |
+| Empty `/books/` collection | "No books in the library yet." (unchanged from Iteration 1) |
+
+### Verification
+
+```bash
+pnpm run verify      # lint + typecheck + tests
+pnpm run dev:local   # emulator + dev server
+```
+
+Manual checks:
+- "Readers" and "Tiles" columns appear in the table header
+- Books with no readings show `—` and no tile pills
+- Read counts match the number of entries in Firestore for that book
+- Tile pills use human-readable names, not raw IDs
+- Duplicate tiles across readers appear only once
+- No console errors
