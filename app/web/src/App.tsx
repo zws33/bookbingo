@@ -9,6 +9,7 @@ import { BingoBoard } from './components/BingoBoard';
 import { MyBooksPage } from './pages/MyBooksPage';
 import { UserBooksPage } from './pages/UserBooksPage';
 import { LeaderboardPage } from './pages/LeaderboardPage';
+import { LibraryPage } from './pages/LibraryPage';
 import { StagingBanner } from './components/StagingBanner';
 import { FeedbackModal } from './components/FeedbackModal';
 import { log } from '@bookbingo/lib-util';
@@ -124,6 +125,14 @@ function App() {
               >
                 Leaderboard
               </NavLink>
+              <NavLink
+                to="/library"
+                className={({ isActive }) =>
+                  `pb-2 text-sm font-medium ${isActive ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700'}`
+                }
+              >
+                Library
+              </NavLink>
             </div>
 
             <Routes>
@@ -132,6 +141,7 @@ function App() {
               <Route path="/users" element={<Navigate to="/leaderboard" replace />} />
               <Route path="/users/:userId" element={<UserBooksPage />} />
               <Route path="/leaderboard" element={<LeaderboardPage />} />
+              <Route path="/library" element={<LibraryPage />} />
             </Routes>
           </>
         ) : (
