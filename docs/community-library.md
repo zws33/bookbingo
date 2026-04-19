@@ -24,12 +24,27 @@ The feature will use an **eager join** on the client side, relying on existing R
 
 The library will live at `/library` and follow the clean aesthetic of the existing Leaderboard.
 
-- **Main List**: A table displaying book Title and Author, sorted alphabetically.
+- **Main List**: A responsive flex list (not a table) displaying book Title, Author, Readers, and Tile pills, sorted alphabetically.
 - **Read count badge**: "N readers" per book row (iteration 2+).
 - **Tile pills**: Aggregated unique tiles across all readers (iteration 2+).
 - **Reader Expansion**: Clicking a book row reveals who read it with their specific tiles (iteration 3).
 - **Search & Filtering**: Text input to filter by title or author (iteration 4).
 - **Sort toggle**: Switch between alphabetical, read count, and date added (iteration 5).
+
+### Responsive layout
+
+The list uses a flex column-to-row layout, not a `<table>`. On mobile (default), each row stacks vertically. On `sm:` and wider, all elements appear on a single line.
+
+```
+Mobile:
+  The Great Gatsby
+  F. Scott Fitzgerald
+  2 readers
+  [Novel] [Classic] [Historical]
+
+Desktop (sm:+):
+  The Great Gatsby  F. Scott Fitzgerald       2 readers   [Novel] [Classic]
+```
 
 ## 3. Implementation Phases
 
@@ -368,3 +383,130 @@ Manual checks:
 - Tile pills use human-readable names, not raw IDs
 - Duplicate tiles across readers appear only once
 - No console errors
+
+---
+
+## UI Refactor — Responsive List Layout
+
+### Objective
+
+Replace the `<table>` layout with a responsive flex list. On mobile the row stacks vertically (title → author → readers → tile pills). On `sm:` and wider, all elements appear on a single horizontal line.
+
+### Files changed
+
+| File | Action |
+|------|--------|
+| `app/web/src/pages/LibraryPage.tsx` | Edit — replace `<table>` with `<div>` list rows |
+
+### Row structure
+
+The outer container changes from `<table>` / `<tbody>` to a plain `<div className="divide-y divide-gray-100">`. No `<thead>` — the layout is self-labelling.
+
+Each row:
+
+```tsx
+<div
+  key={book.id}
+  className="px-4 py-3 hover:bg-gray-50 transition-colors"
+>
+  <div className="flex flex-col sm:flex-row sm:items-center sm:gap-4">
+
+    {/* Title + author block — always stacked within */}
+    <div className="flex-1 min-w-0">
+      <p className="font-medium text-gray-900">{book.title}</p>
+      <p className="text-sm text-gray-600 mt-0.5">{book.author}</p>
+    </div>
+
+    {/* Readers count */}
+    {readCount > 0 && (
+      <span className="text-xs text-gray-500 whitespace-nowrap mt-1 sm:mt-0">
+        {readCount} {readCount === 1 ? 'reader' : 'readers'}
+      </span>
+    )}
+
+    {/* Tile pills — wrap freely */}
+    {uniqueTiles.length > 0 && (
+      <div className="flex flex-wrap gap-1 mt-1.5 sm:mt-0">
+        {uniqueTiles.map((tile) => {
+          const name = getTileById(tile)?.name ?? tile;
+          return (
+            <span
+              key={tile}
+              title={name}
+              className="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded"
+            >
+              {name}
+            </span>
+          );
+        })}
+      </div>
+    )}
+
+  </div>
+</div>
+```
+
+### Full component return
+
+```tsx
+return (
+  <div className="bg-white rounded-lg shadow overflow-hidden">
+    <div className="divide-y divide-gray-100">
+      {bookSummaries.map(({ book, readCount, uniqueTiles }) => (
+        <div
+          key={book.id}
+          className="px-4 py-3 hover:bg-gray-50 transition-colors"
+        >
+          <div className="flex flex-col sm:flex-row sm:items-center sm:gap-4">
+            <div className="flex-1 min-w-0">
+              <p className="font-medium text-gray-900">{book.title}</p>
+              <p className="text-sm text-gray-600 mt-0.5">{book.author}</p>
+            </div>
+            {readCount > 0 && (
+              <span className="text-xs text-gray-500 whitespace-nowrap mt-1 sm:mt-0">
+                {readCount} {readCount === 1 ? 'reader' : 'readers'}
+              </span>
+            )}
+            {uniqueTiles.length > 0 && (
+              <div className="flex flex-wrap gap-1 mt-1.5 sm:mt-0">
+                {uniqueTiles.map((tile) => {
+                  const name = getTileById(tile)?.name ?? tile;
+                  return (
+                    <span
+                      key={tile}
+                      title={name}
+                      className="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded"
+                    >
+                      {name}
+                    </span>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+);
+```
+
+### Layout rationale
+
+- `flex-col` (default) stacks all children vertically on mobile.
+- `sm:flex-row sm:items-center sm:gap-4` switches to a single horizontal line on wider viewports.
+- `flex-1 min-w-0` on the title/author block allows text truncation without pushing readers or tile pills off-screen on narrow desktop viewports.
+- `mt-1 sm:mt-0` and `mt-1.5 sm:mt-0` add vertical breathing room between stacked items on mobile while collapsing the margin on desktop.
+- `whitespace-nowrap` on the readers count prevents it from breaking mid-word on intermediate screen widths.
+- `flex-wrap gap-1` on the tiles container lets pills reflow to multiple lines if needed on any screen size.
+
+### Test scenarios
+
+| Scenario | Expected result |
+|----------|----------------|
+| Mobile viewport (~375px) | Title and author each on their own line; readers on next line; tile pills wrap below |
+| Tablet viewport (~768px, `sm:` breakpoint) | Single horizontal row: title · author on left, readers and tiles on right |
+| Book with no tiles | No tile pill section rendered; row still displays correctly |
+| Book with no readers | Readers count not rendered; row still displays correctly |
+| Book with many tiles (6+) | Pills wrap to a second line within the tile section; do not overflow the row |
+| Long book title | Title truncates (`min-w-0` / text overflow) rather than pushing readers/tiles off-screen |

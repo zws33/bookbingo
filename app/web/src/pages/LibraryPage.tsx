@@ -68,27 +68,24 @@ export function LibraryPage() {
 
   return (
     <div className="bg-white rounded-lg shadow overflow-hidden">
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="border-b border-gray-200 text-left text-gray-500 text-xs uppercase tracking-wide">
-            <th className="px-4 py-3">Title</th>
-            <th className="px-4 py-3">Author</th>
-            <th className="px-4 py-3">Readers</th>
-            <th className="px-4 py-3">Tiles</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-gray-100">
-          {bookSummaries.map(({ book, readCount, uniqueTiles }) => (
-            <tr key={book.id} className="hover:bg-gray-50 transition-colors">
-              <td className="px-4 py-3 font-medium text-gray-900">{book.title}</td>
-              <td className="px-4 py-3 text-gray-600">{book.author}</td>
-              <td className="px-4 py-3 text-gray-500 text-xs whitespace-nowrap">
-                {readCount > 0
-                  ? `${readCount} ${readCount === 1 ? 'reader' : 'readers'}`
-                  : '—'}
-              </td>
-              <td className="px-4 py-3">
-                <div className="flex flex-wrap gap-1">
+      <div className="divide-y divide-gray-100">
+        {bookSummaries.map(({ book, readCount, uniqueTiles }) => (
+          <div
+            key={book.id}
+            className="px-4 py-3 hover:bg-gray-50 transition-colors"
+          >
+            <div className="flex flex-col sm:flex-row sm:items-center sm:gap-4">
+              <div className="flex-1 min-w-0">
+                <p className="font-medium text-gray-900">{book.title}</p>
+                <p className="text-sm text-gray-600 mt-0.5">{book.author}</p>
+              </div>
+              {readCount > 0 && (
+                <span className="text-xs text-gray-500 whitespace-nowrap mt-1 sm:mt-0">
+                  {readCount} {readCount === 1 ? 'reader' : 'readers'}
+                </span>
+              )}
+              {uniqueTiles.length > 0 && (
+                <div className="flex flex-wrap gap-1 mt-1.5 sm:mt-0">
                   {uniqueTiles.map((tile) => {
                     const name = getTileById(tile)?.name ?? tile;
                     return (
@@ -102,11 +99,11 @@ export function LibraryPage() {
                     );
                   })}
                 </div>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
