@@ -26,6 +26,7 @@ Book Bingo is a book reading competition among friends. Users log books they've 
 
 ## Future Work
 
+- **Community Library** (in progress) — `/library` page showing club-wide reading with reader counts and tile aggregation; detail expansion, search, and sort toggle planned in subsequent iterations
 - Suggesting options to rebalance tiles for a higher score
 - Progressive Web App (installable, offline support)
 

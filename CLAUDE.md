@@ -53,7 +53,7 @@ Each workspace package has its own `tsconfig.build.json` (for builds) and `tscon
 
 - `pnpm run verify` — run full verification suite (lint, test, test:integration, typecheck)
 - `pnpm test` — run unit tests across all packages
-- `pnpm run test:integration` — run integration tests (requires emulator)
+- `pnpm run test:integration` — run integration tests (emulator lifecycle managed automatically via `firebase emulators:exec`)
 - `pnpm run lint` — lint all packages (ESLint from repo root)
 - `pnpm run format` — format with Prettier
 - `pnpm run typecheck` — type-check `lib/` and `app/web/` with `tsc --build --noEmit`, then `functions/` separately
@@ -128,6 +128,7 @@ When creating PRs, include a summary of changes but do not include a test plan s
 - **Tile lookup** is in `lib/core/src/tiles.ts`. Provides `getTileById()` for resolving tile IDs to names.
 - **Shared types** are in `lib/types/src/index.ts`. All type definitions (`Tile`, `UserBook`, `Reading`, `ScoreBreakdown`, etc.) live here.
 - **Logger** is in `lib/util/src/logger.ts` (`@bookbingo/lib-util`). Call `initLogger()` once at app startup (in `firebase.ts`) with a platform-specific dispatcher. Use `log.debug`, `log.error`, and `log.event` everywhere else.
+- **UI primitives** are in `app/web/src/components/ui/` (`Button`, `Input`, `Label`) and `app/web/src/lib/cn.ts` (`cn()`). Use `cn()` for conditional Tailwind class composition. Prefer these over raw `<button>` and `<input>` tags. Use `Button variant="ghost"` for interactive inline controls (e.g. row expand toggles).
 - **Feedback / GitHub Issues** — `functions/src/index.ts` contains the `submitFeedback` callable Cloud Function. It reads the `GITHUB_PAT` secret (set via `firebase functions:secrets:set GITHUB_PAT`) and POSTs to the GitHub Issues API. The frontend calls it via `httpsCallable(functions, 'submitFeedback')`. The `FeedbackModal` component in `app/web/src/components/FeedbackModal.tsx` provides the UI.
 - When adding new features, start with `lib/` (logic + tests), then wire it into `app/web/` (UI).
 - For larger features, create a planning doc in `docs/` before writing code. This is especially important when the task involves new data models, scoring changes, or architectural decisions.

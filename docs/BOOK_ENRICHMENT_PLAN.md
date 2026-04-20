@@ -137,8 +137,8 @@ interface ScoringInput {
 - [ ] `firestore.rules` — add `/books/{bookId}` collection rules
 - [ ] `app/web/src/lib/books.ts` — update CRUD to create Book docs, use `bookId`
 - [ ] `app/web/src/lib/mappings.ts` — remove `mapReadingsToUserBooks` (no longer needed)
-- [ ] `app/web/src/hooks/` — update `useReadings`, add `useBooks` hook
-- [ ] `app/web/src/pages/` and components — join readings with books for display
+- [x] `app/web/src/hooks/` — `useBooks()` hook added; `useAllReadings()` already existed
+- [x] `app/web/src/pages/` and components — `LibraryPage` joins readings with books for display
 - [ ] `app/web/` tests and fixtures — update for new model
 - [ ] Migration script — backfill `/books/` docs and `bookId` on readings
 
@@ -174,6 +174,17 @@ Two query strategies:
 - Book detail view (expandable row or modal) showing readers and their tile assignments
 - Navigation tab added to `App.tsx`
 - Mobile-responsive layout consistent with existing pages
+
+### Progress
+
+| Iteration | Status | Commit |
+|-----------|--------|--------|
+| Route + nav tab + flat alphabetical book list | ✅ Done | `8c8f11a` |
+| Reader count badge + aggregated tile pills | ✅ Done | `f69835a` |
+| Responsive flex layout (mobile-first, table removed) | ✅ Done | `630dbd1` |
+| Per-reader detail expansion (click to expand) | ⬜ Pending | Iteration 3 — see `docs/community-library.md` |
+| Search / filter by title + author | ⬜ Pending | Iteration 4 |
+| Sort toggle (alphabetical / read count / date added) | ⬜ Pending | Iteration 5 |
 
 ### Why this comes before search and optimization
 
