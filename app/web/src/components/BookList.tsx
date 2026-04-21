@@ -10,13 +10,14 @@ import { SearchFilter } from './SearchFilter';
 import { useToast } from '../lib/ToastContext';
 import { getOrCreateBook, updateReading, deleteReading } from '../lib/books';
 import { log } from '@bookbingo/lib-util';
+import { PageStatus } from './PageStatus';
 
 interface BookListProps {
   userId: string;
   readings: Reading[];
   booksById: Map<string, Book>;
-  loading?: boolean;
-  error?: Error | null;
+  loading: boolean;
+  error?: Error;
   readOnly?: boolean;
 }
 
@@ -51,7 +52,13 @@ export function BookList({
     setIsSubmitting(true);
     try {
       const bookId = await getOrCreateBook(data.title, data.author, userId);
-      await updateReading(userId, selectedReading.id, bookId, data.tiles, data.isFreebie);
+      await updateReading(
+        userId,
+        selectedReading.id,
+        bookId,
+        data.tiles,
+        data.isFreebie,
+      );
       showSuccess('Book updated successfully');
       setSelectedReading(null);
     } catch (err) {
@@ -78,16 +85,12 @@ export function BookList({
     }
   };
 
-  if (loading) {
-    return <div className="text-center py-8 text-gray-500">Loading books...</div>;
-  }
-
-  if (error) {
-    return <div className="text-center py-8 text-red-500">Error: {error.message}</div>;
+  if (loading || error) {
+    return <PageStatus loading={loading} error={error} />;
   }
 
   const selectedBook = selectedReading
-    ? booksById.get(selectedReading.bookId) ?? UNKNOWN_BOOK
+    ? (booksById.get(selectedReading.bookId) ?? UNKNOWN_BOOK)
     : UNKNOWN_BOOK;
 
   return (
@@ -104,8 +107,18 @@ export function BookList({
               aria-label="Card view"
               title="Card view"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM14 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zM4 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1v-4zM14 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z" />
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM14 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zM4 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1v-4zM14 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z"
+                />
               </svg>
             </button>
             <button
@@ -114,8 +127,18 @@ export function BookList({
               aria-label="List view"
               title="List view"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 6h16M4 12h16M4 18h16"
+                />
               </svg>
             </button>
           </div>
@@ -140,7 +163,9 @@ export function BookList({
                 bookTitle={book.title}
                 bookAuthor={book.author}
                 tiles={reading.tiles}
-                onClick={readOnly ? undefined : () => setSelectedReading(reading)}
+                onClick={
+                  readOnly ? undefined : () => setSelectedReading(reading)
+                }
                 readOnly={readOnly}
               />
             );
@@ -157,7 +182,9 @@ export function BookList({
                 bookAuthor={book.author}
                 tiles={reading.tiles}
                 isFreebie={reading.isFreebie}
-                onClick={readOnly ? undefined : () => setSelectedReading(reading)}
+                onClick={
+                  readOnly ? undefined : () => setSelectedReading(reading)
+                }
                 readOnly={readOnly}
               />
             );

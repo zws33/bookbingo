@@ -3,6 +3,7 @@ import { getTileById } from '@bookbingo/lib-core';
 import { useBooks } from '../hooks/useBooks';
 import { useAllReadings } from '../hooks/useAllReadings';
 import { Book } from '../types';
+import { PageStatus } from '../components/PageStatus';
 
 interface BookSummary {
   book: Book;
@@ -12,7 +13,11 @@ interface BookSummary {
 
 export function LibraryPage() {
   const { booksById, loading: booksLoading, error: booksError } = useBooks();
-  const { readingsByUser, loading: readingsLoading, error: readingsError } = useAllReadings();
+  const {
+    readingsByUser,
+    loading: readingsLoading,
+    error: readingsError,
+  } = useAllReadings();
 
   const loading = booksLoading || readingsLoading;
   const error = booksError ?? readingsError;
@@ -48,14 +53,8 @@ export function LibraryPage() {
       .sort((a, b) => a.book.title.localeCompare(b.book.title));
   }, [booksById, readingsByUser]);
 
-  if (loading) {
-    return <div className="text-center py-8 text-gray-500">Loading...</div>;
-  }
-
-  if (error) {
-    return (
-      <div className="text-center py-8 text-red-500">Error: {error.message}</div>
-    );
+  if (loading || error) {
+    return <PageStatus loading={loading} error={error} />;
   }
 
   if (bookSummaries.length === 0) {
@@ -86,11 +85,11 @@ export function LibraryPage() {
               )}
               {uniqueTiles.length > 0 && (
                 <div className="flex flex-wrap gap-1 mt-1.5 sm:mt-0">
-                  {uniqueTiles.map((tile) => {
-                    const name = getTileById(tile)?.name ?? tile;
+                  {uniqueTiles.map((tileId) => {
+                    const name = getTileById(tileId)?.name ?? tileId;
                     return (
                       <span
-                        key={tile}
+                        key={tileId}
                         title={name}
                         className="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded"
                       >
