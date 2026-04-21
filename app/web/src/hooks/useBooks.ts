@@ -14,8 +14,8 @@ export function useBooks() {
   const [snapshot, loading, error] = useCollection(queryRef);
 
   useEffect(() => {
-    log.debug('useBooks', 'query', { loading, error: error?.message ?? null });
-  }, [loading, error]);
+    if (error) log.error('useBooks', error);
+  }, [error]);
 
   useEffect(() => {
     if (snapshot) {

@@ -1,7 +1,8 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useCollection } from 'react-firebase-hooks/firestore';
 import { collectionGroup } from 'firebase/firestore';
 import { db } from '../lib/firebase';
+import { log } from '@bookbingo/lib-util';
 import { Reading } from '../types';
 
 export function useAllReadings(): {
@@ -12,6 +13,10 @@ export function useAllReadings(): {
   const [snapshot, loading, error] = useCollection(
     collectionGroup(db, 'readings'),
   );
+
+  useEffect(() => {
+    if (error) log.error('useAllReadings', error);
+  }, [error]);
 
   const readingsByUser = useMemo(() => {
     const map = new Map<string, Reading[]>();

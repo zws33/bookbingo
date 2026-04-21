@@ -6,15 +6,14 @@ import { log } from '@bookbingo/lib-util';
 import { Reading } from '../types';
 
 export function useReadings(userId: string) {
-  const path = userId ? `users/${userId}/readings` : null;
   const query = userId
     ? collection(db, 'users', userId, 'readings')
     : undefined;
   const [snapshot, loading, error] = useCollection(query);
 
   useEffect(() => {
-    log.debug('useReadings', 'query', { path, loading, error: error?.message ?? null });
-  }, [path, loading, error]);
+    if (error) log.error('useReadings', error);
+  }, [error]);
 
   useEffect(() => {
     if (snapshot) {

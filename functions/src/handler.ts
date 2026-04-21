@@ -1,4 +1,5 @@
 import { HttpsError, type CallableRequest } from 'firebase-functions/v2/https';
+import { logger } from 'firebase-functions';
 
 export const GITHUB_API_URL = 'https://api.github.com/repos/zws33/bookbingo/issues';
 export const TITLE_MAX_LENGTH = 200;
@@ -69,7 +70,7 @@ export async function submitFeedbackHandler(
 
   if (!response.ok) {
     const errorBody = await response.text();
-    console.error('GitHub API error:', response.status, errorBody);
+    logger.error('GitHub API error', { status: response.status, body: errorBody });
     throw new HttpsError('internal', 'Failed to create GitHub issue. Please try again.');
   }
 
