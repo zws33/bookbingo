@@ -32,7 +32,7 @@ export function BingoBoard({ readings, booksById }: BingoBoardProps) {
 
   return (
     <>
-      <div className="overflow-x-auto p-1 sm:p-2 max-w-2xl mx-auto bg-gray-100 rounded-lg shadow-inner">
+      <div className="overflow-x-auto p-1 sm:p-2 mx-auto bg-gray-100 rounded-lg shadow-inner">
         <div className="grid grid-cols-3 sm:grid-cols-7 gap-1 sm:gap-2">
           {TILES.map((tile) => (
             <BoardCell

@@ -16,7 +16,7 @@ export function BoardCell({ tileName, bookCount, onClick }: BoardCellProps) {
     <button
       onClick={onClick}
       title={tileName}
-      className={`aspect-square overflow-hidden rounded border shadow-sm p-1.5 sm:p-2 text-xs sm:text-sm leading-tight relative cursor-pointer hover:ring-2 hover:ring-blue-400 transition-all flex items-center justify-center text-center ${cellColor(bookCount)}`}
+      className={`aspect-square overflow-hidden rounded border shadow-sm p-1.5 sm:p-2 text-sm leading-tight relative cursor-pointer hover:ring-2 hover:ring-blue-400 transition-all flex items-center justify-center text-center ${cellColor(bookCount)}`}
     >
       <span className="line-clamp-3">{tileName}</span>
       {bookCount > 0 && (
