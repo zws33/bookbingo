@@ -45,7 +45,8 @@ export function FeedbackModal({ isOpen, onClose }: FeedbackModalProps) {
       showSuccess('Feedback submitted! Thanks for helping improve Book Bingo. 🎉');
       resetForm();
       onClose();
-    } catch {
+    } catch (err) {
+      console.error('[FeedbackModal] submit error:', err);
       showError('Failed to submit feedback. Please try again.');
     } finally {
       setIsSubmitting(false);
