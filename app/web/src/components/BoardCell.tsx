@@ -8,10 +8,10 @@ const truncate = (s: string, max: number) =>
   s.length > max ? s.slice(0, max) + '…' : s;
 
 function cellColor(count: number): string {
-  if (count === 0) return 'bg-gray-100 text-gray-600';
-  if (count === 1) return 'bg-blue-100 text-blue-800';
-  if (count === 2) return 'bg-blue-200 text-blue-900';
-  return 'bg-blue-300 text-blue-900';
+  if (count === 0) return 'bg-white text-gray-500 border-gray-200';
+  if (count === 1) return 'bg-blue-50 text-blue-800 border-blue-100';
+  if (count === 2) return 'bg-blue-100 text-blue-900 border-blue-200';
+  return 'bg-blue-200 text-blue-900 border-blue-300';
 }
 
 export function BoardCell({ tileName, bookCount, onClick }: BoardCellProps) {
@@ -19,7 +19,7 @@ export function BoardCell({ tileName, bookCount, onClick }: BoardCellProps) {
     <button
       onClick={onClick}
       title={tileName}
-      className={`aspect-square rounded p-1.5 sm:p-2 text-xs sm:text-sm leading-tight relative cursor-pointer hover:ring-2 hover:ring-blue-400 transition-shadow flex items-center justify-center text-center ${cellColor(bookCount)}`}
+      className={`aspect-square rounded border shadow-sm p-1.5 sm:p-2 text-xs sm:text-sm leading-tight relative cursor-pointer hover:ring-2 hover:ring-blue-400 transition-all flex items-center justify-center text-center ${cellColor(bookCount)}`}
     >
       <span>{truncate(tileName, 30)}</span>
       {bookCount > 0 && (
