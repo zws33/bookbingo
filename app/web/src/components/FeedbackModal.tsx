@@ -1,9 +1,8 @@
 import { useState, useCallback, SubmitEvent } from 'react';
 import { httpsCallable } from 'firebase/functions';
 import { functions } from '../lib/firebase';
-import { Modal } from './Modal';
 import { useToast } from '../lib/ToastContext';
-import { Input, Label, Button } from './ui/index.js';
+import { Input, Label, Button, Dialog, Textarea } from './ui/index.js';
 
 type FeedbackType = 'bug' | 'feature';
 
@@ -41,8 +40,14 @@ export function FeedbackModal({ isOpen, onClose }: FeedbackModalProps) {
 
     setIsSubmitting(true);
     try {
-      await submitFeedbackCallable({ type, title: title.trim(), description: description.trim() });
-      showSuccess('Feedback submitted! Thanks for helping improve Book Bingo. 🎉');
+      await submitFeedbackCallable({
+        type,
+        title: title.trim(),
+        description: description.trim(),
+      });
+      showSuccess(
+        'Feedback submitted! Thanks for helping improve Book Bingo. 🎉',
+      );
       resetForm();
       onClose();
     } catch (err) {
@@ -54,7 +59,7 @@ export function FeedbackModal({ isOpen, onClose }: FeedbackModalProps) {
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={handleClose} title="Send Feedback">
+    <Dialog isOpen={isOpen} onClose={handleClose} title="Send Feedback">
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <Label className="mb-1">Type</Label>
@@ -96,7 +101,9 @@ export function FeedbackModal({ isOpen, onClose }: FeedbackModalProps) {
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder={
-              type === 'bug' ? 'Short summary of the issue' : 'Short summary of the feature'
+              type === 'bug'
+                ? 'Short summary of the issue'
+                : 'Short summary of the feature'
             }
             disabled={isSubmitting}
           />
@@ -106,11 +113,10 @@ export function FeedbackModal({ isOpen, onClose }: FeedbackModalProps) {
           <Label htmlFor="feedback-description" className="mb-1">
             {type === 'bug' ? 'Steps to Reproduce' : 'Description'}
           </Label>
-          <textarea
+          <Textarea
             id="feedback-description"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
             placeholder={
               type === 'bug'
                 ? 'What happened? What did you expect to happen?'
@@ -122,7 +128,12 @@ export function FeedbackModal({ isOpen, onClose }: FeedbackModalProps) {
         </div>
 
         <div className="flex justify-end gap-3 pt-2">
-          <Button type="button" variant="ghost" onClick={handleClose} disabled={isSubmitting}>
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={handleClose}
+            disabled={isSubmitting}
+          >
             Cancel
           </Button>
           <Button type="submit" disabled={!isValid || isSubmitting}>
@@ -130,6 +141,6 @@ export function FeedbackModal({ isOpen, onClose }: FeedbackModalProps) {
           </Button>
         </div>
       </form>
-    </Modal>
+    </Dialog>
   );
 }

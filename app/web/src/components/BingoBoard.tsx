@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { TILES, getTileById } from '@bookbingo/lib-core';
 import type { Reading, Book } from '../types';
 import { BoardCell } from './BoardCell';
-import { Modal } from './Modal';
+import { Dialog } from './ui';
 
 interface BingoBoardProps {
   readings: Reading[];
@@ -44,8 +44,7 @@ export function BingoBoard({ readings, booksById }: BingoBoardProps) {
           ))}
         </div>
       </div>
-
-      <Modal
+      <Dialog
         isOpen={selectedTileId !== null}
         onClose={() => setSelectedTileId(null)}
         title={selectedTile?.name ?? ''}
@@ -65,7 +64,7 @@ export function BingoBoard({ readings, booksById }: BingoBoardProps) {
             })}
           </ul>
         )}
-      </Modal>
+      </Dialog>
     </>
   );
 }

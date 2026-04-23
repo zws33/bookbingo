@@ -5,7 +5,7 @@ import { useToast } from '../lib/ToastContext';
 import { getOrCreateBook, createReading } from '../lib/books';
 import { BookList } from '../components/BookList';
 import { ScoreDisplay } from '../components/ScoreDisplay';
-import { Modal } from '../components/Modal';
+import { Dialog } from '../components/ui/index.js';
 import { BookForm, type BookFormData } from '../components/BookForm';
 import { getScoreBreakdown } from '@bookbingo/lib-core';
 import { log } from '@bookbingo/lib-util';
@@ -83,7 +83,7 @@ export function MyBooksPage({ userId }: MyBooksPageProps) {
         </div>
       </div>
 
-      <Modal
+      <Dialog
         isOpen={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
         title="Add New Book"
@@ -93,7 +93,7 @@ export function MyBooksPage({ userId }: MyBooksPageProps) {
           onCancel={() => setIsAddModalOpen(false)}
           isSubmitting={isSubmitting}
         />
-      </Modal>
+      </Dialog>
     </>
   );
 }

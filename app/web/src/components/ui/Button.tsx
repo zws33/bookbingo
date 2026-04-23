@@ -1,9 +1,9 @@
-import { type ButtonHTMLAttributes } from 'react';
+import { type ComponentPropsWithRef } from 'react';
 import { cn } from '../../lib/cn.js';
 
 type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger';
 
-export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+export interface ButtonProps extends ComponentPropsWithRef<'button'> {
   variant?: ButtonVariant;
 }
 
@@ -16,9 +16,10 @@ const variantClasses: Record<ButtonVariant, string> = {
     'bg-red-600 text-white hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed',
 };
 
-export function Button({ variant = 'primary', className, ...props }: ButtonProps) {
+export function Button({ variant = 'primary', className, ref, ...props }: ButtonProps) {
   return (
     <button
+      ref={ref}
       className={cn('px-4 py-2 rounded-lg', variantClasses[variant], className)}
       {...props}
     />

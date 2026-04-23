@@ -1,8 +1,9 @@
 import { useState, useMemo } from 'react';
+import { cn } from '../lib/cn.js';
 import type { Reading, Book } from '../types';
 import { BookCard } from './BookCard';
 import { BookRow } from './BookRow';
-import { Modal } from './Modal';
+import { Dialog } from './ui/index.js';
 import { BookForm, type BookFormData } from './BookForm';
 import { ConfirmDialog } from './ConfirmDialog';
 import { EmptyState } from './EmptyState';
@@ -103,7 +104,7 @@ export function BookList({
           <div className="flex gap-1">
             <button
               onClick={() => setViewMode('cards')}
-              className={`p-2 rounded ${viewMode === 'cards' ? 'bg-blue-100 text-blue-600' : 'text-gray-400 hover:text-gray-600'}`}
+              className={cn('p-2 rounded', viewMode === 'cards' ? 'bg-blue-100 text-blue-600' : 'text-gray-400 hover:text-gray-600')}
               aria-label="Card view"
               title="Card view"
             >
@@ -123,7 +124,7 @@ export function BookList({
             </button>
             <button
               onClick={() => setViewMode('list')}
-              className={`p-2 rounded ${viewMode === 'list' ? 'bg-blue-100 text-blue-600' : 'text-gray-400 hover:text-gray-600'}`}
+              className={cn('p-2 rounded', viewMode === 'list' ? 'bg-blue-100 text-blue-600' : 'text-gray-400 hover:text-gray-600')}
               aria-label="List view"
               title="List view"
             >
@@ -194,7 +195,7 @@ export function BookList({
 
       {!readOnly && (
         <>
-          <Modal
+          <Dialog
             isOpen={!!selectedReading && !showDeleteConfirm}
             onClose={() => setSelectedReading(null)}
             title="Edit Book"
@@ -220,7 +221,7 @@ export function BookList({
                 Delete this reading
               </button>
             </div>
-          </Modal>
+          </Dialog>
 
           <ConfirmDialog
             isOpen={showDeleteConfirm}
