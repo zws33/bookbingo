@@ -3,9 +3,8 @@ import { cn } from '../lib/cn.js';
 import type { Reading, Book } from '../types';
 import { BookCard } from './BookCard';
 import { BookRow } from './BookRow';
-import { Dialog } from './ui/index.js';
+import { Dialog, AlertDialog } from './ui/index.js';
 import { BookForm, type BookFormData } from './BookForm';
-import { ConfirmDialog } from './ConfirmDialog';
 import { EmptyState } from './EmptyState';
 import { SearchFilter } from './SearchFilter';
 import { useToast } from '../lib/ToastContext';
@@ -223,12 +222,13 @@ export function BookList({
             </div>
           </Dialog>
 
-          <ConfirmDialog
+          <AlertDialog
             isOpen={showDeleteConfirm}
             onClose={() => setShowDeleteConfirm(false)}
             onConfirm={handleDelete}
             title="Delete Book"
             message={`Are you sure you want to delete "${selectedBook.title}"? This action cannot be undone.`}
+            confirmLabel="Delete"
           />
         </>
       )}
