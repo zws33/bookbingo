@@ -21,57 +21,92 @@ BookBingo is a small React 19/Vite/Tailwind app with clean component architectur
 
 ## B. UI Inventory
 
-| Pattern | Current Implementation | Location | Pain Points | Recommended Primitive | Complexity | Priority |
-|---|---|---|---|---|---|---|
-| **Dialog** | Custom `Modal.tsx` | `BingoBoard`, `MyBooksPage`, `BookList` | No portal, no focus trap, no scroll lock, no focus restoration. Escape via `document.addEventListener` (not trapped in modal tree). `id="modal-title"` hardcoded — would collide if two modals mounted. | `@radix-ui/react-dialog` | Low | **P1** |
-| **Alert Dialog** | Custom `ConfirmDialog.tsx` | `BookList` | Same gaps as `Modal.tsx`. Duplicates the entire pattern (Escape, backdrop, overlay) with no code sharing. | `@radix-ui/react-alert-dialog` | Low | **P1** |
-| **Toast** | Custom `Toast.tsx` + `ToastContext.tsx` | Provider in `main.tsx`, consumed via `useToast()` | No portal (renders in React tree, not document body), single-item (no queue), no animation, no ARIA live region. Imperative API (`showSuccess(msg)`) is a mismatch for Radix's declarative model. | `@radix-ui/react-toast` | **Medium** | P2 |
-| View toggle (cards/list) | Custom `<button>` elements | `BookList` | Missing `aria-pressed` state on toggle buttons. | `@radix-ui/react-toggle-group` | Low | P3 |
-| Tile multi-select | Custom `<button>` elements | `TileSelector` | Missing `aria-pressed`. Multi-select pattern with search — not a natural Toggle Group target. | None recommended | — | **Skip** |
-| Checkbox | Native `<input type="checkbox">` | `FreebieToggle` | None — native is accessible. | None needed | — | Skip |
-| Form inputs | Custom wrappers | `ui/Input`, `ui/Label` | Already solid. `Input` has `forwardRef`. | None needed | — | Skip |
-| Button | Custom `ui/Button` | Used widely | Missing `ref` forwarding and `asChild` support. Pattern improvement only — not a primitive replacement. | Ref/`asChild` upgrade | Low | P1 (prerequisite) |
+### Modal.tsx → ui/Dialog
+- **Location:** BingoBoard, MyBooksPage, BookList
+- **Priority:** P1 | Complexity: Low
+- **Gaps:** No portal, no focus trap, no scroll lock, no focus restoration. Escape handled via `document.addEventListener` (not trapped in modal tree). `id="modal-title"` hardcoded — would collide if two modals mounted simultaneously.
+- **Recommended:** `@radix-ui/react-dialog`
 
-**Pages with no new interactive patterns:** `LibraryPage` (read-only list), `LeaderboardPage` (static table), `UserBooksPage` (read-only `BookList`). All interactive work flows through `BookList`.
+### ConfirmDialog.tsx → ui/AlertDialog
+- **Location:** BookList
+- **Priority:** P1 | Complexity: Low
+- **Gaps:** Same gaps as Modal.tsx. Duplicates the entire pattern (Escape, backdrop, overlay) with no code sharing.
+- **Recommended:** `@radix-ui/react-alert-dialog`
+
+### Toast.tsx + ToastContext.tsx → ui/Toast
+- **Location:** Provider in `main.tsx`, consumed via `useToast()`
+- **Priority:** P2 | Complexity: Medium
+- **Gaps:** No portal (renders in React tree, may be clipped by stacking contexts), single-item only (new toast silently replaces old), no animation, no ARIA live region. Imperative API (`showSuccess(msg)`) is a mismatch for Radix's declarative model.
+- **Recommended:** `@radix-ui/react-toast`
+
+### View toggle (cards/list)
+- **Location:** BookList
+- **Priority:** P3 | Complexity: Low
+- **Gaps:** Missing `aria-pressed` state on toggle buttons — keyboard users cannot tell which view is active.
+- **Recommended:** `@radix-ui/react-toggle-group` (or simple `aria-pressed` attribute fix — see Phase 4)
+
+### TileSelector (multi-select)
+- **Location:** TileSelector
+- **Priority:** Skip
+- **Gaps:** Missing `aria-pressed`. Multi-select pattern with search — not a natural Toggle Group target. Adding `aria-pressed={isSelected}` to existing buttons resolves the a11y gap directly.
+- **Recommended:** None — fix `aria-pressed` inline, do not replace with Radix.
+
+### FreebieToggle (checkbox)
+- **Location:** FreebieToggle
+- **Priority:** Skip
+- **Gaps:** None. Native `<input type="checkbox">` wrapped in `<label>` is already accessible.
+- **Recommended:** None needed.
+
+### ui/Input and ui/Label
+- **Location:** Used widely
+- **Priority:** Skip
+- **Gaps:** Already solid. `Input` has `forwardRef`.
+- **Recommended:** None needed.
+
+### ui/Button
+- **Location:** Used widely
+- **Priority:** P1 prerequisite | Complexity: Low
+- **Gaps:** Missing `ref` forwarding and `asChild` support. Pattern improvement only — not a primitive replacement.
+- **Recommended:** Add `ref` as a regular prop (React 19 pattern) and `asChild` support.
 
 ---
 
 ## C. Accessibility Audit
 
-### Current gaps and Radix's remediation
+### Modal.tsx and ConfirmDialog.tsx
 
-**`Modal.tsx` and `ConfirmDialog.tsx`** share the same set of gaps:
+Both components share the same set of gaps. Radix Dialog and AlertDialog address all of them:
 
-| Gap | Current behavior | Radix fix |
-|---|---|---|
-| Focus trap | None — Tab can leave modal | `Dialog.Content` traps focus automatically |
-| Focus restoration | None — focus stays wherever it lands on close | Radix restores focus to the trigger element |
-| Body scroll lock | None — background scrolls while modal is open | `Dialog.Overlay` adds scroll lock |
-| Portal | Renders in React tree | `Dialog.Portal` renders into `document.body` |
-| Escape key | `document.addEventListener` at module level | Radix handles this natively |
-| `id="modal-title"` collision | Hardcoded — breaks if two instances exist | `Dialog.Title` uses internal id management |
+- **Focus trap:** none (Tab can leave modal) → `Dialog.Content` traps focus automatically
+- **Focus restoration:** none (focus stays wherever it lands on close) → Radix restores focus to the trigger element
+- **Body scroll lock:** none (background scrolls while modal is open) → `Dialog.Overlay` adds scroll lock
+- **Portal:** renders in React tree → `Dialog.Portal` renders into `document.body`
+- **Escape key:** `document.addEventListener` at module level → Radix handles natively
+- **`id="modal-title"` collision:** hardcoded, breaks if two instances exist → `Dialog.Title` uses internal id management
 
-**`ConfirmDialog.tsx`** uses `role="alertdialog"` correctly. `@radix-ui/react-alert-dialog` preserves this semantics.
+`ConfirmDialog.tsx` uses `role="alertdialog"` correctly. `@radix-ui/react-alert-dialog` preserves this semantics.
 
-**`Toast.tsx`**:
+### Toast.tsx
 
-| Gap | Current behavior | Radix fix |
-|---|---|---|
-| ARIA live region | `role="alert"` without controlled presentation | `Toast.Root` uses `role="status"` with correct live region |
-| Portal | Renders inside React tree (may be clipped by stacking contexts) | `Toast.Viewport` renders in document root |
-| Queue management | Single item, new toast replaces old silently | Radix supports multiple concurrent toasts |
+- **ARIA live region:** `role="alert"` without controlled presentation → `Toast.Root` uses `role="status"` with correct live region
+- **Portal:** renders inside React tree (may be clipped by stacking contexts) → `Toast.Viewport` renders in document root
+- **Queue management:** single item, new toast replaces old silently → Radix supports multiple concurrent toasts
 
-**`BookList` view toggle**:
-- The card/list toggle buttons have `aria-label` but no `aria-pressed`. Keyboard users cannot tell which view is active. This is a minor a11y gap; Toggle Group fixes it.
+### BookList view toggle
 
-**`TileSelector`**:
-- Toggle buttons lack `aria-pressed`. However, since this is a custom multi-select inside a scroll container, replacing it with Toggle Group would add complexity without net benefit. Adding `aria-pressed={isSelected}` to the existing buttons resolves the a11y gap directly.
+The card/list toggle buttons have `aria-label` but no `aria-pressed`. Keyboard users cannot tell which view is active. Minor gap; Toggle Group fixes it, or `aria-pressed` can be added directly to the existing buttons (see Phase 4 — option 1 is preferred).
 
-**`FreebieToggle`**:
-- Native `<input type="checkbox">` wrapped in `<label>` — no gaps.
+### TileSelector
 
-**`BookRow`**:
-- Uses `role="button"` with `tabIndex={0}` and `onKeyDown` Enter handler. Missing Space key handling (`keydown` Space on `role="button"` should also trigger). Low severity for this app.
+Toggle buttons lack `aria-pressed`. Since this is a custom multi-select inside a scroll container, replacing it with Toggle Group would add complexity without net benefit. Add `aria-pressed={isSelected}` to the existing buttons directly.
+
+### FreebieToggle
+
+Native `<input type="checkbox">` wrapped in `<label>` — no gaps.
+
+### BookRow
+
+Uses `role="button"` with `tabIndex={0}` and `onKeyDown` Enter handler. Missing Space key handling (`keydown` Space on `role="button"` should also trigger). Low severity for this app.
 
 ---
 
@@ -166,7 +201,7 @@ This document. No code changes.
 
 ---
 
-### Phase 1 — Foundation: Dialog
+### Phase 1 — Foundation: Dialog ✓
 
 **Goal:** Replace `Modal.tsx` with a Radix Dialog wrapper. Fix `Button` ref forwarding as a prerequisite.
 
@@ -188,7 +223,7 @@ This document. No code changes.
 
 ---
 
-### Phase 2 — Alert Dialog
+### Phase 2 — Alert Dialog ✓
 
 **Goal:** Replace `ConfirmDialog.tsx` with a Radix AlertDialog wrapper.
 
@@ -203,7 +238,7 @@ This document. No code changes.
 
 ---
 
-### Phase 3 — Toast
+### Phase 3 — Toast ✓
 
 **Goal:** Replace the custom `Toast.tsx` + `ToastContext.tsx` with a Radix Toast wrapper that preserves the existing imperative `useToast()` API.
 
@@ -259,13 +294,11 @@ The `useToast()` hook interface stays identical — this is an implementation ch
 
 ## I. Risk Register
 
-| Risk | Severity | Mitigation |
-|---|---|---|
-| `Modal.test.tsx` DOM identity assertions break | Medium | Expected — rewrite tests to assert behavior (Escape, focus restoration, open/close state). Radix autofocuses first focusable child, not the dialog wrapper. |
-| `aria-labelledby` pattern changes | Low | Radix `Dialog.Title` handles ARIA labeling automatically. No manual `id` coordination needed. |
-| Toast imperative API mismatch | Medium | Design `ToastContext` rewrite to preserve `showSuccess(msg)` / `showError(msg)` hook interface. Callers should not need to change. |
-| Tailwind v4 + Radix compatibility | None | Radix is headless — no styling assumptions. `data-state` attributes work with Tailwind v4 variant selectors. |
-| Over-migration | Low | Explicitly: do NOT replace `TileSelector` buttons with Toggle Group, do NOT add Radix Checkbox to `FreebieToggle`, do NOT add Radix primitives to read-only pages. |
-| `Button.forwardRef` churn | Low | React 19 pattern: accept `ref` as a regular prop, not `forwardRef`. Don't update `Input` (leave legacy pattern, it's working). |
-| Stacking context / portal order | Low | Radix portals into `document.body`. The `z-50` on `Toast`, `z-40` on `Modal`, `z-50` on `ConfirmDialog` will be managed by Radix's portal order — verify that toasts remain above dialogs visually. |
-| FeedbackModal `SubmitEvent` type | None | This is a native DOM type and is unaffected by the modal migration. |
+- **`Modal.test.tsx` DOM identity assertions break** `medium` — Expected: rewrite tests to assert behavior (Escape, focus restoration, open/close state). Radix autofocuses the first focusable child, not the dialog wrapper.
+- **`aria-labelledby` pattern changes** `low` — `Dialog.Title` handles ARIA labeling automatically. No manual `id` coordination needed.
+- **Toast imperative API mismatch** `medium` — Design `ToastContext` rewrite to preserve `showSuccess(msg)` / `showError(msg)` hook interface. Callers should not need to change.
+- **Tailwind v4 + Radix compatibility** `none` — Radix is headless, no styling assumptions. `data-state` attributes work with Tailwind v4 variant selectors.
+- **Over-migration** `low` — Explicitly: do NOT replace `TileSelector` buttons with Toggle Group, do NOT add Radix Checkbox to `FreebieToggle`, do NOT add Radix primitives to read-only pages.
+- **`Button.forwardRef` churn** `low` — React 19 pattern: accept `ref` as a regular prop, not `forwardRef`. Don't update `Input` (leave legacy pattern, it's working).
+- **Stacking context / portal order** `low` — Radix portals into `document.body`. The `z-50` on Toast, `z-40` on Modal, `z-50` on ConfirmDialog will be managed by Radix's portal order — verify toasts remain above dialogs visually.
+- **`FeedbackModal` `SubmitEvent` type** `none` — Native DOM type, unaffected by the modal migration.

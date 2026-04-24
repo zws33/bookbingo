@@ -1,9 +1,12 @@
-import { createContext, useContext, useState, useCallback, ReactNode } from 'react';
-import { Toast } from '../components/Toast';
+import { createContext, useContext, useState, useCallback, type ReactNode } from 'react';
+import { Toast as RadixToast } from 'radix-ui';
+import { ToastItem, ToastViewport, TOAST_EXIT_DURATION_MS } from '../components/ui/Toast.js';
 
-interface ToastState {
+interface ToastQueueItem {
+  id: string;
   message: string;
   type: 'success' | 'error';
+  open: boolean;
 }
 
 interface ToastContextValue {
@@ -13,31 +16,51 @@ interface ToastContextValue {
 
 const ToastContext = createContext<ToastContextValue | null>(null);
 
-interface ToastProviderProps {
-  children: ReactNode;
-}
+let nextId = 0;
 
-export function ToastProvider({ children }: ToastProviderProps) {
-  const [toast, setToast] = useState<ToastState | null>(null);
+export function ToastProvider({ children }: { children: ReactNode }) {
+  const [toasts, setToasts] = useState<ToastQueueItem[]>([]);
 
-  const showSuccess = useCallback((message: string) => {
-    setToast({ message, type: 'success' });
-    setTimeout(() => setToast(null), 3000);
+  const addToast = useCallback((message: string, type: 'success' | 'error') => {
+    const id = String(++nextId);
+    setToasts((prev) => [...prev, { id, message, type, open: true }]);
   }, []);
 
-  const showError = useCallback((message: string) => {
-    setToast({ message, type: 'error' });
-    setTimeout(() => setToast(null), 3000);
-  }, []);
+  const showSuccess = useCallback(
+    (message: string) => addToast(message, 'success'),
+    [addToast],
+  );
 
-  const handleClose = useCallback(() => {
-    setToast(null);
+  const showError = useCallback(
+    (message: string) => addToast(message, 'error'),
+    [addToast],
+  );
+
+  const handleOpenChange = useCallback((id: string, open: boolean) => {
+    if (!open) {
+      setToasts((prev) => prev.map((t) => (t.id === id ? { ...t, open: false } : t)));
+      setTimeout(
+        () => setToasts((prev) => prev.filter((t) => t.id !== id)),
+        TOAST_EXIT_DURATION_MS,
+      );
+    }
   }, []);
 
   return (
     <ToastContext.Provider value={{ showSuccess, showError }}>
-      {children}
-      {toast && <Toast message={toast.message} type={toast.type} onClose={handleClose} />}
+      <RadixToast.Provider swipeDirection="right">
+        {children}
+        {toasts.map((toast) => (
+          <ToastItem
+            key={toast.id}
+            message={toast.message}
+            type={toast.type}
+            open={toast.open}
+            onOpenChange={(open) => handleOpenChange(toast.id, open)}
+          />
+        ))}
+        <ToastViewport />
+      </RadixToast.Provider>
     </ToastContext.Provider>
   );
 }

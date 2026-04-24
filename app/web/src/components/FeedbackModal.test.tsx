@@ -123,9 +123,7 @@ describe('FeedbackModal', () => {
     await user.click(screen.getByRole('button', { name: /submit/i }));
 
     await waitFor(() => {
-      const alert = screen.getByRole('alert', { hidden: true });
-      expect(alert).toBeInTheDocument();
-      expect(alert).toHaveTextContent(/failed to submit feedback/i);
+      expect(screen.getByText(/failed to submit feedback/i)).toBeInTheDocument();
     });
     expect(onClose).not.toHaveBeenCalled();
   });
