@@ -67,7 +67,7 @@ Each workspace package has its own `tsconfig.build.json` (for builds) and `tscon
 
 Task workflow follows the standard 4-phase process (Clarify → Research → Plan → Implement). Project-specific additions:
 
-- During **Research**, check `docs/` for relevant planning documents.
+- During **Research**, check `docs/` for relevant planning documents and `docs/decisions/index.md` for architectural decisions that may affect your approach.
 - During **Implement**, review your diff for CLAUDE.md staleness if you changed any of:
   - Workspace packages or modules in `lib/core/src/`
   - TypeScript configuration (tsconfig files, paths, references)
@@ -132,3 +132,4 @@ When creating PRs, include a summary of changes but do not include a test plan s
 - **Feedback / GitHub Issues** — `functions/src/index.ts` contains the `submitFeedback` callable Cloud Function. It reads the `GITHUB_PAT` secret (set via `firebase functions:secrets:set GITHUB_PAT`) and POSTs to the GitHub Issues API. The frontend calls it via `httpsCallable(functions, 'submitFeedback')`. The `FeedbackModal` component in `app/web/src/components/FeedbackModal.tsx` provides the UI.
 - When adding new features, start with `lib/` (logic + tests), then wire it into `app/web/` (UI).
 - For larger features, create a planning doc in `docs/` before writing code. This is especially important when the task involves new data models, scoring changes, or architectural decisions.
+- **Architectural decisions** are indexed at `docs/decisions/index.md`. Add a new entry whenever a non-obvious design choice is made — especially patterns that future agents or contributors might otherwise second-guess or undo.
