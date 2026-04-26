@@ -52,6 +52,7 @@ export function TileSelector({ selectedTiles, onChange, isFreebie }: TileSelecto
               type="button"
               onClick={() => handleToggle(tile.id)}
               disabled={isDisabled}
+              aria-pressed={isSelected}
               className={`px-2 py-1.5 rounded text-sm text-left transition-colors ${
                 isSelected
                   ? 'bg-blue-600 text-white'

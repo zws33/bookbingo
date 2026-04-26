@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { getScoreBreakdown } from '@bookbingo/lib-core';
 import { useUsers } from '../hooks/useUsers';
 import { useAllReadings } from '../hooks/useAllReadings';
+import { PageStatus } from '../components/PageStatus';
 
 export function LeaderboardPage() {
   const { users, loading: usersLoading, error: usersError } = useUsers();
@@ -25,18 +26,9 @@ export function LeaderboardPage() {
       .sort((a, b) => b.score - a.score);
   }, [users, readingsByUser]);
 
-  if (loading) {
-    return <div className="text-center py-8 text-gray-500">Loading...</div>;
+  if (loading || error) {
+    return <PageStatus loading={loading} error={error} />;
   }
-
-  if (error) {
-    return (
-      <div className="text-center py-8 text-red-500">
-        Error: {error.message}
-      </div>
-    );
-  }
-
   if (rankedUsers.length === 0) {
     return (
       <div className="text-center py-8 text-gray-500">No participants yet.</div>
@@ -79,7 +71,9 @@ export function LeaderboardPage() {
                   <span className="font-medium text-gray-900">{user.name}</span>
                 </Link>
               </td>
-              <td className="px-4 py-3 text-right text-gray-600">{bookCount}</td>
+              <td className="px-4 py-3 text-right text-gray-600">
+                {bookCount}
+              </td>
               <td className="px-4 py-3 text-right font-semibold text-gray-900">
                 {score.toFixed(1)}
               </td>

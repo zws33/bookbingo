@@ -24,6 +24,7 @@
     "@bookbingo/lib-util": "workspace:*",
     "clsx": "^2.1.1",
     "firebase": "^10.8.0",
+    "radix-ui": "^1.4.3",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-firebase-hooks": "^5.1.1",

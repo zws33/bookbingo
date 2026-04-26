@@ -20,15 +20,9 @@ describe('ToastContext', () => {
   });
 
   it('useToast throws when used outside ToastProvider', () => {
-    // Suppress the React error boundary console output
     const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
     expect(() => {
-      render(
-        // Intentionally not wrapped in ToastProvider — test-utils wraps in AllProviders
-        // which includes ToastProvider, so we render directly via RTL render
-        <ToastTrigger />,
-        { wrapper: undefined },
-      );
+      render(<ToastTrigger />, { wrapper: undefined });
     }).toThrow('useToast must be used within a ToastProvider');
     spy.mockRestore();
   });
@@ -43,7 +37,6 @@ describe('ToastContext', () => {
     await act(async () => {
       screen.getByRole('button', { name: 'success' }).click();
     });
-    expect(screen.getByRole('alert')).toBeInTheDocument();
     expect(screen.getByText('Book logged!')).toBeInTheDocument();
   });
 
@@ -57,7 +50,6 @@ describe('ToastContext', () => {
     await act(async () => {
       screen.getByRole('button', { name: 'error' }).click();
     });
-    expect(screen.getByRole('alert')).toBeInTheDocument();
     expect(screen.getByText('Something went wrong')).toBeInTheDocument();
   });
 
@@ -71,11 +63,27 @@ describe('ToastContext', () => {
     await act(async () => {
       screen.getByRole('button', { name: 'success' }).click();
     });
-    expect(screen.getByRole('alert')).toBeInTheDocument();
+    expect(screen.getByText('Book logged!')).toBeInTheDocument();
 
+    // Advance past Radix duration (3000ms) + exit animation cleanup (200ms)
     await act(async () => {
-      vi.advanceTimersByTime(3000);
+      vi.advanceTimersByTime(3200);
     });
-    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    expect(screen.queryByText('Book logged!')).not.toBeInTheDocument();
+  });
+
+  it('multiple toasts can be shown simultaneously', async () => {
+    vi.useFakeTimers();
+    render(
+      <ToastProvider>
+        <ToastTrigger />
+      </ToastProvider>,
+    );
+    await act(async () => {
+      screen.getByRole('button', { name: 'success' }).click();
+      screen.getByRole('button', { name: 'error' }).click();
+    });
+    expect(screen.getByText('Book logged!')).toBeInTheDocument();
+    expect(screen.getByText('Something went wrong')).toBeInTheDocument();
   });
 });

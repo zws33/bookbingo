@@ -17,11 +17,12 @@ vi.mock('firebase/functions', () => ({
 }));
 
 function fillForm(title: string, description: string) {
-  fireEvent.change(screen.getByLabelText(/title/i), { target: { value: title } });
-  fireEvent.change(
-    screen.getByLabelText(/steps to reproduce|description/i),
-    { target: { value: description } },
-  );
+  fireEvent.change(screen.getByLabelText(/title/i), {
+    target: { value: title },
+  });
+  fireEvent.change(screen.getByLabelText(/steps to reproduce|description/i), {
+    target: { value: description },
+  });
 }
 
 describe('FeedbackModal', () => {
@@ -44,14 +45,20 @@ describe('FeedbackModal', () => {
 
   it('shows Bug Report and Feature Request radio options', () => {
     render(<FeedbackModal isOpen={true} onClose={onClose} />);
-    expect(screen.getByRole('radio', { name: /bug report/i })).toBeInTheDocument();
-    expect(screen.getByRole('radio', { name: /feature request/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole('radio', { name: /bug report/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('radio', { name: /feature request/i }),
+    ).toBeInTheDocument();
   });
 
   it('defaults to Bug Report type', () => {
     render(<FeedbackModal isOpen={true} onClose={onClose} />);
     expect(screen.getByRole('radio', { name: /bug report/i })).toBeChecked();
-    expect(screen.getByRole('radio', { name: /feature request/i })).not.toBeChecked();
+    expect(
+      screen.getByRole('radio', { name: /feature request/i }),
+    ).not.toBeChecked();
   });
 
   it('disables Submit button when title or description is empty', () => {
@@ -116,7 +123,6 @@ describe('FeedbackModal', () => {
     await user.click(screen.getByRole('button', { name: /submit/i }));
 
     await waitFor(() => {
-      expect(screen.getByRole('alert')).toBeInTheDocument();
       expect(screen.getByText(/failed to submit feedback/i)).toBeInTheDocument();
     });
     expect(onClose).not.toHaveBeenCalled();
@@ -156,4 +162,3 @@ describe('FeedbackModal', () => {
     expect(screen.getByLabelText(/steps to reproduce/i)).toHaveValue('');
   });
 });
-
