@@ -8,7 +8,7 @@ Book reading bingo card tracker — a hobby project for a book club competition 
 - **Web app**: React 19 + Vite + Tailwind CSS
 - **Backend**: Firebase (Firestore, Hosting)
 - **Testing**: `node:test` + `node:assert` in `lib/` and `functions/`; Vitest in `app/web/`
-- **Package manager**: pnpm (monorepo with workspace packages)
+- **Package manager**: pnpm workspaces — never use `npm` or `yarn`
 - **Build**: `tsc --build` (project references mode — always use `tsc -b`, never `tsc -p`)
 - **Tooling**: ESLint, Prettier, tsx
 
@@ -62,6 +62,32 @@ Each workspace package has its own `tsconfig.build.json` (for builds) and `tscon
 - `pnpm run dev:local` — start emulator and web dev server together
 - `pnpm run emulator:start` — start Firebase emulators (root data/scripts)
 - `pnpm run emulator:seed` — seed emulators with test data
+
+## Package Management
+
+This is a **pnpm monorepo**. Each directory under `lib/`, `app/`, and `functions/` is a separate workspace package with its own `package.json` and dependency tree.
+
+**Installing dependencies** — always scope to a workspace, never install at the repo root unless it is shared tooling (ESLint, TypeScript, Prettier):
+
+```sh
+pnpm --filter @bookbingo/web add <package>        # add to app/web
+pnpm --filter @bookbingo/lib-core add <package>   # add to lib/core
+pnpm add -D <package> -w                          # root-level dev tooling only
+```
+
+**Inspecting packages** — do not use `node -e "require(...)"`. This project is ESM-only and packages are hoisted per-workspace. To verify a dependency is installed, read the workspace `package.json` directly:
+
+```sh
+cat app/web/package.json      # dependencies available to app/web
+cat lib/core/package.json     # dependencies available to lib/core
+```
+
+**Running workspace-specific commands:**
+
+```sh
+pnpm --filter @bookbingo/web run <script>
+pnpm --filter @bookbingo/functions exec tsc --noEmit
+```
 
 ## Task Workflow Addenda
 
