@@ -1,9 +1,8 @@
 import { useState, useMemo } from 'react';
-import { cn } from '../lib/cn.js';
 import type { Reading, Book } from '../types';
 import { BookCard } from './BookCard';
 import { BookRow } from './BookRow';
-import { Dialog, AlertDialog } from './ui/index.js';
+import { Dialog, AlertDialog, ToggleGroup } from './ui/index.js';
 import { BookForm, type BookFormData } from './BookForm';
 import { EmptyState } from './EmptyState';
 import { SearchFilter } from './SearchFilter';
@@ -100,19 +99,13 @@ export function BookList({
           <div className="flex-1">
             <SearchFilter value={authorFilter} onChange={setAuthorFilter} />
           </div>
-          <div className="flex gap-1">
-            <button
-              onClick={() => setViewMode('cards')}
-              className={cn('p-2 rounded', viewMode === 'cards' ? 'bg-blue-100 text-blue-600' : 'text-gray-400 hover:text-gray-600')}
-              aria-label="Card view"
-              title="Card view"
-            >
-              <svg
-                className="w-5 h-5"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
+          <ToggleGroup.Root
+            type="single"
+            value={viewMode}
+            onValueChange={(value) => { if (value) setViewMode(value as 'cards' | 'list'); }}
+          >
+            <ToggleGroup.Item value="cards" aria-label="Card view" title="Card view">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -120,28 +113,13 @@ export function BookList({
                   d="M4 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM14 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zM4 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1v-4zM14 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z"
                 />
               </svg>
-            </button>
-            <button
-              onClick={() => setViewMode('list')}
-              className={cn('p-2 rounded', viewMode === 'list' ? 'bg-blue-100 text-blue-600' : 'text-gray-400 hover:text-gray-600')}
-              aria-label="List view"
-              title="List view"
-            >
-              <svg
-                className="w-5 h-5"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M4 6h16M4 12h16M4 18h16"
-                />
+            </ToggleGroup.Item>
+            <ToggleGroup.Item value="list" aria-label="List view" title="List view">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
               </svg>
-            </button>
-          </div>
+            </ToggleGroup.Item>
+          </ToggleGroup.Root>
         </div>
       )}
 
