@@ -7,4 +7,5 @@ export { Input, type InputProps } from './Input.js';
 export { Label, type LabelProps } from './Label.js';
 export { Textarea, type TextareaProps } from './Textarea.js';
 export { ToastItem, ToastViewport, type ToastItemProps } from './Toast.js';
+export { TileBadge } from './TileBadge.js';
 export { ToggleGroup } from './ToggleGroup.js';

@@ -1,4 +1,4 @@
-import { getTileById } from '@bookbingo/lib-core';
+import { TileBadge } from './ui/index.js';
 
 interface BookCardProps {
   bookTitle: string;
@@ -7,9 +7,6 @@ interface BookCardProps {
   onClick?: () => void;
   readOnly?: boolean;
 }
-
-const truncate = (s: string, max: number) =>
-  s.length > max ? s.slice(0, max) + '…' : s;
 
 export function BookCard({ bookTitle, bookAuthor, tiles, onClick, readOnly }: BookCardProps) {
   return (
@@ -24,18 +21,9 @@ export function BookCard({ bookTitle, bookAuthor, tiles, onClick, readOnly }: Bo
       <p className="text-sm text-gray-600 mt-1">by {bookAuthor}</p>
       {tiles.length > 0 && (
         <div className="mt-2 flex flex-wrap gap-1 min-w-0">
-          {tiles.map((tile) => {
-            const name = getTileById(tile)?.name ?? tile;
-            return (
-              <span
-                key={tile}
-                title={name}
-                className="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded min-w-0 max-w-full truncate"
-              >
-                {truncate(name, 25)}
-              </span>
-            );
-          })}
+          {tiles.map((tile) => (
+            <TileBadge key={tile} tileId={tile} className="min-w-0 max-w-full truncate" />
+          ))}
         </div>
       )}
     </div>

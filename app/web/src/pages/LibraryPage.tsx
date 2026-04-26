@@ -1,11 +1,10 @@
 import { useMemo } from 'react';
-import { getTileById } from '@bookbingo/lib-core';
 import { useBooks } from '../hooks/useBooks';
 import { useAllReadings } from '../hooks/useAllReadings';
 import { useUsers } from '../hooks/useUsers';
 import { Book, UserProfile } from '../types';
 import { PageStatus } from '../components/PageStatus';
-import { Accordion, Avatar } from '../components/ui';
+import { Accordion, Avatar, TileBadge } from '../components/ui';
 
 interface ReaderDetail {
   user: UserProfile;
@@ -105,18 +104,9 @@ export function LibraryPage() {
                   )}
                   {uniqueTiles.length > 0 && (
                     <div className="flex flex-wrap gap-1">
-                      {uniqueTiles.map((tileId) => {
-                        const name = getTileById(tileId)?.name ?? tileId;
-                        return (
-                          <span
-                            key={tileId}
-                            title={name}
-                            className="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded"
-                          >
-                            {name}
-                          </span>
-                        );
-                      })}
+                      {uniqueTiles.map((tileId) => (
+                        <TileBadge key={tileId} tileId={tileId} />
+                      ))}
                     </div>
                   )}
                 </div>
@@ -132,18 +122,9 @@ export function LibraryPage() {
                         <p className="text-sm font-medium text-gray-800">{user.name}</p>
                         {tiles.length > 0 && (
                           <div className="flex flex-wrap gap-1 mt-0.5">
-                            {tiles.map((tileId) => {
-                              const name = getTileById(tileId)?.name ?? tileId;
-                              return (
-                                <span
-                                  key={tileId}
-                                  title={name}
-                                  className="inline-block bg-gray-100 text-gray-600 text-xs px-1.5 py-0.5 rounded"
-                                >
-                                  {name}
-                                </span>
-                              );
-                            })}
+                            {tiles.map((tileId) => (
+                              <TileBadge key={tileId} tileId={tileId} variant="secondary" />
+                            ))}
                           </div>
                         )}
                       </div>

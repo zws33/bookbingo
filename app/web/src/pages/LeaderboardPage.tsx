@@ -4,6 +4,7 @@ import { getScoreBreakdown } from '@bookbingo/lib-core';
 import { useUsers } from '../hooks/useUsers';
 import { useAllReadings } from '../hooks/useAllReadings';
 import { PageStatus } from '../components/PageStatus';
+import { Avatar } from '../components/ui';
 
 export function LeaderboardPage() {
   const { users, loading: usersLoading, error: usersError } = useUsers();
@@ -57,17 +58,7 @@ export function LeaderboardPage() {
                   to={`/users/${user.id}`}
                   className="flex items-center gap-3 hover:text-blue-600"
                 >
-                  {user.photoURL ? (
-                    <img
-                      src={user.photoURL}
-                      alt=""
-                      className="w-8 h-8 rounded-full"
-                    />
-                  ) : (
-                    <div className="w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center text-gray-600 text-xs font-medium">
-                      {user.name.charAt(0).toUpperCase()}
-                    </div>
-                  )}
+                  <Avatar name={user.name} photoURL={user.photoURL ?? undefined} />
                   <span className="font-medium text-gray-900">{user.name}</span>
                 </Link>
               </td>
