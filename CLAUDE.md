@@ -51,7 +51,7 @@ Each workspace package has its own `tsconfig.build.json` (for builds) and `tscon
 
 ## Commands
 
-- `pnpm run verify` — run full verification suite (lint, test, test:integration, typecheck)
+- `pnpm run verify` — run full verification suite (lint, test, typecheck)
 - `pnpm test` — run unit tests across all packages
 - `pnpm run test:integration` — run integration tests (emulator lifecycle managed automatically via `firebase emulators:exec`)
 - `pnpm run lint` — lint all packages (ESLint from repo root)

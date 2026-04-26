@@ -1,4 +1,6 @@
+export { Accordion } from './Accordion.js';
 export { AlertDialog } from './AlertDialog.js';
+export { Avatar } from './Avatar.js';
 export { Button, type ButtonProps } from './Button.js';
 export { Dialog } from './Dialog.js';
 export { Input, type InputProps } from './Input.js';
