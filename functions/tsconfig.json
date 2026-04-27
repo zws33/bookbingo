@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
     "noImplicitReturns": true,
     "noUnusedLocals": true,
     "rootDir": "src",
@@ -15,5 +15,9 @@
     "declaration": true,
     "declarationMap": true
   },
-  "include": ["src"]
+  "include": ["src"],
+  "references": [
+    { "path": "../lib/types/tsconfig.build.json" },
+    { "path": "../lib/util/tsconfig.build.json" }
+  ]
 }
