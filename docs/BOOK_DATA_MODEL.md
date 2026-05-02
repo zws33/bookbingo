@@ -1,65 +1,77 @@
 # Book Data Model Architecture
 
-This document describes the target data model for books and readings in BookBingo, along with the deduplication strategy, required metadata contract, security rule changes, and migration plan.
+This document describes the engineering design for how BookBingo models, stores, and deduplicates books. The central design decision is to track books at the **Work** level — the abstract intellectual creation — rather than at the edition level (a specific printing or publication).
 
 ---
 
-## Goals
+## Design Goals
 
-1. **Books as source of truth.** The `/books/` collection is the canonical registry of all book entities. A `Reading` must always reference a valid `Book`. Referential integrity is enforced at the database layer, not in application code.
+1. **Track works, not editions.** A book club cares about "I read Crime and Punishment," not "I read the 2004 Penguin Classics paperback." The data model anchors on Work-level identity so that different members reading different editions of the same book are recognized as having read the same work.
 
-2. **Multi-provider external IDs.** A `Book` may be linked to one or more external catalog providers (e.g., Google Books, Open Library). Each provider's ID is tracked independently. A single canonical `metadata` blob lives on the `Book` document.
+2. **Books as source of truth.** The `/books/` collection is the canonical registry of all book entities. A `Reading` must always reference a valid `Book`. Referential integrity is enforced at the database layer via Firestore security rules.
 
-3. **Metadata is required.** All book entities — whether created through API-driven search or manual entry — must carry a `metadata` object. Individual fields within the object may be null, but the object itself must always be present.
+3. **Open Library as the primary provider.** Open Library's API returns Work-level records by default and models books using a subset of the FRBR Work/Edition hierarchy. Work OLIDs (e.g., `/works/OL166894W`) are stable, edition-agnostic identifiers suitable as deduplication keys.
 
-4. **Remove `titleLower` / `authorLower`.** These write-time normalization fields were used for case-insensitive deduplication queries. They are superseded by `externalId`-based dedup for API-sourced books. Manual-entry books accept rare duplication as a known trade-off. These fields will be cleaned up from all existing documents via migration.
+4. **Metadata is required.** All book entities must carry a `metadata` object. Individual fields within the object may be null, but the object itself must always be present.
 
-5. **Enrich existing books.** An interactive migration script will walk through every book in `/books/` that lacks external metadata and prompt for a Google Books match. Enrichment is approved manually, one book at a time.
+5. **Deduplication by Work OLID.** For API-sourced books, the `externalIds.openLibrary` Work OLID is the deduplication key. Manual-entry books skip deduplication — rare duplication is an accepted trade-off for obscure titles.
+
+6. **Remove `titleLower` / `authorLower`.** These write-time normalization fields were used for case-insensitive deduplication. They are superseded by OLID-based dedup for API-sourced books and will be cleaned up from existing documents via migration.
 
 ---
 
-## Target Data Model
+## Why Work OLIDs Instead of ISBN or Google Books IDs
+
+**ISBN** is edition-specific. A hardcover, a paperback, and an ebook of the same book each carry different ISBNs. Using ISBN as a deduplication key would create separate book records for the same work, which is the problem we are trying to solve.
+
+**Google Books volume IDs** also identify specific editions (commercial publications), not works. Two different printings of the same book have different volume IDs.
+
+**Open Library Work OLIDs** identify the abstract intellectual creation. All editions of Crime and Punishment share one Work OLID. Searching the Open Library API returns Work-level records by default — no extra normalization step is required.
+
+---
+
+## Type Model
 
 ### `BookProvider`
 
 ```ts
 // lib/types/src/index.ts
-type BookProvider = 'googleBooks' | 'openLibrary';
+export type BookProvider = 'googleBooks' | 'openLibrary';
 ```
 
-A union type enumerating all supported external catalog providers. Extending to a new provider requires: (1) adding the value to this union, (2) adding a field-level Firestore index for the new `externalIds.<provider>` path.
+Enumerates all supported external catalog providers.
 
 ### `ExternalBookIds`
 
 ```ts
 // lib/types/src/index.ts
-type ExternalBookIds = Partial<Record<BookProvider, string>>;
+export type ExternalBookIds = Partial<Record<BookProvider, string>>;
 ```
 
-A map from provider to that provider's ID for a given book. Each key is optional — a book may have one, several, or no external IDs (manual entries).
+A map from provider to that provider's ID for a given book. For Open Library, the value is the full Work key path (e.g., `"/works/OL166894W"`). Each key is optional — manual-entry books have no external IDs.
 
 ### `Book` (updated)
 
 ```ts
-interface Book {
+export interface Book {
   id: string;
   title: string;
-  author: string;
-  metadata: BookMetadata;         // now required (was optional)
-  externalIds?: ExternalBookIds;  // replaces externalId?: string | null
+  author: string;          // joined string, e.g. "Fyodor Dostoevsky"
+  metadata: BookMetadata;  // required (was optional)
+  externalIds?: ExternalBookIds; // replaces externalId?: string | null
   createdBy: string;
   createdAt: Date;
 }
 ```
 
-Removed fields (legacy, cleaned up by migration):
+Removed fields (cleaned up by migration):
 - `externalId?: string | null` — superseded by `externalIds`
-- `titleLower` and `authorLower` — superseded by `externalIds`-based dedup
+- `titleLower` and `authorLower` — superseded by OLID-based dedup
 
-### `BookMetadata` (shape unchanged)
+### `BookMetadata`
 
 ```ts
-interface BookMetadata {
+export interface BookMetadata {
   pageCount: number | null;
   publishedDate: string | null;
   categories: string[];
@@ -69,11 +81,19 @@ interface BookMetadata {
 }
 ```
 
-The shape is unchanged. The requirement is that the `metadata` object is always present on a `Book`, not that individual fields are non-null.
+Shape is unchanged. The object itself is always required on `Book`. Individual fields may be null.
+
+**Open Library field mapping:**
+- `pageCount` — not available at the Work level; fetched from the first edition via `/works/{olid}/editions.json?limit=1` (`number_of_pages` field)
+- `publishedDate` — from `first_publish_date` on the Work record
+- `categories` — mapped from `subjects[]` on the Work record (flat string array)
+- `language` — null for Work-level records (edition-specific); omitted for API-sourced books
+- `isbn` — null for Work-level records (edition-specific); may be populated via manual entry
+- `thumbnailUrl` — constructed from the Work's `covers[0]` ID: `https://covers.openlibrary.org/b/id/{cover_id}-M.jpg`
 
 ### `Reading` (unchanged)
 
-The `Reading` shape is unchanged. The `bookTitle?` and `bookAuthor?` legacy fields remain in the TypeScript type pending a future cleanup commit. New readings must always carry a valid `bookId`.
+The `Reading` shape is unchanged. The `bookTitle?` and `bookAuthor?` legacy fields remain pending future cleanup. New readings must always carry a valid `bookId`.
 
 ---
 
@@ -81,69 +101,199 @@ The `Reading` shape is unchanged. The `bookTitle?` and `bookAuthor?` legacy fiel
 
 ### API-sourced books (primary path)
 
-When a user selects a book from search results:
+When a user selects a book from Open Library search results:
 
-1. Query `/books/` where `externalIds.<provider> == selectedExternalId`
-2. If a match exists → return the existing `bookId` (optionally merge any richer metadata)
-3. If no match → create a new `Book` with `externalIds`, `metadata`, and `metadataSource` populated
+1. Query `/books/` where `externalIds.openLibrary == selectedWorkOlid`
+2. If a match exists → return the existing `bookId`
+3. If no match → create a new `Book` with `externalIds.openLibrary`, `metadata`, and `createdBy` populated
 
 ### Manual-entry books (fallback path)
 
-Manual entry is reserved for obscure books that return no usable API results. The entry flow creates a new `Book` with user-supplied `metadata` and no `externalIds`. No deduplication is performed. Duplication risk for truly obscure books is accepted.
+Manual entry is reserved for obscure books that return no usable API results. Creates a new `Book` with user-supplied `metadata` and no `externalIds`. No deduplication is performed. Duplication risk for truly obscure books is accepted.
 
-**Implication for `titleLower`/`authorLower`:** these fields are no longer written for new books and will be removed from existing documents by the cleanup migration. The composite Firestore index on those fields will be dropped after cleanup.
+---
+
+## Book Data Provider Architecture
+
+### Cloud Function: `enrichBook`
+
+The `enrichBook` callable Cloud Function lives in `functions/src/` and provides search and detail-lookup over an external provider. It is the backend for the book search UX and for the enrichment migration script.
+
+Actions:
+- `search` — queries the provider by title/author string, returns `BookSearchResult[]`
+- `lookup` — fetches full metadata for a specific external ID, returns `BookEnrichmentResult`
+
+### Provider Interface
+
+```ts
+// functions/src/books/types.ts
+interface BookProvider {
+  search(query: string): Promise<BookSearchResult[]>;
+  lookup(externalId: string): Promise<BookEnrichmentResult>;
+}
+```
+
+### `OpenLibraryProvider`
+
+Lives at `functions/src/books/providers/open-library.ts`. Implements `BookProvider` against the Open Library API.
+
+**`search(query)`** — calls `/search.json` with a `fields` projection:
+```
+GET /search.json?q={query}&fields=key,title,author_name,first_publish_year,cover_i&limit=10
+```
+Maps the response: `key` → `externalId` (full path, e.g., `/works/OL166894W`), `author_name[]` → joined `author` string, `cover_i` → constructed `thumbnailUrl`.
+
+**`lookup(externalId)`** — three sequential fetches:
+1. `GET /works/{olid}.json` — title, description, subjects, covers, first_publish_date
+2. `GET /authors/{authorKey}.json` — name of the first listed author
+3. `GET /works/{olid}/editions.json?limit=1` — page count from `entries[0].number_of_pages`
+
+All requests include a `User-Agent: BookBingo/1.0 (zach.smith33@gmail.com)` header to stay within the 3 req/sec authenticated rate limit.
+
+### `GoogleBooksProvider`
+
+Lives at `functions/src/books/providers/google-books.ts`. Retained for reference but not the active provider. If Open Library data quality is inadequate for a specific book, Google Books remains available as a fallback by swapping the provider in `handler.ts`.
+
+---
+
+## Search UX Design
+
+The user-facing flow for adding a reading:
+
+1. **User types a title or author** into a search bar
+2. **Internal library search first** — query `/books/` in Firestore for `externalIds.openLibrary` matches against already-known Work OLIDs. If the club has already read this work, surface the existing record immediately. Note: Firestore does not support fuzzy text search, so internal search matches by exact Work OLID, not free text.
+3. **External search fallback** — if no internal match, call `enrichBook({ action: 'search', query })` to search Open Library. Display Work-level results (title, author, first publish year, cover).
+4. **User selects a result** — app calls `enrichBook({ action: 'lookup', externalId })` to fetch full metadata
+5. **`getOrCreateBook()` runs** — checks `externalIds.openLibrary` for an existing book, creates a new one if absent
+6. **`createReading()` runs** — Firestore rule enforces that the referenced `bookId` exists
 
 ---
 
 ## Required Metadata for Manual Entry
 
-When a user manually adds a book, the UI must collect the following. The `metadata` object is always written; fields that the user cannot provide are written as `null` or `[]`.
+When a user manually adds a book, the UI collects the following fields. The `metadata` object is always written; fields the user cannot provide are written as `null` or `[]`.
 
-| Field | Type | Notes |
-|---|---|---|
-| `pageCount` | `number \| null` | Drives tile inference (e.g., 1000+ page tile); required as a field, may be null |
-| `publishedDate` | `string \| null` | Optional |
-| `categories` | `string[]` | Optional, defaults to `[]` |
-| `language` | `string \| null` | Optional |
-| `isbn` | `string \| null` | Optional |
-| `thumbnailUrl` | `string \| null` | Optional |
-
-`pageCount` is surfaced explicitly in the UI because it is the only metadata field that affects scoring (via tile inference). The rest are informational.
+| Field           | Type             | Notes                                        |
+| --------------- | ---------------- | -------------------------------------------- |
+| `pageCount`     | `number \| null` | May be null; informs tiles like "1000+ pages" |
+| `publishedDate` | `string \| null` | Optional                                     |
+| `categories`    | `string[]`       | Optional, defaults to `[]`                   |
+| `language`      | `string \| null` | Optional                                     |
+| `isbn`          | `string \| null` | Optional; can help with identification       |
+| `thumbnailUrl`  | `string \| null` | Optional                                     |
 
 ---
 
-## Security Rules Changes
+## Security Rules
 
-### 1. Referential integrity on Reading creates
-
-Add an `exists()` check so the database layer enforces that a `Reading` cannot be created without a valid `Book`:
-
-```
-match /readings/{readingId} {
-  allow create: if request.auth.uid == userId
-    && exists(/databases/$(database)/documents/books/$(request.resource.data.bookId));
-  allow update, delete: if request.auth.uid == userId;
-  allow read, list: if request.auth != null;
-}
-```
-
-### 2. Book updates: any authenticated user
-
-The current update rule restricts writes to the original creator. This blocks:
-- A second user enriching a shared book they found via search
-- The enrichment migration script updating `externalIds` and `metadata`
-
-Updated rule:
+Current state (already applied):
 
 ```
 match /books/{bookId} {
   allow read, list: if request.auth != null;
   allow create: if request.auth != null;
   allow update: if request.auth != null;
+  // delete intentionally omitted — books are referenced by readings
+}
+
+match /users/{userId} {
+  allow read, list: if request.auth != null;
+  allow create, update: if request.auth != null && request.auth.uid == userId;
+
+  match /readings/{readingId} {
+    allow read, list: if request.auth != null;
+    allow create: if request.auth != null
+      && request.auth.uid == userId
+      && exists(/databases/$(database)/documents/books/$(request.resource.data.bookId));
+    allow update, delete: if request.auth != null && request.auth.uid == userId;
+  }
+}
+
+match /{path=**}/readings/{readingId} {
+  allow read, list: if request.auth != null;
 }
 ```
 
-Books are a shared club resource. Any authenticated member may enrich or correct book metadata. The `createdBy` field is retained for attribution; enforcement is no longer tied to it.
+The `exists()` check on reading creates enforces referential integrity at the database layer. Any authenticated member may update book metadata (for enrichment).
+
+---
+
+## Implementation Steps
+
+### Step 1 — Update `lib/types/src/index.ts`
+
+Add `BookProvider` and `ExternalBookIds` before `BookMetadata`. Update the `Book` interface: `metadata` becomes required (remove `?`), replace `externalId?: string | null` with `externalIds?: ExternalBookIds`.
+
+### Step 2 — Run typecheck to surface broken call sites
+
+```sh
+pnpm run typecheck
+```
+
+### Step 3 — Rewrite `getOrCreateBook()` in `app/web/src/lib/books.ts`
+
+New signature:
+```ts
+export async function getOrCreateBook(
+  title: string,
+  author: string,
+  userId: string,
+  metadata: BookMetadata,
+  externalIds?: ExternalBookIds,
+): Promise<string>
+```
+
+Deduplication logic: if `externalIds.openLibrary` is present, query `where('externalIds.openLibrary', '==', externalIds.openLibrary)`. If a match exists, return its ID. Otherwise create a new book document with `metadata` and `externalIds` (no `titleLower`/`authorLower`).
+
+Updated import from `@bookbingo/lib-types`:
+```ts
+import { Book, BookMetadata, ExternalBookIds } from '@bookbingo/lib-types';
+```
+
+### Step 4 — Update `app/web/src/hooks/useBooks.test.ts`
+
+Replace the snapshot fixture in the `'maps Firestore snapshot docs to booksById Map'` test. Remove `titleLower`/`authorLower`; add a `metadata` object:
+
+```ts
+{
+  title: 'The Left Hand of Darkness',
+  author: 'Ursula K. Le Guin',
+  metadata: {
+    pageCount: null,
+    publishedDate: null,
+    categories: [],
+    language: null,
+    isbn: null,
+    thumbnailUrl: null,
+  },
+  createdBy: 'user-1',
+  createdAt: new Date('2026-01-01'),
+}
+```
+
+### Step 5 — Update `app/web/src/lib/books.int.test.ts`
+
+Add `import type { BookMetadata } from '@bookbingo/lib-types'`. Define a `testMetadata` fixture at the top of the describe block. Update every `getOrCreateBook` call to pass `testMetadata` as the fourth argument. Replace the `titleLower`/`authorLower` assertions with:
+
+```ts
+expect(bookData.metadata).toEqual(testMetadata);
+expect(bookData.titleLower).toBeUndefined();
+expect(bookData.authorLower).toBeUndefined();
+```
+
+### Step 6 — Create `functions/src/books/providers/open-library.ts`
+
+Implement the `BookProvider` interface. See provider design above.
+
+### Step 7 — Update `functions/src/books/handler.ts`
+
+Swap `GoogleBooksProvider` for `OpenLibraryProvider`.
+
+### Step 8 — Run full verification
+
+```sh
+pnpm run verify
+```
 
 ---
 
@@ -153,45 +303,28 @@ Books are a shared club resource. Any authenticated member may enrich or correct
 
 **Script:** `scripts/enrich-books.ts`
 
-For each book in `/books/` that has no `externalIds.googleBooks`:
+For each book in `/books/` that has no `externalIds.openLibrary`:
 
-1. Search Google Books by the book's `title` and `author`
-2. Print the top results in the terminal (title, author, published date, Google Books ID)
+1. Search Open Library by `title` and `author`
+2. Print top results (title, author, first publish year, Work OLID)
 3. Prompt: select a numbered result, skip, or abort
-4. On selection: write `externalIds.googleBooks` and `metadata` to the book document
-5. Log each decision (selected / skipped) to stdout for review
-
-Usage:
-```sh
-# Dry run against emulator (no writes)
-FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 tsx scripts/enrich-books.ts --project bookbingo-demo --dry-run
-
-# Live run against staging
-tsx scripts/enrich-books.ts --project bookbingo-staging
-```
+4. On selection: write `externalIds.openLibrary` and `metadata` to the book document
+5. Log each decision to stdout
 
 ### Phase B: Clean up legacy fields
 
-After enrichment, a separate pass removes `titleLower`, `authorLower`, and the old singular `externalId` field from all book documents using `FieldValue.delete()`. Once the data is clean, remove the composite index on `(titleLower, authorLower)` from `firestore.indexes.json` and deploy.
+After enrichment, a separate pass removes `titleLower`, `authorLower`, and the old singular `externalId` field from all book documents using `FieldValue.delete()`. Once clean, remove the composite index on `(titleLower, authorLower)` from `firestore.indexes.json` and deploy.
 
 ---
 
-## Development: Testing the Cloud Function Locally
+## Open Library API Reference
 
-The `enrichBook` callable function can be tested against the local emulator via `firebase functions:shell`, which provides a mocked auth context and bypasses the `unauthenticated` guard in `enrichBookHandler`:
+Rate limit: 1 req/sec unauthenticated; 3 req/sec with `User-Agent` header.
 
-```sh
-# Terminal 1: start emulators
-pnpm run emulator:start
-
-# Terminal 2: open function shell
-firebase functions:shell
-
-# Test search action
-enrichBook({ action: 'search', query: 'Dune' })
-
-# Test lookup by Google Books volume ID
-enrichBook({ action: 'lookup', externalId: 'Ude5AAAAQBAJ' })
-```
-
-For a **scriptable** alternative — useful for the enrichment migration, which calls the Google Books API directly rather than routing through the callable function — the migration script will use the admin SDK and call the provider directly. This avoids the auth requirement and keeps the migration self-contained.
+| Endpoint | Use |
+| -------- | --- |
+| `GET /search.json?q={query}&fields=key,title,author_name,first_publish_year,cover_i` | Book search (returns Work-level records) |
+| `GET /works/{olid}.json` | Full Work metadata |
+| `GET /works/{olid}/editions.json?limit=1` | Page count from first edition |
+| `GET /authors/{olid}.json` | Author name |
+| `GET https://covers.openlibrary.org/b/id/{cover_id}-M.jpg` | Cover image (medium) |
