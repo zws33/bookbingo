@@ -20,11 +20,11 @@ This document describes the engineering design for how BookBingo models, stores,
 
 ---
 
-## Why Work OLIDs Instead of ISBN or Google Books IDs
+## Why Work OLIDs Instead of ISBNs or Edition IDs
 
 **ISBN** is edition-specific. A hardcover, a paperback, and an ebook of the same book each carry different ISBNs. Using ISBN as a deduplication key would create separate book records for the same work, which is the problem we are trying to solve.
 
-**Google Books volume IDs** also identify specific editions (commercial publications), not works. Two different printings of the same book have different volume IDs.
+**Edition-specific catalog IDs** (such as those used by commercial book APIs) also identify specific publications, not works. Two different printings of the same book have different IDs.
 
 **Open Library Work OLIDs** identify the abstract intellectual creation. All editions of Crime and Punishment share one Work OLID. Searching the Open Library API returns Work-level records by default — no extra normalization step is required.
 
@@ -36,7 +36,7 @@ This document describes the engineering design for how BookBingo models, stores,
 
 ```ts
 // lib/types/src/index.ts
-export type BookProvider = 'googleBooks' | 'openLibrary';
+export type BookProvider = 'openLibrary';
 ```
 
 Enumerates all supported external catalog providers.
@@ -149,10 +149,6 @@ Maps the response: `key` → `externalId` (full path, e.g., `/works/OL166894W`),
 3. `GET /works/{olid}/editions.json?limit=1` — page count from `entries[0].number_of_pages`
 
 All requests include a `User-Agent: BookBingo/1.0 (zach.smith33@gmail.com)` header to stay within the 3 req/sec authenticated rate limit.
-
-### `GoogleBooksProvider`
-
-Lives at `functions/src/books/providers/google-books.ts`. Retained for reference but not the active provider. If Open Library data quality is inadequate for a specific book, Google Books remains available as a fallback by swapping the provider in `handler.ts`.
 
 ---
 
@@ -287,7 +283,7 @@ Implement the `BookProvider` interface. See provider design above.
 
 ### Step 7 — Update `functions/src/books/handler.ts`
 
-Swap `GoogleBooksProvider` for `OpenLibraryProvider`.
+Wire `OpenLibraryProvider` into the handler.
 
 ### Step 8 — Run full verification
 

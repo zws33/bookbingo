@@ -8,7 +8,7 @@ The transition from manual entry to an enriched model solves four core problems:
 
 1. **Deduplication**: Books now have a shared identity in a global `/books/` collection rather than being denormalized strings.
 2. **Metadata**: Each book stores structured data (ISBN, page count, categories, thumbnails) shared across all users.
-3. **Reduced Friction**: Search-driven entry (via Google Books API) replaces manual typing.
+3. **Reduced Friction**: Search-driven entry (via Open Library) replaces manual typing.
 4. **Tile Optimization**: Automated suggestions and an optimization engine help users maximize their scores.
 
 ## 2. Architecture
@@ -18,7 +18,7 @@ The transition from manual entry to an enriched model solves four core problems:
 A provider-agnostic Cloud Function (`enrichBook`) encapsulates external API logic.
 
 - **`BookProvider` Interface**: Defines the contract for external APIs (Search/Lookup).
-- **Concrete Providers**: Implementations like `GoogleBooksProvider` handle API-specific fetching and mapping to internal types.
+- **Concrete Providers**: Implementations like `OpenLibraryProvider` handle API-specific fetching and mapping to internal types.
 - **Mapping Layer**: Transforms provider-specific JSON into the standard `BookMetadata` interface.
 - **Service Layer**: Orchestrates providers and handles internal business logic.
 
@@ -36,7 +36,7 @@ interface Book {
   id: string;
   title: string;
   author: string;
-  externalId: string | null; // API provider ID (e.g., Google Books ID)
+  externalId: string | null; // API provider ID (e.g., Open Library Work OLID)
   metadata: {
     pageCount: number | null;
     publishedDate: string | null;
@@ -85,7 +85,7 @@ A club-wide view of all read books.
 
 ### Search & Prefill (Phase 3)
 
-Search-driven entry flow using the Google Books API.
+Search-driven entry flow using Open Library.
 
 - **Flow**: User searches → Selects result → Metadata pre-fills form → Deduplication check via `externalId` → Link or Create `/books/` doc.
 - **Tile Inference**: Suggested tiles (e.g., `t03` for 1000+ pages) are pre-selected based on `metadata.pageCount`.
