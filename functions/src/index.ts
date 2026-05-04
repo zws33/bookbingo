@@ -1,7 +1,7 @@
 import { initializeApp } from 'firebase-admin/app';
 import { onCall } from 'firebase-functions/v2/https';
 import { defineSecret } from 'firebase-functions/params';
-import { submitFeedbackHandler, GITHUB_API_URL } from './handler.js';
+import { submitFeedbackHandler, GITHUB_API_URL } from './feedback/handler.js';
 import { enrichBookHandler } from './books/handler.js';
 
 initializeApp();

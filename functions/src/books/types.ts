@@ -27,7 +27,7 @@ export interface BookEnrichmentResult {
 export interface BookProvider {
   /** Search for books by title/author query */
   search(query: string): Promise<BookSearchResult[]>;
-  
+
   /** Fetch full metadata for a specific external ID */
   lookup(externalId: string): Promise<BookEnrichmentResult>;
 }

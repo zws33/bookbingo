@@ -15,7 +15,8 @@
     "@bookbingo/lib-types": "workspace:*",
     "@bookbingo/lib-util": "workspace:*",
     "firebase-admin": "^13.7.0",
-    "firebase-functions": "^7.2.5"
+    "firebase-functions": "^7.2.5",
+    "zod": "^4.4.2"
   },
   "devDependencies": {
     "typescript": "^5.3.0"
