@@ -11,7 +11,11 @@ export default defineConfig({
     // ONLY include integration tests here
     include: ['src/**/*.int.test.ts'],
     // DO NOT exclude them here
-    exclude: ['**/node_modules/**', '**/dist/**', '**/.{idea,git,cache,output,temp}/**'],
+    exclude: [
+      '**/node_modules/**',
+      '**/dist/**',
+      '**/.{idea,git,cache,output,temp}/**',
+    ],
     testTimeout: 10000,
   },
 });

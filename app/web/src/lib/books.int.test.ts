@@ -11,7 +11,12 @@ import { describe, it, expect, afterEach, beforeAll } from 'vitest';
 import { doc, getDoc, deleteDoc } from 'firebase/firestore';
 import { signInAnonymously } from 'firebase/auth';
 import { db, auth } from './firebase';
-import { createReading, updateReading, deleteReading, getOrCreateBook } from './books';
+import {
+  createReading,
+  updateReading,
+  deleteReading,
+  getOrCreateBook,
+} from './books';
 
 // Each test uses a unique userId to avoid cross-test interference
 let createdReadingId: string | null = null;
@@ -24,7 +29,9 @@ beforeAll(async () => {
 
 afterEach(async () => {
   if (createdReadingId) {
-    await deleteDoc(doc(db, 'users', TEST_USER_ID, 'readings', createdReadingId)).catch(() => {});
+    await deleteDoc(
+      doc(db, 'users', TEST_USER_ID, 'readings', createdReadingId),
+    ).catch(() => {});
     createdReadingId = null;
   }
 });
@@ -37,12 +44,19 @@ describe('books integration (emulator)', () => {
     const bookId = await getOrCreateBook(bookTitle, bookAuthor, TEST_USER_ID);
     expect(bookId).toBeTruthy();
 
-    createdReadingId = await createReading(TEST_USER_ID, bookId, ['sci-fi'], false);
+    createdReadingId = await createReading(
+      TEST_USER_ID,
+      bookId,
+      ['sci-fi'],
+      false,
+    );
 
     expect(createdReadingId).toBeTruthy();
 
     // Verify reading doc
-    const readingSnap = await getDoc(doc(db, 'users', TEST_USER_ID, 'readings', createdReadingId));
+    const readingSnap = await getDoc(
+      doc(db, 'users', TEST_USER_ID, 'readings', createdReadingId),
+    );
     expect(readingSnap.exists()).toBe(true);
     const readingData = readingSnap.data()!;
     expect(readingData.bookId).toBe(bookId);
@@ -61,13 +75,34 @@ describe('books integration (emulator)', () => {
   });
 
   it('updateReading updates bookId, tiles, and sets updatedAt', async () => {
-    const oldBookId = await getOrCreateBook('Old Title', 'Old Author', TEST_USER_ID);
-    createdReadingId = await createReading(TEST_USER_ID, oldBookId, ['mystery'], false);
+    const oldBookId = await getOrCreateBook(
+      'Old Title',
+      'Old Author',
+      TEST_USER_ID,
+    );
+    createdReadingId = await createReading(
+      TEST_USER_ID,
+      oldBookId,
+      ['mystery'],
+      false,
+    );
 
-    const newBookId = await getOrCreateBook('New Title', 'New Author', TEST_USER_ID);
-    await updateReading(TEST_USER_ID, createdReadingId, newBookId, ['sci-fi'], true);
+    const newBookId = await getOrCreateBook(
+      'New Title',
+      'New Author',
+      TEST_USER_ID,
+    );
+    await updateReading(
+      TEST_USER_ID,
+      createdReadingId,
+      newBookId,
+      ['sci-fi'],
+      true,
+    );
 
-    const snap = await getDoc(doc(db, 'users', TEST_USER_ID, 'readings', createdReadingId));
+    const snap = await getDoc(
+      doc(db, 'users', TEST_USER_ID, 'readings', createdReadingId),
+    );
     const data = snap.data()!;
     expect(data.bookId).toBe(newBookId);
     expect(data.tiles).toEqual(['sci-fi']);
@@ -76,12 +111,18 @@ describe('books integration (emulator)', () => {
   });
 
   it('deleteReading removes the document', async () => {
-    const bookId = await getOrCreateBook('To Be Deleted', 'Some Author', TEST_USER_ID);
+    const bookId = await getOrCreateBook(
+      'To Be Deleted',
+      'Some Author',
+      TEST_USER_ID,
+    );
     createdReadingId = await createReading(TEST_USER_ID, bookId, [], false);
 
     await deleteReading(TEST_USER_ID, createdReadingId);
 
-    const snap = await getDoc(doc(db, 'users', TEST_USER_ID, 'readings', createdReadingId));
+    const snap = await getDoc(
+      doc(db, 'users', TEST_USER_ID, 'readings', createdReadingId),
+    );
     expect(snap.exists()).toBe(false);
     createdReadingId = null;
   });

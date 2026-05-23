@@ -20,7 +20,11 @@ function makeBook(tiles: string[]): ScoringInput {
 test('Scoring', async (t) => {
   await t.test('calculateVarietyPoints', async (t) => {
     await t.test('should count unique tiles', () => {
-      const tileCounts = new Map([['a', 3], ['b', 1], ['c', 2]]);
+      const tileCounts = new Map([
+        ['a', 3],
+        ['b', 1],
+        ['c', 2],
+      ]);
       assert.equal(calculateVarietyPoints(tileCounts), 3);
     });
 
@@ -31,7 +35,11 @@ test('Scoring', async (t) => {
 
   await t.test('calculateVolumePoints', async (t) => {
     await t.test('should return 0 when all tiles have exactly 1 book', () => {
-      const tileCounts = new Map([['a', 1], ['b', 1], ['c', 1]]);
+      const tileCounts = new Map([
+        ['a', 1],
+        ['b', 1],
+        ['c', 1],
+      ]);
       assert.equal(calculateVolumePoints(tileCounts), 0);
     });
 
@@ -42,15 +50,22 @@ test('Scoring', async (t) => {
     });
 
     await t.test('should sum across multiple tiles', () => {
-      const tileCounts = new Map([['a', 3], ['b', 2]]);
-      const expected = (harmonicSum(3) - 1) + (harmonicSum(2) - 1);
+      const tileCounts = new Map([
+        ['a', 3],
+        ['b', 2],
+      ]);
+      const expected = harmonicSum(3) - 1 + (harmonicSum(2) - 1);
       assert.ok(Math.abs(calculateVolumePoints(tileCounts) - expected) < 1e-10);
     });
   });
 
   await t.test('calculateBalanceFactor', async (t) => {
     await t.test('should return 1.0 for perfectly balanced tiles', () => {
-      const tileCounts = new Map([['a', 2], ['b', 2], ['c', 2]]);
+      const tileCounts = new Map([
+        ['a', 2],
+        ['b', 2],
+        ['c', 2],
+      ]);
       assert.equal(calculateBalanceFactor(tileCounts), 1);
     });
 
@@ -60,7 +75,10 @@ test('Scoring', async (t) => {
     });
 
     await t.test('should return less than 1 for unbalanced tiles', () => {
-      const tileCounts = new Map([['a', 10], ['b', 1]]);
+      const tileCounts = new Map([
+        ['a', 10],
+        ['b', 1],
+      ]);
       const factor = calculateBalanceFactor(tileCounts);
       assert.ok(factor > 0 && factor < 1);
     });
@@ -110,13 +128,16 @@ test('Scoring', async (t) => {
       assert.ok(harmonicScore >= balancedScore);
     });
 
-    await t.test('harmonic and balanced-harmonic should be equal when balanced', () => {
-      const books = [makeBook(['a']), makeBook(['b']), makeBook(['c'])];
-      const balancedScore = calculateScore(books, 'balanced-harmonic');
-      const harmonicScore = calculateScore(books, 'harmonic');
-      // All tiles have count 1, so no volume points. Scores should be equal.
-      assert.equal(balancedScore, harmonicScore);
-    });
+    await t.test(
+      'harmonic and balanced-harmonic should be equal when balanced',
+      () => {
+        const books = [makeBook(['a']), makeBook(['b']), makeBook(['c'])];
+        const balancedScore = calculateScore(books, 'balanced-harmonic');
+        const harmonicScore = calculateScore(books, 'harmonic');
+        // All tiles have count 1, so no volume points. Scores should be equal.
+        assert.equal(balancedScore, harmonicScore);
+      },
+    );
   });
 
   await t.test('getScoreBreakdown', async (t) => {
@@ -137,13 +158,16 @@ test('Scoring', async (t) => {
       assert.equal(breakdown.score, score);
     });
 
-    await t.test('should be consistent with calculateScore for harmonic', () => {
-      const books = [makeBook(['a', 'b']), makeBook(['b', 'c'])];
-      const score = calculateScore(books, 'harmonic');
-      const breakdown = getScoreBreakdown(books, 'harmonic');
-      assert.equal(breakdown.score, score);
-      assert.equal(breakdown.balanceFactor, 1);
-    });
+    await t.test(
+      'should be consistent with calculateScore for harmonic',
+      () => {
+        const books = [makeBook(['a', 'b']), makeBook(['b', 'c'])];
+        const score = calculateScore(books, 'harmonic');
+        const breakdown = getScoreBreakdown(books, 'harmonic');
+        assert.equal(breakdown.score, score);
+        assert.equal(breakdown.balanceFactor, 1);
+      },
+    );
 
     await t.test('should report correct tile counts', () => {
       const books = [makeBook(['a', 'b', 'c']), makeBook(['b', 'c', 'd'])];

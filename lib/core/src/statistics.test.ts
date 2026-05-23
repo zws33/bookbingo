@@ -76,7 +76,7 @@ test('Statistics Core', async (t) => {
     });
 
     await t.test('should return correct value for n = 5', () => {
-      const expected = 1 + 1/2 + 1/3 + 1/4 + 1/5;
+      const expected = 1 + 1 / 2 + 1 / 3 + 1 / 4 + 1 / 5;
       assert.ok(Math.abs(harmonicSum(5) - expected) < 1e-10);
     });
   });

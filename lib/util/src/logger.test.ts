@@ -12,7 +12,10 @@ test('log.event is a no-op when dispatch is null', () => {
 
 test('log.event calls dispatch with name and params', () => {
   const calls: Array<[string, Record<string, unknown> | undefined]> = [];
-  initLogger({ isDev: false, dispatch: (name, params) => calls.push([name, params]) });
+  initLogger({
+    isDev: false,
+    dispatch: (name, params) => calls.push([name, params]),
+  });
 
   log.event('add_book', { book_id: '123' });
 
@@ -23,7 +26,10 @@ test('log.event calls dispatch with name and params', () => {
 
 test('log.event calls dispatch with no params when omitted', () => {
   const calls: Array<[string, Record<string, unknown> | undefined]> = [];
-  initLogger({ isDev: false, dispatch: (name, params) => calls.push([name, params]) });
+  initLogger({
+    isDev: false,
+    dispatch: (name, params) => calls.push([name, params]),
+  });
 
   log.event('delete_book');
 
@@ -34,7 +40,10 @@ test('log.event calls dispatch with no params when omitted', () => {
 
 test('log.error dispatches app_error event with label and message', () => {
   const calls: Array<[string, Record<string, unknown> | undefined]> = [];
-  initLogger({ isDev: false, dispatch: (name, params) => calls.push([name, params]) });
+  initLogger({
+    isDev: false,
+    dispatch: (name, params) => calls.push([name, params]),
+  });
 
   const originalError = console.error;
   console.error = () => {};
@@ -43,12 +52,18 @@ test('log.error dispatches app_error event with label and message', () => {
 
   assert.equal(calls.length, 1);
   assert.equal(calls[0][0], 'app_error');
-  assert.deepEqual(calls[0][1], { label: 'books', message: 'firestore unavailable' });
+  assert.deepEqual(calls[0][1], {
+    label: 'books',
+    message: 'firestore unavailable',
+  });
 });
 
 test('log.error dispatches app_error with string message', () => {
   const calls: Array<[string, Record<string, unknown> | undefined]> = [];
-  initLogger({ isDev: false, dispatch: (name, params) => calls.push([name, params]) });
+  initLogger({
+    isDev: false,
+    dispatch: (name, params) => calls.push([name, params]),
+  });
 
   const originalError = console.error;
   console.error = () => {};

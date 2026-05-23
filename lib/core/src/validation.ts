@@ -28,9 +28,7 @@ export function canAssignTile(input: ScoringInput, tileId: string): boolean {
  */
 export function validateBookTiles(input: ScoringInput): void {
   if (!input.isFreebie && input.tiles.length > MAX_TILES_PER_BOOK) {
-    throw new Error(
-      `Book exceeds the maximum of ${MAX_TILES_PER_BOOK} tiles.`,
-    );
+    throw new Error(`Book exceeds the maximum of ${MAX_TILES_PER_BOOK} tiles.`);
   }
   const uniqueTiles = new Set(input.tiles);
   if (uniqueTiles.size !== input.tiles.length) {

@@ -1,6 +1,10 @@
 import { initializeApp } from 'firebase/app';
 import { getAnalytics, logEvent } from 'firebase/analytics';
-import { connectAuthEmulator, getAuth, GoogleAuthProvider } from 'firebase/auth';
+import {
+  connectAuthEmulator,
+  getAuth,
+  GoogleAuthProvider,
+} from 'firebase/auth';
 import { connectFirestoreEmulator, getFirestore } from 'firebase/firestore';
 import { connectFunctionsEmulator, getFunctions } from 'firebase/functions';
 import { initLogger, log } from '@bookbingo/lib-util';
@@ -27,7 +31,9 @@ const analytics =
 
 initLogger({
   isDev: import.meta.env.DEV,
-  dispatch: analytics ? (name, params) => logEvent(analytics, name, params) : null,
+  dispatch: analytics
+    ? (name, params) => logEvent(analytics, name, params)
+    : null,
 });
 
 log.debug('firebase', 'initializing', {

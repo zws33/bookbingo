@@ -88,9 +88,8 @@ export function BookList({
     return <PageStatus loading={loading} error={error} />;
   }
 
-  const selectedBook = selectedReading
-    ? (booksById.get(selectedReading.bookId) ?? UNKNOWN_BOOK)
-    : UNKNOWN_BOOK;
+  const selectedBookData = selectedReading ? booksById.get(selectedReading.bookId) : undefined;
+  const selectedBook = selectedBookData ?? UNKNOWN_BOOK;
 
   return (
     <div className="space-y-4">
@@ -134,16 +133,15 @@ export function BookList({
       ) : viewMode === 'cards' ? (
         <div className="grid gap-4 sm:grid-cols-2">
           {filteredReadings.map((reading) => {
-            const book = booksById.get(reading.bookId) ?? UNKNOWN_BOOK;
+            const book = booksById.get(reading.bookId);
             return (
               <BookCard
                 key={reading.id}
-                bookTitle={book.title}
-                bookAuthor={book.author}
+                bookTitle={book?.title ?? 'Unknown Book'}
+                bookAuthor={book?.author ?? 'Unknown Author'}
+                metadata={book?.metadata}
                 tiles={reading.tiles}
-                onClick={
-                  readOnly ? undefined : () => setSelectedReading(reading)
-                }
+                onClick={() => setSelectedReading(reading)}
                 readOnly={readOnly}
               />
             );
@@ -152,17 +150,16 @@ export function BookList({
       ) : (
         <div className="divide-y divide-gray-200 bg-white rounded-lg shadow">
           {filteredReadings.map((reading) => {
-            const book = booksById.get(reading.bookId) ?? UNKNOWN_BOOK;
+            const book = booksById.get(reading.bookId);
             return (
               <BookRow
                 key={reading.id}
-                bookTitle={book.title}
-                bookAuthor={book.author}
+                bookTitle={book?.title ?? 'Unknown Book'}
+                bookAuthor={book?.author ?? 'Unknown Author'}
+                metadata={book?.metadata}
                 tiles={reading.tiles}
                 isFreebie={reading.isFreebie}
-                onClick={
-                  readOnly ? undefined : () => setSelectedReading(reading)
-                }
+                onClick={() => setSelectedReading(reading)}
                 readOnly={readOnly}
               />
             );
@@ -170,7 +167,54 @@ export function BookList({
         </div>
       )}
 
-      {!readOnly && (
+      {readOnly ? (
+        <Dialog
+          isOpen={!!selectedReading}
+          onClose={() => setSelectedReading(null)}
+          title={selectedBook.title}
+        >
+          <div className="space-y-4">
+            <div className="flex gap-4">
+              {selectedBookData?.metadata?.thumbnailUrl && (
+                <img
+                  src={selectedBookData.metadata.thumbnailUrl}
+                  alt=""
+                  className="w-16 h-22 object-cover rounded flex-shrink-0"
+                  onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                />
+              )}
+              <div className="space-y-1">
+                <p className="text-gray-700">{selectedBook.author}</p>
+                {selectedBookData?.metadata?.publishedDate && (
+                  <p className="text-sm text-gray-500">{selectedBookData.metadata.publishedDate}</p>
+                )}
+                {selectedBookData?.metadata?.pageCount && (
+                  <p className="text-sm text-gray-500">{selectedBookData.metadata.pageCount} pages</p>
+                )}
+              </div>
+            </div>
+            {selectedBookData?.metadata?.categories && selectedBookData.metadata.categories.length > 0 && (
+              <div className="flex flex-wrap gap-1">
+                {selectedBookData.metadata.categories.map((cat) => (
+                  <span key={cat} className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
+                    {cat}
+                  </span>
+                ))}
+              </div>
+            )}
+            {selectedReading && selectedReading.tiles.length > 0 && (
+              <div className="pt-2 border-t border-gray-100">
+                <p className="text-xs text-gray-500 mb-1">Bingo tiles</p>
+                <div className="flex flex-wrap gap-1">
+                  {selectedReading.tiles.map((tile) => (
+                    <span key={tile} className="w-2 h-2 rounded-full bg-blue-500 inline-block" title={tile} />
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </Dialog>
+      ) : (
         <>
           <Dialog
             isOpen={!!selectedReading && !showDeleteConfirm}

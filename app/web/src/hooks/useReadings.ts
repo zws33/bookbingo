@@ -17,7 +17,9 @@ export function useReadings(userId: string) {
 
   useEffect(() => {
     if (snapshot) {
-      log.debug('useReadings', 'snapshot received', { count: snapshot.docs.length });
+      log.debug('useReadings', 'snapshot received', {
+        count: snapshot.docs.length,
+      });
     }
   }, [snapshot]);
 
