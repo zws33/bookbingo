@@ -1,3 +1,5 @@
+import type { BookMetadata } from '@bookbingo/lib-types';
+
 export interface UserProfile {
   id: string;
   name: string;
@@ -8,6 +10,8 @@ export interface Book {
   id: string;
   title: string;
   author: string;
+  externalId?: string | null;
+  metadata?: BookMetadata;
   createdBy: string;
   createdAt: Date;
 }

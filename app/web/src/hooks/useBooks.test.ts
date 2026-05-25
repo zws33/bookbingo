@@ -66,12 +66,18 @@ describe('useBooks', () => {
     const { result } = renderHook(() => useBooks());
     expect(result.current.loading).toBe(false);
     expect(result.current.booksById.size).toBe(1);
-    expect(result.current.booksById.get('doc-0')?.title).toBe('The Left Hand of Darkness');
-    expect(result.current.booksById.get('doc-0')?.author).toBe('Ursula K. Le Guin');
+    expect(result.current.booksById.get('doc-0')?.title).toBe(
+      'The Left Hand of Darkness',
+    );
+    expect(result.current.booksById.get('doc-0')?.author).toBe(
+      'Ursula K. Le Guin',
+    );
   });
 
   it('returns error when Firestore listener errors', () => {
-    const err = Object.assign(new Error('Permission denied'), { code: 'permission-denied' as const });
+    const err = Object.assign(new Error('Permission denied'), {
+      code: 'permission-denied' as const,
+    });
     mockUseCollection.mockReturnValue([undefined, false, err]);
     const { result } = renderHook(() => useBooks());
     expect(result.current.error).toBe(err);

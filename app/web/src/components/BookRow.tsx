@@ -1,3 +1,4 @@
+import type { BookMetadata } from '@bookbingo/lib-types';
 import { getTileById } from '@bookbingo/lib-core';
 
 interface BookRowProps {
@@ -5,15 +6,17 @@ interface BookRowProps {
   bookAuthor: string;
   tiles: string[];
   isFreebie: boolean;
+  metadata?: BookMetadata;
   onClick?: () => void;
   readOnly?: boolean;
 }
 
 const MAX_DOTS = 5;
 
-export function BookRow({ bookTitle, bookAuthor, tiles, isFreebie, onClick, readOnly }: BookRowProps) {
+export function BookRow({ bookTitle, bookAuthor, tiles, isFreebie, metadata, onClick, readOnly }: BookRowProps) {
   const visibleTiles = tiles.slice(0, MAX_DOTS);
   const overflow = tiles.length - MAX_DOTS;
+  const thumbnailUrl = metadata?.thumbnailUrl ?? null;
 
   return (
     <div
@@ -23,6 +26,14 @@ export function BookRow({ bookTitle, bookAuthor, tiles, isFreebie, onClick, read
       tabIndex={readOnly ? undefined : 0}
       onKeyDown={readOnly ? undefined : (e) => e.key === 'Enter' && onClick?.()}
     >
+      {thumbnailUrl && (
+        <img
+          src={thumbnailUrl}
+          alt=""
+          className="w-7 h-10 object-cover rounded flex-shrink-0"
+          onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+        />
+      )}
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
           <span className="font-medium text-gray-900 truncate">{bookTitle}</span>

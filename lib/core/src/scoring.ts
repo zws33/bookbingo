@@ -1,4 +1,8 @@
-import type { ScoringInput, ScoreBreakdown, ScoringStrategy } from '@bookbingo/lib-types';
+import type {
+  ScoringInput,
+  ScoreBreakdown,
+  ScoringStrategy,
+} from '@bookbingo/lib-types';
 import { calculateCV, calculateTileCounts, harmonicSum } from './statistics.js';
 
 const DEFAULT_STRATEGY: ScoringStrategy = 'balanced-harmonic';
@@ -6,7 +10,9 @@ const DEFAULT_STRATEGY: ScoringStrategy = 'balanced-harmonic';
 /**
  * Counts the number of unique tiles that have at least one book.
  */
-export function calculateVarietyPoints(tileCounts: Map<string, number>): number {
+export function calculateVarietyPoints(
+  tileCounts: Map<string, number>,
+): number {
   let count = 0;
   for (const n of tileCounts.values()) {
     if (n > 0) {
@@ -65,9 +71,7 @@ export function calculateScore(
   const varietyPoints = calculateVarietyPoints(tileCounts);
   const volumePoints = calculateVolumePoints(tileCounts);
   const balanceFactor =
-    strategy === 'balanced-harmonic'
-      ? calculateBalanceFactor(tileCounts)
-      : 1;
+    strategy === 'balanced-harmonic' ? calculateBalanceFactor(tileCounts) : 1;
   return varietyPoints + volumePoints * balanceFactor;
 }
 
@@ -94,9 +98,7 @@ export function getScoreBreakdown(
   const varietyPoints = calculateVarietyPoints(tileCounts);
   const volumePoints = calculateVolumePoints(tileCounts);
   const balanceFactor =
-    strategy === 'balanced-harmonic'
-      ? calculateBalanceFactor(tileCounts)
-      : 1;
+    strategy === 'balanced-harmonic' ? calculateBalanceFactor(tileCounts) : 1;
   const score = varietyPoints + volumePoints * balanceFactor;
 
   return {

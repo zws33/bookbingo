@@ -23,7 +23,7 @@ export function Dialog({
         <RadixDialog.Overlay
           className={cn(
             'fixed inset-0 z-40',
-            'bg-black/50',
+            'bg-black/30',
             'opacity-0 transition-opacity duration-200 data-[state=open]:opacity-100',
           )}
         />

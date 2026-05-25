@@ -23,7 +23,9 @@ export function makeBook(overrides: Partial<Book> = {}): Book {
   };
 }
 
-export function makeUserProfile(overrides: Partial<UserProfile> = {}): UserProfile {
+export function makeUserProfile(
+  overrides: Partial<UserProfile> = {},
+): UserProfile {
   return {
     id: 'user-1',
     name: 'Test User',

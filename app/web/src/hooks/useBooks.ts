@@ -19,7 +19,9 @@ export function useBooks() {
 
   useEffect(() => {
     if (snapshot) {
-      log.debug('useBooks', 'snapshot received', { count: snapshot.docs.length });
+      log.debug('useBooks', 'snapshot received', {
+        count: snapshot.docs.length,
+      });
     }
   }, [snapshot]);
 

@@ -15,6 +15,7 @@
     { "path": "./lib/types/tsconfig.build.json" },
     { "path": "./lib/core/tsconfig.build.json" },
     { "path": "./lib/util/tsconfig.build.json" },
-    { "path": "./app/web/tsconfig.build.json" }
+    { "path": "./app/web/tsconfig.build.json" },
+    { "path": "./functions" }
   ]
 }

@@ -14,37 +14,59 @@ import {
 } from 'firebase/firestore';
 import { db } from './firebase';
 import { log } from '@bookbingo/lib-util';
-import { Book } from '@bookbingo/lib-types';
+import { Book, type BookMetadata } from '@bookbingo/lib-types';
+
+interface BookEnrichment {
+  externalId: string;
+  metadata: BookMetadata;
+}
 
 export async function getOrCreateBook(
   title: string,
   author: string,
   userId: string,
+  enrichment?: BookEnrichment,
 ): Promise<string> {
   const titleLower = title.trim().toLowerCase();
   const authorLower = author.trim().toLowerCase();
-
-  // 1. Try to find existing book (case-insensitive)
   const booksRef = collection(db, 'books');
-  const q = query(
+
+  // 1. Deduplicate by externalId when available (more reliable than title/author match)
+  if (enrichment) {
+    const byExternal = query(
+      booksRef,
+      where('externalId', '==', enrichment.externalId),
+      limit(1),
+    );
+    const externalSnap = await getDocs(byExternal);
+    if (!externalSnap.empty) {
+      return externalSnap.docs[0].id;
+    }
+  }
+
+  // 2. Fall back to case-insensitive title + author match
+  const byTitle = query(
     booksRef,
     where('titleLower', '==', titleLower),
     where('authorLower', '==', authorLower),
     limit(1),
   );
-
-  const snapshot = await getDocs(q);
-  if (!snapshot.empty) {
-    return snapshot.docs[0].id;
+  const titleSnap = await getDocs(byTitle);
+  if (!titleSnap.empty) {
+    return titleSnap.docs[0].id;
   }
 
-  // 2. Create new book if not found
+  // 3. Create new book
   const newBookRef = doc(collection(db, 'books'));
   await setDoc(newBookRef, {
     title: title.trim(),
     author: author.trim(),
     titleLower,
     authorLower,
+    ...(enrichment && {
+      externalId: enrichment.externalId,
+      metadata: enrichment.metadata,
+    }),
     createdBy: userId,
     createdAt: serverTimestamp(),
   });
@@ -108,7 +130,10 @@ export async function updateReading(
   }
 }
 
-export async function deleteReading(userId: string, readingId: string): Promise<void> {
+export async function deleteReading(
+  userId: string,
+  readingId: string,
+): Promise<void> {
   log.debug('books', 'deleteReading', { readingId });
   try {
     await deleteDoc(doc(db, 'users', userId, 'readings', readingId));

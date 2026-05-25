@@ -70,7 +70,9 @@ describe('useReadings', () => {
   });
 
   it('returns error when Firestore listener errors', () => {
-    const err = Object.assign(new Error('Permission denied'), { code: 'permission-denied' as const });
+    const err = Object.assign(new Error('Permission denied'), {
+      code: 'permission-denied' as const,
+    });
     mockUseCollection.mockReturnValue([undefined, false, err]);
     const { result } = renderHook(() => useReadings('user-1'));
     expect(result.current.error).toBe(err);
