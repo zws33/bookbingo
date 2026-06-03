@@ -1,4 +1,5 @@
 import { NavLink, Routes, Route, Navigate } from 'react-router-dom';
+import { CatalogPage } from './pages/CatalogPage';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { signInWithPopup, signOut } from 'firebase/auth';
 import { auth, googleProvider } from './lib/firebase';
@@ -12,6 +13,7 @@ import { LeaderboardPage } from './pages/LeaderboardPage';
 import { LibraryPage } from './pages/LibraryPage';
 import { StagingBanner } from './components/StagingBanner';
 import { FeedbackModal } from './components/FeedbackModal';
+import { Button } from './components/ui/index.js';
 import { log } from '@bookbingo/lib-util';
 import { useEffect, useState, useCallback } from 'react';
 
@@ -72,12 +74,13 @@ function App() {
           <h1 className="text-xl font-bold text-gray-900">📚 Book Bingo</h1>
           {user && (
             <div className="flex items-center gap-4">
-              <button
+              <Button
+                variant="outline"
+                className="text-sm"
                 onClick={() => setIsFeedbackOpen(true)}
-                className="text-sm text-gray-600 border border-gray-300 rounded-md px-3 py-1.5 hover:bg-gray-50 hover:text-gray-900 transition-colors"
               >
                 Send Feedback
-              </button>
+              </Button>
               {user.photoURL && (
                 <img
                   src={user.photoURL}
@@ -85,12 +88,13 @@ function App() {
                   className="w-8 h-8 rounded-full"
                 />
               )}
-              <button
+              <Button
+                variant="outline"
+                className="text-sm"
                 onClick={handleSignOut}
-                className="text-sm text-gray-600 border border-gray-300 rounded-md px-3 py-1.5 hover:bg-gray-50 hover:text-gray-900 transition-colors"
               >
                 Sign Out
-              </button>
+              </Button>
             </div>
           )}
         </div>
@@ -133,6 +137,16 @@ function App() {
               >
                 Library
               </NavLink>
+              {import.meta.env.DEV && (
+                <NavLink
+                  to="/catalog"
+                  className={({ isActive }) =>
+                    `pb-2 text-sm font-medium ${isActive ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700'}`
+                  }
+                >
+                  Catalog
+                </NavLink>
+              )}
             </div>
 
             <Routes>
@@ -142,6 +156,9 @@ function App() {
               <Route path="/users/:userId" element={<UserBooksPage />} />
               <Route path="/leaderboard" element={<LeaderboardPage />} />
               <Route path="/library" element={<LibraryPage />} />
+              {import.meta.env.DEV && (
+                <Route path="/catalog" element={<CatalogPage />} />
+              )}
             </Routes>
           </>
         ) : (

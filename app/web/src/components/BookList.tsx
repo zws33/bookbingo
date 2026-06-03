@@ -196,7 +196,7 @@ export function BookList({
             {selectedBookData?.metadata?.categories && selectedBookData.metadata.categories.length > 0 && (
               <div className="flex flex-wrap gap-1">
                 {selectedBookData.metadata.categories.map((cat) => (
-                  <span key={cat} className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
+                  <span key={cat} className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded">
                     {cat}
                   </span>
                 ))}
@@ -207,7 +207,7 @@ export function BookList({
                 <p className="text-xs text-gray-500 mb-1">Bingo tiles</p>
                 <div className="flex flex-wrap gap-1">
                   {selectedReading.tiles.map((tile) => (
-                    <span key={tile} className="w-2 h-2 rounded-full bg-blue-500 inline-block" title={tile} />
+                    <span key={tile} className="w-2 h-2 rounded bg-blue-500 inline-block" title={tile} />
                   ))}
                 </div>
               </div>

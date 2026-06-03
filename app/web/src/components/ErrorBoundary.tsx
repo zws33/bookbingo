@@ -1,5 +1,6 @@
 import { Component, ErrorInfo, ReactNode } from 'react';
 import { log } from '@bookbingo/lib-util';
+import { Button } from './ui/index.js';
 
 interface Props {
   children: ReactNode;
@@ -29,12 +30,9 @@ export class ErrorBoundary extends Component<Props, State> {
               Something went wrong
             </h2>
             <p className="text-gray-500 mb-6">Reload the page to try again.</p>
-            <button
-              onClick={() => window.location.reload()}
-              className="bg-blue-600 text-white rounded-md px-4 py-2 text-sm font-medium hover:bg-blue-700"
-            >
+            <Button className="text-sm" onClick={() => window.location.reload()}>
               Reload
-            </button>
+            </Button>
           </div>
         </div>
       );
