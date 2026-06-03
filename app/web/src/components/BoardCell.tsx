@@ -20,7 +20,7 @@ export function BoardCell({ tileName, bookCount, onClick }: BoardCellProps) {
     >
       <span className="line-clamp-3">{tileName}</span>
       {bookCount > 0 && (
-        <span className="absolute top-0.5 right-1 text-[10px] sm:text-xs font-semibold">
+        <span className="absolute top-0.5 right-1 text-xs font-semibold">
           {bookCount}
         </span>
       )}
