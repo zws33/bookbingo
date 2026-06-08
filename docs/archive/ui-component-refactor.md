@@ -1,5 +1,7 @@
 # UI Component Refactor — Task Reference
 
+> **ARCHIVED — completed.** Every task below shipped, so the "🔲 Pending/Next/Blocked" statuses are stale. Note two deviations from this plan: (1) the `TilePill` extraction shipped as the `ui/TileBadge` primitive (Option **A**, prop-based `variant` + `className`), not the `TilePill` component / Option B recommended here; (2) `UserAvatar` (Task #3, "TBD") shipped as `ui/Avatar`. For the durable rationale see [`docs/decisions/ui-primitives-architecture.md`](../decisions/ui-primitives-architecture.md).
+
 Tracking the extraction of repeated UI patterns into reusable components.
 Branch: `refactor/ui-components`
 

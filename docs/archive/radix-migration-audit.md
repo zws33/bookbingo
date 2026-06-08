@@ -1,8 +1,10 @@
 # Radix UI Migration Audit
 
+> **ARCHIVED — completed.** This was the planning audit for the Radix migration, which shipped in #30 (and was extended by #32/#39). It is retained as a historical record only; it does **not** reflect current scope or recommendations. For the as-built decision and where the implementation deviated, see [`docs/decisions/ui-primitives-architecture.md`](../decisions/ui-primitives-architecture.md). Notable deviation: the view toggle was implemented with Radix `ToggleGroup` (§G Phase 4), not the `aria-pressed` "Option 1" recommended here.
+
 **Date:** 2026-04-22
 **Branch:** `refactor/ui-components`
-**Status:** Planning — no code changes made
+**Status:** Completed — superseded by the decision record linked above
 
 ---
 
