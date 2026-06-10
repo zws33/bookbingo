@@ -2,7 +2,8 @@ import { useMemo } from 'react';
 import { useBooks } from '../hooks/useBooks';
 import { useAllReadings } from '../hooks/useAllReadings';
 import { useUsers } from '../hooks/useUsers';
-import { Book, UserProfile } from '../types';
+import type { Book } from '@bookbingo/lib-types';
+import { UserProfile } from '../types';
 import { PageStatus } from '../components/PageStatus';
 import { Accordion, Avatar, TileBadge } from '../components/ui';
 

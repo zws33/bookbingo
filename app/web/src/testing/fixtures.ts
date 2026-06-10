@@ -1,4 +1,5 @@
-import type { Reading, UserProfile, Book } from '../types';
+import type { Reading, Book } from '@bookbingo/lib-types';
+import type { UserProfile } from '../types';
 
 export function makeReading(overrides: Partial<Reading> = {}): Reading {
   return {

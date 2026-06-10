@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import type { Reading, Book } from '../types';
+import type { Reading, Book } from '@bookbingo/lib-types';
 import { BookCard } from './BookCard';
 import { BookRow } from './BookRow';
 import { Dialog, AlertDialog, ToggleGroup } from './ui/index.js';

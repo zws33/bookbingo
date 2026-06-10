@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { TILES, getTileById } from '@bookbingo/lib-core';
-import type { Reading, Book } from '../types';
+import type { Reading, Book } from '@bookbingo/lib-types';
 import { BoardCell } from './BoardCell';
 import { Dialog } from './ui';
 
