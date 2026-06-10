@@ -98,6 +98,26 @@ export interface BookEnrichmentResult {
 }
 
 // =============================================================================
+// TBR Types
+// =============================================================================
+
+/**
+ * A planned reading entry (Firestore: /users/{userId}/tbr/{tbrId}).
+ * Represents a book the user intends to read, with optional planned tile assignments.
+ * Never contributes to scoring — only completed Readings do.
+ */
+export interface TBREntry {
+  id: string;
+  bookId: string;
+  /** Tile IDs the user plans to assign when they log this as read */
+  plannedTiles: string[];
+  /** Optional personal note */
+  notes?: string;
+  addedAt: Date;
+  updatedAt?: Date;
+}
+
+// =============================================================================
 // Scoring Types
 // =============================================================================
 
