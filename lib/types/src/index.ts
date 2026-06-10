@@ -85,6 +85,33 @@ export interface Reading {
 }
 
 // =============================================================================
+// Book Search / Enrichment API Contract
+// =============================================================================
+
+/**
+ * Result of a book search query (via the enrichBook callable).
+ * Shared contract between app/web and functions.
+ */
+export interface BookSearchResult {
+  externalId: string;
+  title: string;
+  author: string;
+  thumbnailUrl: string | null;
+  publishedDate: string | null;
+}
+
+/**
+ * Full enrichment result for a specific book (via the enrichBook callable).
+ * Shared contract between app/web and functions.
+ */
+export interface BookEnrichmentResult {
+  externalId: string;
+  title: string;
+  author: string;
+  metadata: BookMetadata;
+}
+
+// =============================================================================
 // Scoring Types
 // =============================================================================
 
