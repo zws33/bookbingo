@@ -3,7 +3,7 @@ import { useCollection } from 'react-firebase-hooks/firestore';
 import { collection } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { log } from '@bookbingo/lib-util';
-import { Reading } from '../types';
+import { Reading } from '@bookbingo/lib-types';
 
 export function useReadings(userId: string) {
   const query = userId

@@ -15,20 +15,6 @@ export interface Tile {
 }
 
 // =============================================================================
-// User Types
-// =============================================================================
-
-/**
- * A user in the system.
- */
-export interface User {
-  id: string;
-  name: string;
-  email?: string;
-  createdAt: Date;
-}
-
-// =============================================================================
 // Book Types
 // =============================================================================
 
@@ -81,6 +67,53 @@ export interface Reading {
   isFreebie: boolean;
   readAt: Date;
   createdAt: Date;
+  updatedAt?: Date;
+}
+
+// =============================================================================
+// Book Search / Enrichment API Contract
+// =============================================================================
+
+/**
+ * Result of a book search query (via the enrichBook callable).
+ * Shared contract between app/web and functions.
+ */
+export interface BookSearchResult {
+  externalId: string;
+  title: string;
+  author: string;
+  thumbnailUrl: string | null;
+  publishedDate: string | null;
+}
+
+/**
+ * Full enrichment result for a specific book (via the enrichBook callable).
+ * Shared contract between app/web and functions.
+ */
+export interface BookEnrichmentResult {
+  externalId: string;
+  title: string;
+  author: string;
+  metadata: BookMetadata;
+}
+
+// =============================================================================
+// TBR Types
+// =============================================================================
+
+/**
+ * A planned reading entry (Firestore: /users/{userId}/tbr/{tbrId}).
+ * Represents a book the user intends to read, with optional planned tile assignments.
+ * Never contributes to scoring — only completed Readings do.
+ */
+export interface TBREntry {
+  id: string;
+  bookId: string;
+  /** Tile IDs the user plans to assign when they log this as read */
+  plannedTiles: string[];
+  /** Optional personal note */
+  notes?: string;
+  addedAt: Date;
   updatedAt?: Date;
 }
 

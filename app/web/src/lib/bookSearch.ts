@@ -1,21 +1,8 @@
 import { httpsCallable } from 'firebase/functions';
-import type { BookMetadata } from '@bookbingo/lib-types';
+import type { BookSearchResult, BookEnrichmentResult } from '@bookbingo/lib-types';
 import { functions } from './firebase';
 
-export interface BookSearchResult {
-  externalId: string;
-  title: string;
-  author: string;
-  thumbnailUrl: string | null;
-  publishedDate: string | null;
-}
-
-export interface BookEnrichmentResult {
-  externalId: string;
-  title: string;
-  author: string;
-  metadata: BookMetadata;
-}
+export type { BookSearchResult, BookEnrichmentResult };
 
 const enrichBook = httpsCallable(functions, 'enrichBook');
 

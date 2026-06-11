@@ -3,7 +3,7 @@ import { useCollection } from 'react-firebase-hooks/firestore';
 import { collection } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { log } from '@bookbingo/lib-util';
-import { Book } from '../types';
+import { Book } from '@bookbingo/lib-types';
 
 /**
  * Hook to fetch all shared books from the /books/ collection.

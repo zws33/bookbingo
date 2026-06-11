@@ -8,6 +8,7 @@ import { useReadings } from './hooks/useReadings';
 import { useBooks } from './hooks/useBooks';
 import { BingoBoard } from './components/BingoBoard';
 import { MyBooksPage } from './pages/MyBooksPage';
+import { ReadingListPage } from './pages/ReadingListPage';
 import { UserBooksPage } from './pages/UserBooksPage';
 import { LeaderboardPage } from './pages/LeaderboardPage';
 import { LibraryPage } from './pages/LibraryPage';
@@ -114,6 +115,14 @@ function App() {
                 My Books
               </NavLink>
               <NavLink
+                to="/reading-list"
+                className={({ isActive }) =>
+                  `pb-2 text-sm font-medium ${isActive ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700'}`
+                }
+              >
+                Reading List
+              </NavLink>
+              <NavLink
                 to="/board"
                 className={({ isActive }) =>
                   `pb-2 text-sm font-medium ${isActive ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700'}`
@@ -151,6 +160,7 @@ function App() {
 
             <Routes>
               <Route path="/" element={<MyBooksPage userId={user.uid} />} />
+              <Route path="/reading-list" element={<ReadingListPage userId={user.uid} />} />
               <Route path="/board" element={<BingoBoard readings={readings} booksById={booksById} />} />
               <Route path="/users" element={<Navigate to="/leaderboard" replace />} />
               <Route path="/users/:userId" element={<UserBooksPage />} />
