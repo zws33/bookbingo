@@ -71,6 +71,10 @@ export function LibraryPage() {
             : [],
         };
       })
+      // Exclude orphaned book docs (zero readings) — e.g. left behind when a
+      // manual title/author edit re-points a reading to a new book doc. See
+      // docs/decisions/book-identity-and-deduplication.md.
+      .filter((summary) => summary.readCount > 0)
       .sort((a, b) => a.book.title.localeCompare(b.book.title));
   }, [booksById, readingsByUser, users]);
 
