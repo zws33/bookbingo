@@ -2,6 +2,8 @@
 
 This document describes the engineering design for how BookBingo models, stores, and deduplicates books. The central design decision is to track books at the **Work** level — the abstract intellectual creation — rather than at the edition level (a specific printing or publication).
 
+> **⚠️ Partially superseded (2026-06-19).** The **deduplication mechanism** described here (random doc IDs + a `where('externalIds.openLibrary','==',…)` query) has been replaced by **deterministic, hash-derived document IDs**. See `docs/decisions/book-identity-and-deduplication.md` for the authoritative model. The provider architecture, Open Library API reference, metadata mapping, search UX, and security rules in this doc remain accurate. Sections affected by the change are flagged inline below.
+
 ---
 
 ## Design Goals
@@ -14,7 +16,7 @@ This document describes the engineering design for how BookBingo models, stores,
 
 4. **Metadata is required.** All book entities must carry a `metadata` object. Individual fields within the object may be null, but the object itself must always be present.
 
-5. **Deduplication by Work OLID.** For API-sourced books, the `externalIds.openLibrary` Work OLID is the deduplication key. Manual-entry books skip deduplication — rare duplication is an accepted trade-off for obscure titles.
+5. **Deduplication by deterministic doc ID.** ~~For API-sourced books, the `externalIds.openLibrary` Work OLID is the deduplication key. Manual-entry books skip deduplication.~~ *Superseded:* the document ID is now a hash derived from the Work OLID (catalog books) or from a normalized title+author key (manual books), so dedup is a `getDoc` on the computed ID rather than a query. Manual books **also** dedup. See the identity decision record.
 
 6. **Remove `titleLower` / `authorLower`.** These write-time normalization fields were used for case-insensitive deduplication. They are superseded by OLID-based dedup for API-sourced books and will be cleaned up from existing documents via migration.
 
@@ -43,12 +45,19 @@ Enumerates all supported external catalog providers.
 
 ### `ExternalBookIds`
 
+> **Updated 2026-06-19** — value is now an `ExternalRef` object (provenance metadata), not a bare string. See the identity decision record.
+
 ```ts
 // lib/types/src/index.ts
-export type ExternalBookIds = Partial<Record<BookProvider, string>>;
+export interface ExternalRef {
+  key: string;       // provider-native id, e.g. "/works/OL166894W"
+  enrichedAt: Date;  // when this reference was attached
+}
+
+export type ExternalBookIds = Partial<Record<BookProvider, ExternalRef>>;
 ```
 
-A map from provider to that provider's ID for a given book. For Open Library, the value is the full Work key path (e.g., `"/works/OL166894W"`). Each key is optional — manual-entry books have no external IDs.
+A map from provider to a reference *record* for a given book. For Open Library, `key` is the full Work key path (e.g., `"/works/OL166894W"`). Each entry is optional — manual-entry books have no external IDs. `externalIds` is **provenance only**: it no longer drives deduplication (the deterministic doc ID does), but `externalIds.openLibrary.key` remains queryable.
 
 ### `Book` (updated)
 
@@ -99,7 +108,9 @@ The `Reading` shape is unchanged. The `bookTitle?` and `bookAuthor?` legacy fiel
 
 ## Deduplication Strategy
 
-### API-sourced books (primary path)
+> **⚠️ Superseded 2026-06-19.** The query-based strategy below is replaced by **deterministic, hash-derived document IDs**. Dedup is now `getDoc(deriveBookId(...))`, not a query, and it applies to manual books too. The authoritative spec — ID derivation, the frozen normalization pipeline, the hash, collapse-on-migration safety, and accepted limits — lives in `docs/decisions/book-identity-and-deduplication.md`. The original strategy is retained below for historical context.
+
+### ~~API-sourced books (primary path)~~ *(superseded)*
 
 When a user selects a book from Open Library search results:
 
@@ -107,7 +118,7 @@ When a user selects a book from Open Library search results:
 2. If a match exists → return the existing `bookId`
 3. If no match → create a new `Book` with `externalIds.openLibrary`, `metadata`, and `createdBy` populated
 
-### Manual-entry books (fallback path)
+### ~~Manual-entry books (fallback path)~~ *(superseded)*
 
 Manual entry is reserved for obscure books that return no usable API results. Creates a new `Book` with user-supplied `metadata` and no `externalIds`. No deduplication is performed. Duplication risk for truly obscure books is accepted.
 
@@ -239,7 +250,9 @@ export async function getOrCreateBook(
 ): Promise<string>
 ```
 
-Deduplication logic: if `externalIds.openLibrary` is present, query `where('externalIds.openLibrary', '==', externalIds.openLibrary)`. If a match exists, return its ID. Otherwise create a new book document with `metadata` and `externalIds` (no `titleLower`/`authorLower`).
+> **⚠️ Superseded 2026-06-19** — the query-based dedup logic below is replaced by deterministic-ID dedup. `getOrCreateBook` should compute `deriveBookId(...)` (from `lib/core`) and do an idempotent `setDoc`/`getDoc` on that ID — no query. See `docs/decisions/book-identity-and-deduplication.md`.
+
+~~Deduplication logic: if `externalIds.openLibrary` is present, query `where('externalIds.openLibrary', '==', externalIds.openLibrary)`. If a match exists, return its ID. Otherwise create a new book document with `metadata` and `externalIds` (no `titleLower`/`authorLower`).~~
 
 Updated import from `@bookbingo/lib-types`:
 ```ts
