@@ -132,9 +132,23 @@ rm -rf lib/*/dist app/*/dist && pnpm run typecheck
 
 ## Git Workflow
 
-Work directly on `main` (trunk-based). Every commit should be deployable.
+**Branch + PR + squash.** All work happens on a feature branch and lands via a pull request that is **squash-merged** into `main`. Every squashed commit on `main` should be deployable.
 
-Use conventional commit format:
+- **Keep local `main` a clean mirror of origin** — never commit directly to it. Branch for everything:
+  ```sh
+  git checkout main && git pull          # start from latest
+  git checkout -b feat/short-description # do all work here
+  ```
+- **After a PR is squash-merged**, update `main` by fast-forward and delete the merged branch:
+  ```sh
+  git checkout main
+  git pull --ff-only                     # fast-forwards cleanly when main has no local commits
+  git branch -d feat/short-description
+  ```
+- **Recommended once:** `git config --global pull.ff only`. A clean `main` always fast-forwards; if it ever diverges (e.g. a stray local commit) the pull *errors loudly* instead of silently merging. Recovery in that case is `git reset --hard origin/main` (safe because the squashed PR already contains your branch's changes).
+- **Why squash + mirror:** squash gives one tidy commit per feature, but it returns your branch's commits to `main` under a *new* SHA — so committing to local `main` directly causes divergence. Keeping `main` as a pure mirror avoids that entirely.
+
+Use conventional commit format (the PR title becomes the squashed commit message):
 - `feat: add score calculation for multi-tag books`
 - `fix: prevent duplicate category assignment`
 - `test: add edge cases for freebie book scoring`
