@@ -56,8 +56,12 @@ describe('useBooks', () => {
       {
         title: 'The Left Hand of Darkness',
         author: 'Ursula K. Le Guin',
-        titleLower: 'the left hand of darkness',
-        authorLower: 'ursula k. le guin',
+        externalIds: {
+          openLibrary: {
+            key: '/works/OL455403W',
+            enrichedAt: new Date('2026-01-01'),
+          },
+        },
         createdBy: 'user-1',
         createdAt: new Date('2026-01-01'),
       },

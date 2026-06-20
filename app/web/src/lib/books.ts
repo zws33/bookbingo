@@ -6,72 +6,67 @@ import {
   doc,
   getDoc,
   setDoc,
-  query,
-  where,
-  getDocs,
-  limit,
   serverTimestamp,
 } from 'firebase/firestore';
 import { db } from './firebase';
 import { log } from '@bookbingo/lib-util';
+import { deriveBookId } from '@bookbingo/lib-core';
 import { Book, type BookMetadata } from '@bookbingo/lib-types';
 
 interface BookEnrichment {
+  /** Open Library Work key, e.g. "/works/OL166894W". */
   externalId: string;
   metadata: BookMetadata;
 }
 
+/**
+ * Resolve a book to its shared `/books/{bookId}` document, creating it if absent.
+ *
+ * The document id is deterministic (see @bookbingo/lib-core `deriveBookId`), so
+ * this is an idempotent get-or-create rather than a query-then-create: two
+ * concurrent calls for the same book target the same id and converge to one
+ * document, closing the create race (#7) by construction.
+ */
 export async function getOrCreateBook(
   title: string,
   author: string,
   userId: string,
   enrichment?: BookEnrichment,
 ): Promise<string> {
-  const titleLower = title.trim().toLowerCase();
-  const authorLower = author.trim().toLowerCase();
-  const booksRef = collection(db, 'books');
-
-  // 1. Deduplicate by externalId when available (more reliable than title/author match)
-  if (enrichment) {
-    const byExternal = query(
-      booksRef,
-      where('externalId', '==', enrichment.externalId),
-      limit(1),
-    );
-    const externalSnap = await getDocs(byExternal);
-    if (!externalSnap.empty) {
-      return externalSnap.docs[0].id;
-    }
-  }
-
-  // 2. Fall back to case-insensitive title + author match
-  const byTitle = query(
-    booksRef,
-    where('titleLower', '==', titleLower),
-    where('authorLower', '==', authorLower),
-    limit(1),
-  );
-  const titleSnap = await getDocs(byTitle);
-  if (!titleSnap.empty) {
-    return titleSnap.docs[0].id;
-  }
-
-  // 3. Create new book
-  const newBookRef = doc(collection(db, 'books'));
-  await setDoc(newBookRef, {
-    title: title.trim(),
-    author: author.trim(),
-    titleLower,
-    authorLower,
-    ...(enrichment && {
-      externalId: enrichment.externalId,
-      metadata: enrichment.metadata,
-    }),
-    createdBy: userId,
-    createdAt: serverTimestamp(),
+  const bookId = deriveBookId({
+    openLibraryKey: enrichment?.externalId,
+    title,
+    author,
   });
+  const bookRef = doc(db, 'books', bookId);
 
-  return newBookRef.id;
+  // Deterministic id == dedup. If it already exists, reuse it as-is so we don't
+  // clobber the original createdBy/createdAt provenance.
+  const existing = await getDoc(bookRef);
+  if (existing.exists()) {
+    return bookId;
+  }
+
+  await setDoc(
+    bookRef,
+    {
+      title: title.trim(),
+      author: author.trim(),
+      ...(enrichment && {
+        externalIds: {
+          openLibrary: { key: enrichment.externalId, enrichedAt: serverTimestamp() },
+        },
+        metadata: enrichment.metadata,
+      }),
+      createdBy: userId,
+      createdAt: serverTimestamp(),
+    },
+    // merge so a concurrent create that landed between our getDoc and setDoc
+    // isn't fully overwritten (e.g. another provider's externalIds entry).
+    { merge: true },
+  );
+
+  return bookId;
 }
 
 export async function getBook(bookId: string) {

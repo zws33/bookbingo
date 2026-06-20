@@ -30,17 +30,39 @@ export interface BookMetadata {
   thumbnailUrl: string | null;
 }
 
+/** Supported external catalog providers. */
+export type BookProvider = 'openLibrary';
+
+/**
+ * A reference to a book in an external catalog. Provenance only — identity and
+ * deduplication are handled by the deterministic document ID, not by this field.
+ * See docs/decisions/book-identity-and-deduplication.md.
+ */
+export interface ExternalRef {
+  /** Provider-native id, e.g. Open Library Work key "/works/OL166894W". */
+  key: string;
+  /** When this reference was attached to the book. */
+  enrichedAt: Date;
+}
+
+/** Map from provider to its reference record. Absent for manual-entry books. */
+export type ExternalBookIds = Partial<Record<BookProvider, ExternalRef>>;
+
 /**
  * Shared book entity (Firestore: /books/{bookId}).
  * Multiple users can reference the same book via their readings.
+ *
+ * The document id is deterministic — a hash derived from the external key
+ * (catalog books) or a normalized title+author key (manual books). See
+ * lib/core/bookIdentity.ts and the identity decision record.
  */
 export interface Book {
   id: string;
   title: string;
   author: string;
   metadata?: BookMetadata;
-  /** External catalog ID (e.g., Google Books volume ID) for deduplication */
-  externalId?: string | null;
+  /** External catalog references, keyed by provider. Provenance, not a dedup key. */
+  externalIds?: ExternalBookIds;
   /** User ID of who first added this book */
   createdBy: string;
   createdAt: Date;
