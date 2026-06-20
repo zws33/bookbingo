@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      '@bookbingo/lib-core':
+        specifier: workspace:*
+        version: link:lib/core
       firebase-admin:
         specifier: ^13.7.0
         version: 13.7.0
@@ -130,12 +133,6 @@ importers:
 
   functions:
     dependencies:
-      '@bookbingo/lib-types':
-        specifier: workspace:*
-        version: link:../lib/types
-      '@bookbingo/lib-util':
-        specifier: workspace:*
-        version: link:../lib/util
       firebase-admin:
         specifier: ^13.7.0
         version: 13.7.0

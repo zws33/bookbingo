@@ -10,6 +10,7 @@
 import { describe, it, expect, afterEach, beforeAll } from 'vitest';
 import { doc, getDoc, deleteDoc } from 'firebase/firestore';
 import { signInAnonymously } from 'firebase/auth';
+import { deriveBookId } from '@bookbingo/lib-core';
 import { db, auth } from './firebase';
 import {
   createReading,
@@ -42,7 +43,8 @@ describe('books integration (emulator)', () => {
     const bookAuthor = 'Ursula K. Le Guin';
 
     const bookId = await getOrCreateBook(bookTitle, bookAuthor, TEST_USER_ID);
-    expect(bookId).toBeTruthy();
+    // Manual books get a deterministic, hash-derived id from title/author.
+    expect(bookId).toBe(deriveBookId({ title: bookTitle, author: bookAuthor }));
 
     createdReadingId = await createReading(
       TEST_USER_ID,
@@ -70,8 +72,18 @@ describe('books integration (emulator)', () => {
     const bookData = bookSnap.data()!;
     expect(bookData.title).toBe(bookTitle);
     expect(bookData.author).toBe(bookAuthor);
-    expect(bookData.titleLower).toBe(bookTitle.toLowerCase());
-    expect(bookData.authorLower).toBe(bookAuthor.toLowerCase());
+    // Legacy normalization fields are gone; manual books carry no externalIds.
+    expect(bookData.titleLower).toBeUndefined();
+    expect(bookData.authorLower).toBeUndefined();
+    expect(bookData.externalIds).toBeUndefined();
+  });
+
+  it('getOrCreateBook is idempotent — same identity returns the same id', async () => {
+    const first = await getOrCreateBook('Dune', 'Frank Herbert', TEST_USER_ID);
+    const second = await getOrCreateBook('  dune ', 'frank  herbert', TEST_USER_ID);
+    // Case/whitespace variants normalize to the same deterministic id.
+    expect(second).toBe(first);
+    await deleteDoc(doc(db, 'books', first)).catch(() => {});
   });
 
   it('updateReading updates bookId, tiles, and sets updatedAt', async () => {

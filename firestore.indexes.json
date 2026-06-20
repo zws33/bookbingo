@@ -1,13 +1,4 @@
 {
-  "indexes": [
-    {
-      "collectionGroup": "books",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "titleLower", "order": "ASCENDING" },
-        { "fieldPath": "authorLower", "order": "ASCENDING" }
-      ]
-    }
-  ],
+  "indexes": [],
   "fieldOverrides": []
 }

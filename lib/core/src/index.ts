@@ -3,6 +3,7 @@ import * as statistics from './statistics.js';
 import * as scoring from './scoring.js';
 import * as validation from './validation.js';
 import * as tiles from './tiles.js';
+import * as bookIdentity from './bookIdentity.js';
 
 /**
  * The core BookBingo module, providing all necessary functions
@@ -14,6 +15,7 @@ const core = {
   ...scoring,
   ...validation,
   ...tiles,
+  ...bookIdentity,
 };
 
 export default core;
@@ -41,3 +43,5 @@ export {
   validateFreebie,
 } from './validation.js';
 export { getTileById } from './tiles.js';
+export { deriveBookId, normalizeForKey } from './bookIdentity.js';
+export type { BookIdentity } from './bookIdentity.js';
