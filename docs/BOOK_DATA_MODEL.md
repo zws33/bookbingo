@@ -14,7 +14,7 @@ This document describes the engineering design for how BookBingo models, stores,
 
 3. **Open Library as the primary provider.** Open Library's API returns Work-level records by default and models books using a subset of the FRBR Work/Edition hierarchy. Work OLIDs (e.g., `/works/OL166894W`) are stable, edition-agnostic identifiers suitable as deduplication keys.
 
-4. **Metadata is required.** All book entities must carry a `metadata` object. Individual fields within the object may be null, but the object itself must always be present.
+4. **Metadata is optional.** ~~All book entities must carry a `metadata` object.~~ *Corrected 2026-06-22:* `metadata` is optional on `Book` (`metadata?: BookMetadata`). It is populated for enriched (Open Library) books and absent for manual entries. When present, individual fields within the object may still be null.
 
 5. **Deduplication by deterministic doc ID.** ~~For API-sourced books, the `externalIds.openLibrary` Work OLID is the deduplication key. Manual-entry books skip deduplication.~~ *Superseded:* the document ID is now a hash derived from the Work OLID (catalog books) or from a normalized title+author key (manual books), so dedup is a `getDoc` on the computed ID rather than a query. Manual books **also** dedup. See the identity decision record.
 
@@ -66,7 +66,7 @@ export interface Book {
   id: string;
   title: string;
   author: string;          // joined string, e.g. "Fyodor Dostoevsky"
-  metadata: BookMetadata;  // required (was optional)
+  metadata?: BookMetadata;  // optional — present for enriched books, absent for manual
   externalIds?: ExternalBookIds; // replaces externalId?: string | null
   createdBy: string;
   createdAt: Date;
@@ -90,7 +90,7 @@ export interface BookMetadata {
 }
 ```
 
-Shape is unchanged. The object itself is always required on `Book`. Individual fields may be null.
+Shape is unchanged. The object is **optional** on `Book` (present for enriched books, absent for manual entries). When present, individual fields may be null.
 
 **Open Library field mapping:**
 - `pageCount` — not available at the Work level; fetched from the first edition via `/works/{olid}/editions.json?limit=1` (`number_of_pages` field)
@@ -193,39 +193,60 @@ When a user manually adds a book, the UI collects the following fields. The `met
 
 ## Security Rules
 
-Current state (already applied):
+> **⚠️ Corrected 2026-06-22.** This section previously showed an aspirational
+> ruleset that was never the live state (a `readings` `exists()` referential-integrity
+> check that does not ship, and an unrestricted `books` update rule). The block below
+> is copied from the actual `firestore.rules` at the repo root — treat that file as the
+> source of truth, not this doc.
 
 ```
 match /books/{bookId} {
   allow read, list: if request.auth != null;
   allow create: if request.auth != null;
-  allow update: if request.auth != null;
-  // delete intentionally omitted — books are referenced by readings
+  allow update: if request.auth != null
+    && (request.auth.uid == resource.data.createdBy
+        || resource.data.createdBy == 'system-migration');
 }
 
 match /users/{userId} {
   allow read, list: if request.auth != null;
-  allow create, update: if request.auth != null && request.auth.uid == userId;
+  allow write: if request.auth != null && request.auth.uid == userId;
 
   match /readings/{readingId} {
     allow read, list: if request.auth != null;
-    allow create: if request.auth != null
-      && request.auth.uid == userId
-      && exists(/databases/$(database)/documents/books/$(request.resource.data.bookId));
-    allow update, delete: if request.auth != null && request.auth.uid == userId;
+    allow write: if request.auth != null && request.auth.uid == userId;
+  }
+
+  match /tbr/{tbrId} {
+    allow read, list: if request.auth != null && request.auth.uid == userId;
+    allow write:      if request.auth != null && request.auth.uid == userId;
   }
 }
 
+// Required for collectionGroup('readings') queries (e.g. leaderboard).
 match /{path=**}/readings/{readingId} {
   allow read, list: if request.auth != null;
 }
 ```
 
-The `exists()` check on reading creates enforces referential integrity at the database layer. Any authenticated member may update book metadata (for enrichment).
+Notes on the live rules:
+- **Book updates are owner-gated** — only the `createdBy` user (or the `system-migration`
+  principal) may update a book, not any authenticated member.
+- **There is no `exists()` referential-integrity check** on reading creation. Book/reading
+  integrity is maintained by the application layer (deterministic `getOrCreateBook` runs
+  before `createReading`), not enforced in rules.
+- **TBR entries are private** — readable/writable only by their owner, unlike readings,
+  which are club-readable for the leaderboard.
 
 ---
 
 ## Implementation Steps
+
+> **📦 Historical (shipped).** These steps describe the original enrichment plan and
+> are retained for context. The shipped `getOrCreateBook` signature is
+> `getOrCreateBook(title, author, userId, enrichment?)` (where `enrichment` is
+> `{ externalId, metadata }`), **not** the `(…, metadata, externalIds?)` form sketched
+> in Step 3. See `app/web/src/lib/books.ts` for the current implementation.
 
 ### Step 1 — Update `lib/types/src/index.ts`
 
@@ -307,6 +328,12 @@ pnpm run verify
 ---
 
 ## Migration Plan
+
+> **📦 Historical.** This describes the original enrich-then-cleanup plan. The
+> `scripts/enrich-books.ts` CLI below was never the path that shipped. The book
+> collection was actually migrated to the deterministic-ID model by
+> `scripts/migrate-book-identity.ts` (re-key + two-pass cleanup), run against
+> staging and prod on 2026-06-22. See `docs/decisions/book-identity-and-deduplication.md`.
 
 ### Phase A: Enrich existing books (interactive CLI)
 

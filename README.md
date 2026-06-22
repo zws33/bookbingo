@@ -116,7 +116,7 @@ The result: a reader who covers 25 diverse tiles with 10 books will outscore one
 | Layer | Technology |
 |---|---|
 | Language | TypeScript (strict, ESM only) |
-| Web app | React 18 + Vite + Tailwind CSS |
+| Web app | React 19 + Vite + Tailwind CSS |
 | Backend | Firebase (Auth, Firestore, Hosting) |
 | Testing | Node built-in test runner (`node:test`) |
 | Package manager | pnpm (monorepo workspaces) |

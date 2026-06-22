@@ -1,5 +1,12 @@
 # Book Enrichment & Tile Optimization
 
+> **🗄️ Archived 2026-06-22.** Historical roadmap snapshot. Its data model is
+> superseded (it shows the pre-migration singular `externalId`; the live model uses
+> the deterministic doc ID + `externalIds` provenance map) and its phase statuses are
+> stale (Community Library and Search both shipped). For current state see:
+> `docs/BOOK_DATA_MODEL.md` (provider/architecture/Open Library reference) and
+> `docs/decisions/book-identity-and-deduplication.md` (book identity & dedup).
+
 This project transforms the manual book entry experience into a search-driven, metadata-enriched system with automated tile suggestions and optimization.
 
 ## 1. Vision & Goals

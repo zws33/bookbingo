@@ -1,6 +1,6 @@
 # Engineering Design: "To Be Read" (TBR) List
 
-**Status:** Approved  
+**Status:** Implemented (shipped) — see `app/web/src/lib/tbr.ts` and `app/web/src/hooks/useTBR.ts`  
 **Author:** Zach Smith  
 **Date:** 2026-06-03
 
