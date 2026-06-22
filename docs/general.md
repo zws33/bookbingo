@@ -21,12 +21,14 @@ Book Bingo is a book reading competition among friends. Users log books they've 
 
 - `lib/core/` — Scoring engine, validation, tile definitions, statistics
 - `lib/types/` — Shared type definitions
+- `lib/util/` — Cross-platform utilities (logger)
 - `app/web/` — React web application (Vite + Firebase)
+- `functions/` — Firebase Cloud Functions (e.g. `enrichBook`, `submitFeedback`)
 - `docs/` — Design documents
 
 ## Future Work
 
-- **Community Library** (in progress) — `/library` page showing club-wide reading with reader counts and tile aggregation; detail expansion, search, and sort toggle planned in subsequent iterations
+- **Community Library** — the `/library` page (club-wide reading with reader counts and tile aggregation) has shipped; per-reader detail expansion, search, and sort toggle remain planned
 - Suggesting options to rebalance tiles for a higher score
 - Progressive Web App (installable, offline support)
 
