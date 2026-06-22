@@ -1,7 +1,7 @@
 # Book Identity & Deduplication
 
-**Status:** Resolved — canonical model decided 2026-06-19; implementation (types, migration, app wiring) pending
-**Date:** 2026-06-18 (investigated) · 2026-06-19 (resolved)
+**Status:** Resolved — implemented & deployed. Canonical model decided 2026-06-19; types, app wiring, and the re-key migration shipped (#42) and run against **staging and prod** on 2026-06-22.
+**Date:** 2026-06-18 (investigated) · 2026-06-19 (resolved) · 2026-06-22 (deployed)
 
 ## Context
 
