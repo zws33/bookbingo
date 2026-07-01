@@ -12,7 +12,7 @@ import {
 } from '../lib/tbr';
 import { TBRForm, type TBRFormData } from '../components/TBRForm';
 import { BookForm, type BookFormData } from '../components/BookForm';
-import { BookSearchModal } from '../components/BookSearchModal';
+import { BookSearch } from '../components/BookSearch';
 import { PageStatus } from '../components/PageStatus';
 import {
   Dialog,
@@ -28,6 +28,7 @@ interface ReadingListPageProps {
 }
 
 type DialogState =
+  | { kind: 'search' }
   | { kind: 'add'; enrichment: BookEnrichmentResult }
   | { kind: 'manual' }
   | { kind: 'edit'; entry: TBREntry; book: Book }
@@ -36,7 +37,6 @@ type DialogState =
   | null;
 
 export function ReadingListPage({ userId }: ReadingListPageProps) {
-  const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [dialog, setDialog] = useState<DialogState>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -48,15 +48,13 @@ export function ReadingListPage({ userId }: ReadingListPageProps) {
 
   const handleBookSelectedForAdd = useCallback(
     (enrichment: BookEnrichmentResult) => {
-      setIsSearchOpen(false);
-      setTimeout(() => setDialog({ kind: 'add', enrichment }), 200);
+      setDialog({ kind: 'add', enrichment });
     },
     [],
   );
 
   const handleOpenManual = useCallback(() => {
-    setIsSearchOpen(false);
-    setTimeout(() => setDialog({ kind: 'manual' }), 200);
+    setDialog({ kind: 'manual' });
   }, []);
 
   const handleAdd = useCallback(
@@ -176,12 +174,12 @@ export function ReadingListPage({ userId }: ReadingListPageProps) {
     <>
       <div className="space-y-4">
         {entries.length === 0 ? (
-          <div className="text-center py-12">
-            <div className="text-4xl mb-4">📖</div>
+          <div className="py-12 text-center">
+            <div className="mb-4 text-4xl">📖</div>
             <h3 className="text-lg font-medium text-gray-900">
               Your reading list is empty
             </h3>
-            <p className="text-gray-500 mt-1">
+            <p className="mt-1 text-gray-500">
               Add books you plan to read using the button below.
             </p>
           </div>
@@ -203,14 +201,14 @@ export function ReadingListPage({ userId }: ReadingListPageProps) {
           })
         )}
 
-        <div className="fixed bottom-20 right-4 sm:right-8">
+        <div className="fixed right-4 bottom-20 sm:right-8">
           <button
-            onClick={() => setIsSearchOpen(true)}
-            className="w-14 h-14 bg-blue-600 text-white rounded-full shadow-lg flex items-center justify-center hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            onClick={() => setDialog({ kind: 'search' })}
+            className="flex h-14 w-14 items-center justify-center rounded-full bg-blue-600 text-white shadow-lg transition-colors hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none"
             aria-label="Add to reading list"
           >
             <svg
-              className="w-8 h-8"
+              className="h-8 w-8"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -226,19 +224,22 @@ export function ReadingListPage({ userId }: ReadingListPageProps) {
         </div>
       </div>
 
-      <BookSearchModal
-        isOpen={isSearchOpen}
-        onClose={() => setIsSearchOpen(false)}
-        onBookSelected={handleBookSelectedForAdd}
-        onManualEntry={handleOpenManual}
-      />
-
       {/* Add dialog */}
       <Dialog
-        isOpen={dialog?.kind === 'add'}
+        isOpen={
+          dialog?.kind === 'add' ||
+          dialog?.kind === 'search' ||
+          dialog?.kind === 'manual'
+        }
         onClose={closeDialog}
         title="Add to Reading List"
       >
+        {dialog?.kind === 'search' && (
+          <BookSearch
+            onBookSelected={handleBookSelectedForAdd}
+            onManualEntry={handleOpenManual}
+          />
+        )}
         {dialog?.kind === 'add' && (
           <TBRForm
             bookTitle={dialog.enrichment.title}
@@ -248,13 +249,6 @@ export function ReadingListPage({ userId }: ReadingListPageProps) {
             isSubmitting={isSubmitting}
           />
         )}
-      </Dialog>
-      {/* Manual entry dialog*/}
-      <Dialog
-        isOpen={dialog?.kind === 'manual'}
-        onClose={closeDialog}
-        title="Add to Reading List"
-      >
         {dialog?.kind === 'manual' && (
           <TBRForm
             editable={true}
@@ -339,25 +333,25 @@ function TBREntryCard({
   const thumbnailUrl = book?.metadata?.thumbnailUrl;
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 p-4">
+    <div className="rounded-lg border border-gray-200 bg-white p-4">
       <div className="flex gap-3">
         {thumbnailUrl && (
           <img
             src={thumbnailUrl}
             alt=""
-            className="w-12 h-16 object-cover rounded flex-shrink-0"
+            className="h-16 w-12 flex-shrink-0 rounded object-cover"
           />
         )}
-        <div className="flex-1 min-w-0">
-          <p className="font-medium text-gray-900 truncate">
+        <div className="min-w-0 flex-1">
+          <p className="truncate font-medium text-gray-900">
             {book?.title ?? 'Unknown title'}
           </p>
-          <p className="text-sm text-gray-500 truncate">
+          <p className="truncate text-sm text-gray-500">
             {book?.author ?? '—'}
           </p>
 
           {entry.plannedTiles.length > 0 && (
-            <div className="flex flex-wrap gap-1 mt-2">
+            <div className="mt-2 flex flex-wrap gap-1">
               {entry.plannedTiles.map((tileId) => (
                 <TileBadge key={tileId} tileId={tileId} variant="secondary" />
               ))}
@@ -365,12 +359,12 @@ function TBREntryCard({
           )}
 
           {entry.notes && (
-            <p className="text-sm text-gray-500 mt-2 italic">{entry.notes}</p>
+            <p className="mt-2 text-sm text-gray-500 italic">{entry.notes}</p>
           )}
         </div>
       </div>
 
-      <div className="flex justify-end gap-2 mt-3 pt-3 border-t border-gray-100">
+      <div className="mt-3 flex justify-end gap-2 border-t border-gray-100 pt-3">
         <Button variant="ghost" className="text-sm" onClick={onEdit}>
           Edit
         </Button>
