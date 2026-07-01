@@ -4,12 +4,22 @@ import { useTBR } from '../hooks/useTBR';
 import { useBooks } from '../hooks/useBooks';
 import { useToast } from '../lib/ToastContext';
 import { getOrCreateBook } from '../lib/books';
-import { createTBREntry, updateTBREntry, deleteTBREntry, promoteTBREntry } from '../lib/tbr';
+import {
+  createTBREntry,
+  updateTBREntry,
+  deleteTBREntry,
+  promoteTBREntry,
+} from '../lib/tbr';
 import { TBRForm, type TBRFormData } from '../components/TBRForm';
 import { BookForm, type BookFormData } from '../components/BookForm';
 import { BookSearchModal } from '../components/BookSearchModal';
 import { PageStatus } from '../components/PageStatus';
-import { Dialog, AlertDialog, TileBadge, Button } from '../components/ui/index.js';
+import {
+  Dialog,
+  AlertDialog,
+  TileBadge,
+  Button,
+} from '../components/ui/index.js';
 import { log } from '@bookbingo/lib-util';
 import type { BookEnrichmentResult } from '@bookbingo/lib-types';
 
@@ -19,6 +29,7 @@ interface ReadingListPageProps {
 
 type DialogState =
   | { kind: 'add'; enrichment: BookEnrichmentResult }
+  | { kind: 'manual' }
   | { kind: 'edit'; entry: TBREntry; book: Book }
   | { kind: 'promote'; entry: TBREntry; book: Book }
   | { kind: 'delete'; entry: TBREntry }
@@ -35,50 +46,90 @@ export function ReadingListPage({ userId }: ReadingListPageProps) {
 
   const closeDialog = useCallback(() => setDialog(null), []);
 
-  const handleBookSelectedForAdd = useCallback((enrichment: BookEnrichmentResult | null) => {
-    setIsSearchOpen(false);
-    if (enrichment) {
+  const handleBookSelectedForAdd = useCallback(
+    (enrichment: BookEnrichmentResult) => {
+      setIsSearchOpen(false);
       setTimeout(() => setDialog({ kind: 'add', enrichment }), 200);
-    }
+    },
+    [],
+  );
+
+  const handleOpenManual = useCallback(() => {
+    setIsSearchOpen(false);
+    setTimeout(() => setDialog({ kind: 'manual' }), 200);
   }, []);
 
-  const handleAdd = async (data: TBRFormData) => {
-    if (dialog?.kind !== 'add') return;
-    setIsSubmitting(true);
-    try {
-      const bookId = await getOrCreateBook(
-        dialog.enrichment.title,
-        dialog.enrichment.author,
-        userId,
-        { externalId: dialog.enrichment.externalId, metadata: dialog.enrichment.metadata },
-      );
-      await createTBREntry(userId, bookId, data.plannedTiles, data.notes);
-      showSuccess('Added to reading list');
-      closeDialog();
-    } catch (err) {
-      showError('Failed to add book');
-      log.error('TBR add error:', err);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+  const handleAdd = useCallback(
+    async (data: TBRFormData) => {
+      if (dialog?.kind !== 'add') return;
+      setIsSubmitting(true);
+      try {
+        const bookId = await getOrCreateBook(
+          dialog.enrichment.title,
+          dialog.enrichment.author,
+          userId,
+          {
+            externalId: dialog.enrichment.externalId,
+            metadata: dialog.enrichment.metadata,
+          },
+        );
+        await createTBREntry(userId, bookId, data.plannedTiles, data.notes);
+        showSuccess('Added to reading list');
+        closeDialog();
+      } catch (err) {
+        showError('Failed to add book');
+        log.error('TBR add error:', err);
+      } finally {
+        setIsSubmitting(false);
+      }
+    },
+    [dialog, userId, showSuccess, showError, closeDialog],
+  );
 
-  const handleEdit = async (data: TBRFormData) => {
-    if (dialog?.kind !== 'edit') return;
-    setIsSubmitting(true);
-    try {
-      await updateTBREntry(userId, dialog.entry.id, data.plannedTiles, data.notes);
-      showSuccess('Reading list updated');
-      closeDialog();
-    } catch (err) {
-      showError('Failed to update entry');
-      log.error('TBR edit error:', err);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+  const handleManualAdd = useCallback(
+    async (data: TBRFormData) => {
+      if (dialog?.kind !== 'manual') return;
+      if (!data.title || !data.author) return;
+      setIsSubmitting(true);
+      try {
+        const bookId = await getOrCreateBook(data.title, data.author, userId);
+        await createTBREntry(userId, bookId, data.plannedTiles, data.notes);
+        showSuccess('Added to reading list');
+        closeDialog();
+      } catch (err) {
+        showError('Failed to add book');
+        log.error('TBR manual add error:', err);
+      } finally {
+        setIsSubmitting(false);
+      }
+    },
+    [dialog, userId, showSuccess, showError, closeDialog],
+  );
 
-  const handleDelete = async () => {
+  const handleEdit = useCallback(
+    async (data: TBRFormData) => {
+      if (dialog?.kind !== 'edit') return;
+      setIsSubmitting(true);
+      try {
+        await updateTBREntry(
+          userId,
+          dialog.entry.id,
+          data.plannedTiles,
+          data.notes,
+        );
+        showSuccess('Reading list updated');
+        closeDialog();
+      } catch (err) {
+        showError('Failed to update entry');
+        log.error('TBR edit error:', err);
+      } finally {
+        setIsSubmitting(false);
+      }
+    },
+    [dialog, userId, showSuccess, showError, closeDialog],
+  );
+
+  const handleDelete = useCallback(async () => {
     if (dialog?.kind !== 'delete') return;
     setIsSubmitting(true);
     try {
@@ -91,28 +142,31 @@ export function ReadingListPage({ userId }: ReadingListPageProps) {
     } finally {
       setIsSubmitting(false);
     }
-  };
+  }, [dialog, userId, showSuccess, showError, closeDialog]);
 
-  const handlePromote = async (data: BookFormData) => {
-    if (dialog?.kind !== 'promote') return;
-    setIsSubmitting(true);
-    try {
-      await promoteTBREntry(
-        userId,
-        dialog.entry.id,
-        dialog.entry.bookId,
-        data.tiles,
-        data.isFreebie,
-      );
-      showSuccess('Book logged — removed from reading list');
-      closeDialog();
-    } catch (err) {
-      showError('Failed to log book');
-      log.error('TBR promote error:', err);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+  const handlePromote = useCallback(
+    async (data: BookFormData) => {
+      if (dialog?.kind !== 'promote') return;
+      setIsSubmitting(true);
+      try {
+        await promoteTBREntry(
+          userId,
+          dialog.entry.id,
+          dialog.entry.bookId,
+          data.tiles,
+          data.isFreebie,
+        );
+        showSuccess('Book logged — removed from reading list');
+        closeDialog();
+      } catch (err) {
+        showError('Failed to log book');
+        log.error('TBR promote error:', err);
+      } finally {
+        setIsSubmitting(false);
+      }
+    },
+    [dialog, userId, showSuccess, showError, closeDialog],
+  );
 
   if (loading || error) {
     return <PageStatus loading={loading} error={error} />;
@@ -124,7 +178,9 @@ export function ReadingListPage({ userId }: ReadingListPageProps) {
         {entries.length === 0 ? (
           <div className="text-center py-12">
             <div className="text-4xl mb-4">📖</div>
-            <h3 className="text-lg font-medium text-gray-900">Your reading list is empty</h3>
+            <h3 className="text-lg font-medium text-gray-900">
+              Your reading list is empty
+            </h3>
             <p className="text-gray-500 mt-1">
               Add books you plan to read using the button below.
             </p>
@@ -139,7 +195,9 @@ export function ReadingListPage({ userId }: ReadingListPageProps) {
                 book={book}
                 onEdit={() => book && setDialog({ kind: 'edit', entry, book })}
                 onDelete={() => setDialog({ kind: 'delete', entry })}
-                onPromote={() => book && setDialog({ kind: 'promote', entry, book })}
+                onPromote={() =>
+                  book && setDialog({ kind: 'promote', entry, book })
+                }
               />
             );
           })
@@ -151,7 +209,12 @@ export function ReadingListPage({ userId }: ReadingListPageProps) {
             className="w-14 h-14 bg-blue-600 text-white rounded-full shadow-lg flex items-center justify-center hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
             aria-label="Add to reading list"
           >
-            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg
+              className="w-8 h-8"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -167,6 +230,7 @@ export function ReadingListPage({ userId }: ReadingListPageProps) {
         isOpen={isSearchOpen}
         onClose={() => setIsSearchOpen(false)}
         onBookSelected={handleBookSelectedForAdd}
+        onManualEntry={handleOpenManual}
       />
 
       {/* Add dialog */}
@@ -185,7 +249,23 @@ export function ReadingListPage({ userId }: ReadingListPageProps) {
           />
         )}
       </Dialog>
-
+      {/* Manual entry dialog*/}
+      <Dialog
+        isOpen={dialog?.kind === 'manual'}
+        onClose={closeDialog}
+        title="Add to Reading List"
+      >
+        {dialog?.kind === 'manual' && (
+          <TBRForm
+            editable={true}
+            bookTitle={''}
+            bookAuthor={''}
+            onSubmit={handleManualAdd}
+            onCancel={closeDialog}
+            isSubmitting={isSubmitting}
+          />
+        )}
+      </Dialog>
       {/* Edit dialog */}
       <Dialog
         isOpen={dialog?.kind === 'edit'}
@@ -196,7 +276,10 @@ export function ReadingListPage({ userId }: ReadingListPageProps) {
           <TBRForm
             bookTitle={dialog.book.title}
             bookAuthor={dialog.book.author}
-            initialData={{ plannedTiles: dialog.entry.plannedTiles, notes: dialog.entry.notes ?? '' }}
+            initialData={{
+              plannedTiles: dialog.entry.plannedTiles,
+              notes: dialog.entry.notes ?? '',
+            }}
             onSubmit={handleEdit}
             onCancel={closeDialog}
             isSubmitting={isSubmitting}
@@ -246,7 +329,13 @@ interface TBREntryCardProps {
   onPromote: () => void;
 }
 
-function TBREntryCard({ entry, book, onEdit, onDelete, onPromote }: TBREntryCardProps) {
+function TBREntryCard({
+  entry,
+  book,
+  onEdit,
+  onDelete,
+  onPromote,
+}: TBREntryCardProps) {
   const thumbnailUrl = book?.metadata?.thumbnailUrl;
 
   return (
@@ -263,7 +352,9 @@ function TBREntryCard({ entry, book, onEdit, onDelete, onPromote }: TBREntryCard
           <p className="font-medium text-gray-900 truncate">
             {book?.title ?? 'Unknown title'}
           </p>
-          <p className="text-sm text-gray-500 truncate">{book?.author ?? '—'}</p>
+          <p className="text-sm text-gray-500 truncate">
+            {book?.author ?? '—'}
+          </p>
 
           {entry.plannedTiles.length > 0 && (
             <div className="flex flex-wrap gap-1 mt-2">
@@ -283,7 +374,11 @@ function TBREntryCard({ entry, book, onEdit, onDelete, onPromote }: TBREntryCard
         <Button variant="ghost" className="text-sm" onClick={onEdit}>
           Edit
         </Button>
-        <Button variant="ghost" className="text-sm text-red-600 hover:text-red-700" onClick={onDelete}>
+        <Button
+          variant="ghost"
+          className="text-sm text-red-600 hover:text-red-700"
+          onClick={onDelete}
+        >
           Remove
         </Button>
         <Button variant="outline" className="text-sm" onClick={onPromote}>

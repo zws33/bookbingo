@@ -12,10 +12,16 @@ import {
 interface BookSearchModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onBookSelected: (data: BookEnrichmentResult | null) => void;
+  onBookSelected: (data: BookEnrichmentResult) => void;
+  onManualEntry: () => void;
 }
 
-export function BookSearchModal({ isOpen, onClose, onBookSelected }: BookSearchModalProps) {
+export function BookSearchModal({
+  isOpen,
+  onClose,
+  onBookSelected,
+  onManualEntry,
+}: BookSearchModalProps) {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<BookSearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -68,8 +74,8 @@ export function BookSearchModal({ isOpen, onClose, onBookSelected }: BookSearchM
   );
 
   const handleManualEntry = useCallback(() => {
-    onBookSelected(null);
-  }, [onBookSelected]);
+    onManualEntry();
+  }, [onManualEntry]);
 
   return (
     <Dialog isOpen={isOpen} onClose={onClose} title="Find a Book">
@@ -102,15 +108,21 @@ export function BookSearchModal({ isOpen, onClose, onBookSelected }: BookSearchM
                       src={r.thumbnailUrl}
                       alt=""
                       className="w-8 h-11 object-cover rounded flex-shrink-0"
-                      onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                      onError={(e) => {
+                        (e.currentTarget as HTMLImageElement).style.display =
+                          'none';
+                      }}
                     />
                   ) : (
                     <div className="w-8 h-11 bg-gray-100 rounded flex-shrink-0" />
                   )}
                   <div className="min-w-0">
-                    <p className="font-medium text-gray-900 truncate text-sm">{r.title}</p>
+                    <p className="font-medium text-gray-900 truncate text-sm">
+                      {r.title}
+                    </p>
                     <p className="text-xs text-gray-500 truncate">
-                      {r.author}{r.publishedDate ? ` · ${r.publishedDate}` : ''}
+                      {r.author}
+                      {r.publishedDate ? ` · ${r.publishedDate}` : ''}
                     </p>
                   </div>
                 </button>
@@ -120,12 +132,19 @@ export function BookSearchModal({ isOpen, onClose, onBookSelected }: BookSearchM
         )}
 
         {isSelecting && (
-          <p className="text-sm text-gray-500 text-center py-2">Loading book details...</p>
+          <p className="text-sm text-gray-500 text-center py-2">
+            Loading book details...
+          </p>
         )}
 
-        {!isSearching && !isSelecting && query.length >= 2 && results.length === 0 && (
-          <p className="text-sm text-gray-500 text-center py-2">No results found.</p>
-        )}
+        {!isSearching &&
+          !isSelecting &&
+          query.length >= 2 &&
+          results.length === 0 && (
+            <p className="text-sm text-gray-500 text-center py-2">
+              No results found.
+            </p>
+          )}
 
         <div className="pt-1 text-center">
           <button
