@@ -19,7 +19,8 @@ interface MyBooksPageProps {
 export function MyBooksPage({ userId }: MyBooksPageProps) {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [pendingEnrichment, setPendingEnrichment] = useState<BookEnrichmentResult | null>(null);
+  const [pendingEnrichment, setPendingEnrichment] =
+    useState<BookEnrichmentResult | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { showSuccess, showError } = useToast();
   const {
@@ -37,11 +38,14 @@ export function MyBooksPage({ userId }: MyBooksPageProps) {
     return getScoreBreakdown(readings);
   }, [readings]);
 
-  const handleBookSelected = useCallback((data: BookEnrichmentResult | null) => {
-    setPendingEnrichment(data);
-    setIsSearchOpen(false);
-    setTimeout(() => setIsAddModalOpen(true), 200);
-  }, []);
+  const handleBookSelected = useCallback(
+    (data: BookEnrichmentResult | null) => {
+      setPendingEnrichment(data);
+      setIsSearchOpen(false);
+      setTimeout(() => setIsAddModalOpen(true), 200);
+    },
+    [],
+  );
 
   const handleAddModalClose = useCallback(() => {
     setIsAddModalOpen(false);
@@ -52,9 +56,17 @@ export function MyBooksPage({ userId }: MyBooksPageProps) {
     setIsSubmitting(true);
     try {
       const enrichment = pendingEnrichment
-        ? { externalId: pendingEnrichment.externalId, metadata: pendingEnrichment.metadata }
+        ? {
+            externalId: pendingEnrichment.externalId,
+            metadata: pendingEnrichment.metadata,
+          }
         : undefined;
-      const bookId = await getOrCreateBook(data.title, data.author, userId, enrichment);
+      const bookId = await getOrCreateBook(
+        data.title,
+        data.author,
+        userId,
+        enrichment,
+      );
       await createReading(userId, bookId, data.tiles, data.isFreebie);
       showSuccess('Book added successfully');
       handleAddModalClose();
@@ -67,7 +79,12 @@ export function MyBooksPage({ userId }: MyBooksPageProps) {
   };
 
   const addFormInitialData = pendingEnrichment
-    ? { title: pendingEnrichment.title, author: pendingEnrichment.author, tiles: [], isFreebie: false }
+    ? {
+        title: pendingEnrichment.title,
+        author: pendingEnrichment.author,
+        tiles: [],
+        isFreebie: false,
+      }
     : undefined;
 
   return (
@@ -109,6 +126,7 @@ export function MyBooksPage({ userId }: MyBooksPageProps) {
         isOpen={isSearchOpen}
         onClose={() => setIsSearchOpen(false)}
         onBookSelected={handleBookSelected}
+        onManualEntry={() => handleBookSelected(null)}
       />
 
       <Dialog

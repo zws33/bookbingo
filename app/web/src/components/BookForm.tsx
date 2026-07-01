@@ -17,7 +17,12 @@ interface BookFormProps {
   isSubmitting: boolean;
 }
 
-export function BookForm({ initialData, onSubmit, onCancel, isSubmitting }: BookFormProps) {
+export function BookForm({
+  initialData,
+  onSubmit,
+  onCancel,
+  isSubmitting,
+}: BookFormProps) {
   const [title, setTitle] = useState(initialData?.title ?? '');
   const [author, setAuthor] = useState(initialData?.author ?? '');
   const [tiles, setTiles] = useState<string[]>(initialData?.tiles ?? []);
@@ -62,10 +67,19 @@ export function BookForm({ initialData, onSubmit, onCancel, isSubmitting }: Book
 
       <FreebieToggle isFreebie={isFreebie} onChange={setIsFreebie} />
 
-      <TileSelector selectedTiles={tiles} onChange={setTiles} isFreebie={isFreebie} />
+      <TileSelector
+        selectedTiles={tiles}
+        onChange={setTiles}
+        isFreebie={isFreebie}
+      />
 
       <div className="flex justify-end gap-3 pt-2">
-        <Button type="button" variant="ghost" onClick={onCancel} disabled={isSubmitting}>
+        <Button
+          type="button"
+          variant="ghost"
+          onClick={onCancel}
+          disabled={isSubmitting}
+        >
           Cancel
         </Button>
         <Button type="submit" disabled={!isValid || isSubmitting}>
