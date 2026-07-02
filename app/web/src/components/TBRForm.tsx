@@ -1,10 +1,9 @@
 import { useState, SubmitEvent } from 'react';
 import { TileSelector } from './TileSelector';
-import { Label, Button, Textarea, Input } from './ui/index.js';
+import { Label, Button, Input } from './ui/index.js';
 
 export interface TBRFormData {
   plannedTiles: string[];
-  notes: string;
   /** Present only in editable (manual-entry) mode. */
   title?: string;
   author?: string;
@@ -14,7 +13,7 @@ interface TBRFormProps {
   editable?: boolean;
   bookTitle: string;
   bookAuthor: string;
-  initialData?: TBRFormData;
+  tiles: string[];
   onSubmit: (data: TBRFormData) => void;
   onCancel: () => void;
   isSubmitting: boolean;
@@ -24,15 +23,12 @@ export function TBRForm({
   editable,
   bookTitle,
   bookAuthor,
-  initialData,
+  tiles,
   onSubmit,
   onCancel,
   isSubmitting,
 }: TBRFormProps) {
-  const [plannedTiles, setPlannedTiles] = useState<string[]>(
-    initialData?.plannedTiles ?? [],
-  );
-  const [notes, setNotes] = useState(initialData?.notes ?? '');
+  const [selectedTiles, setPlannedTiles] = useState<string[]>(tiles ?? []);
   const [title, setTitle] = useState(bookTitle);
   const [author, setAuthor] = useState(bookAuthor);
 
@@ -42,13 +38,10 @@ export function TBRForm({
     e.preventDefault();
     if (isSubmitting || !isValid) return;
     onSubmit({
-      plannedTiles,
-      notes,
+      plannedTiles: selectedTiles,
       ...(editable ? { title: title.trim(), author: author.trim() } : {}),
     });
   };
-
-  const isEdit = Boolean(initialData);
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
@@ -90,24 +83,10 @@ export function TBRForm({
       )}
 
       <TileSelector
-        selectedTiles={plannedTiles}
+        selectedTiles={selectedTiles}
         onChange={setPlannedTiles}
         isFreebie={false}
       />
-
-      <div>
-        <Label htmlFor="tbr-notes" className="mb-1">
-          Notes (optional)
-        </Label>
-        <Textarea
-          id="tbr-notes"
-          value={notes}
-          onChange={(e) => setNotes(e.target.value)}
-          placeholder="Any notes about why you want to read this..."
-          rows={3}
-          disabled={isSubmitting}
-        />
-      </div>
 
       <div className="flex justify-end gap-3 pt-2">
         <Button
@@ -119,11 +98,7 @@ export function TBRForm({
           Cancel
         </Button>
         <Button type="submit" disabled={isSubmitting || !isValid}>
-          {isSubmitting
-            ? 'Saving...'
-            : isEdit
-              ? 'Save Changes'
-              : 'Add to Reading List'}
+          {isSubmitting ? 'Saving...' : 'Save'}
         </Button>
       </div>
     </form>

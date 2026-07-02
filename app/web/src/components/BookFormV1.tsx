@@ -1,7 +1,7 @@
 import { useState, SubmitEvent } from 'react';
-import { TileSelector } from './TileSelector';
-import { FreebieToggle } from './FreebieToggle';
-import { Input, Label, Button } from './ui/index';
+import { TileSelector } from './TileSelector.js';
+import { FreebieToggle } from './FreebieToggle.js';
+import { Input, Label, Button } from './ui/index.js';
 
 export interface BookFormData {
   title: string;
@@ -11,15 +11,12 @@ export interface BookFormData {
 }
 
 interface BookFormProps {
-  identityLocked: boolean;
   initialData?: BookFormData;
   onSubmit: (data: BookFormData) => void;
   onCancel: () => void;
   isSubmitting: boolean;
 }
-
-export function BookForm({
-  identityLocked,
+export function BookFormV1({
   initialData,
   onSubmit,
   onCancel,
@@ -40,42 +37,32 @@ export function BookForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      {identityLocked && (
-        <div className="rounded-lg bg-gray-50 px-3 py-2">
-          <p className="text-sm font-medium text-gray-900">{title}</p>
-          <p className="text-sm text-gray-500">{author}</p>
-        </div>
-      )}
-      {!identityLocked && (
-        <div>
-          <div>
-            <Label htmlFor="title" className="mb-1">
-              Title
-            </Label>
-            <Input
-              id="title"
-              type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Enter book title"
-              disabled={isSubmitting}
-            />
-          </div>
-          <div>
-            <Label htmlFor="author" className="mb-1">
-              Author
-            </Label>
-            <Input
-              id="author"
-              type="text"
-              value={author}
-              onChange={(e) => setAuthor(e.target.value)}
-              placeholder="Enter author name"
-              disabled={isSubmitting}
-            />
-          </div>
-        </div>
-      )}
+      <div>
+        <Label htmlFor="title" className="mb-1">
+          Title
+        </Label>
+        <Input
+          id="title"
+          type="text"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          placeholder="Enter book title"
+          disabled={isSubmitting}
+        />
+      </div>
+      <div>
+        <Label htmlFor="author" className="mb-1">
+          Author
+        </Label>
+        <Input
+          id="author"
+          type="text"
+          value={author}
+          onChange={(e) => setAuthor(e.target.value)}
+          placeholder="Enter author name"
+          disabled={isSubmitting}
+        />
+      </div>
 
       <FreebieToggle isFreebie={isFreebie} onChange={setIsFreebie} />
 
