@@ -13,10 +13,7 @@ interface BookSearchProps {
   onManualEntry: () => void;
 }
 
-export function BookSearch({
-  onBookSelected,
-  onManualEntry,
-}: BookSearchProps) {
+export function BookSearch({ onBookSelected, onManualEntry }: BookSearchProps) {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<BookSearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -94,14 +91,14 @@ export function BookSearch({
                   <img
                     src={r.thumbnailUrl}
                     alt=""
-                    className="h-11 w-8 flex-shrink-0 rounded object-cover"
+                    className="h-11 w-8 shrink-0 rounded object-cover"
                     onError={(e) => {
                       (e.currentTarget as HTMLImageElement).style.display =
                         'none';
                     }}
                   />
                 ) : (
-                  <div className="h-11 w-8 flex-shrink-0 rounded bg-gray-100" />
+                  <div className="h-11 w-8 shrink-0 rounded bg-gray-100" />
                 )}
                 <div className="min-w-0">
                   <p className="truncate text-sm font-medium text-gray-900">
