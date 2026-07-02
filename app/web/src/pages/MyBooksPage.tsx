@@ -4,7 +4,7 @@ import { useBooks } from '../hooks/useBooks';
 import { useToast } from '../lib/ToastContext';
 import { getOrCreateBook, createReading } from '../lib/books';
 import { BookList } from '../components/BookList';
-import { BookSearchModal } from '../components/BookSearchModal';
+import { BookSearch } from '../components/BookSearch';
 import { ScoreDisplay } from '../components/ScoreDisplay';
 import { Dialog } from '../components/ui/index.js';
 import { BookForm, type BookFormData } from '../components/BookForm';
@@ -16,9 +16,10 @@ interface MyBooksPageProps {
   userId: string;
 }
 
+type DialogState = { kind: 'search' } | { kind: 'entry' } | null;
+
 export function MyBooksPage({ userId }: MyBooksPageProps) {
-  const [isSearchOpen, setIsSearchOpen] = useState(false);
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [dialog, setDialog] = useState<DialogState>(null);
   const [pendingEnrichment, setPendingEnrichment] =
     useState<BookEnrichmentResult | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -41,14 +42,13 @@ export function MyBooksPage({ userId }: MyBooksPageProps) {
   const handleBookSelected = useCallback(
     (data: BookEnrichmentResult | null) => {
       setPendingEnrichment(data);
-      setIsSearchOpen(false);
-      setTimeout(() => setIsAddModalOpen(true), 200);
+      setDialog({ kind: 'entry' });
     },
     [],
   );
 
   const handleAddModalClose = useCallback(() => {
-    setIsAddModalOpen(false);
+    setDialog(null);
     setPendingEnrichment(null);
   }, []);
 
@@ -99,14 +99,14 @@ export function MyBooksPage({ userId }: MyBooksPageProps) {
           error={error}
         />
 
-        <div className="fixed bottom-20 right-4 sm:right-8">
+        <div className="fixed right-4 bottom-20 sm:right-8">
           <button
-            onClick={() => setIsSearchOpen(true)}
-            className="w-14 h-14 bg-blue-600 text-white rounded-full shadow-lg flex items-center justify-center hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            onClick={() => setDialog({ kind: 'search' })}
+            className="flex h-14 w-14 items-center justify-center rounded-full bg-blue-600 text-white shadow-lg transition-colors hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none"
             aria-label="Add book"
           >
             <svg
-              className="w-8 h-8"
+              className="h-8 w-8"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -122,24 +122,25 @@ export function MyBooksPage({ userId }: MyBooksPageProps) {
         </div>
       </div>
 
-      <BookSearchModal
-        isOpen={isSearchOpen}
-        onClose={() => setIsSearchOpen(false)}
-        onBookSelected={handleBookSelected}
-        onManualEntry={() => handleBookSelected(null)}
-      />
-
       <Dialog
-        isOpen={isAddModalOpen}
+        isOpen={dialog !== null}
         onClose={handleAddModalClose}
         title="Add New Book"
       >
-        <BookForm
-          initialData={addFormInitialData}
-          onSubmit={handleAddBook}
-          onCancel={handleAddModalClose}
-          isSubmitting={isSubmitting}
-        />
+        {dialog?.kind === 'search' && (
+          <BookSearch
+            onBookSelected={handleBookSelected}
+            onManualEntry={() => handleBookSelected(null)}
+          />
+        )}
+        {dialog?.kind === 'entry' && (
+          <BookForm
+            initialData={addFormInitialData}
+            onSubmit={handleAddBook}
+            onCancel={handleAddModalClose}
+            isSubmitting={isSubmitting}
+          />
+        )}
       </Dialog>
     </>
   );

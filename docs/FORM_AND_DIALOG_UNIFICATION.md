@@ -29,15 +29,18 @@ Unify the book-entry experience across `MyBooksPage` and `ReadingListPage` behin
 
 **Problem.** Both pages go search → form via `setIsSearchOpen(false); setTimeout(() => setDialog(...), 200)`. The `200` matches `Dialog`'s `duration-200` exit fade — page logic is coupled to a CSS constant, and two Radix roots race on a timer to model one flow.
 
-**Approach.** `Dialog` is already a dumb container. Drive its `title` + `children` from a step union so the dialog stays mounted across steps:
+**Approach.** `Dialog` is already a dumb container. Give it a single **static, flow-level `title`** and drive its `children` from a step union so the dialog stays mounted across steps:
 
 ```ts
-type EntryFlow =
-  | { step: 'search' }
-  | { step: 'details'; identity: Identity };   // from catalog OR manual
+type DialogState =
+  | { kind: 'search' }
+  | { kind: 'details'; identity: Identity }   // from catalog OR manual
+  | null;
 ```
 
-`BookSearchModal` stops being a `Dialog` and becomes `SearchStep` (plain content). `<Dialog isOpen={flow !== null}>` renders `SearchStep` or the form by `step`. The `setTimeout` is deleted.
+`BookSearchModal` stops being a `Dialog` and becomes `BookSearch` (plain content). `<Dialog isOpen={dialog !== null}>` renders `BookSearch` or the form by `kind`. The `setTimeout` is deleted.
+
+**Union naming & static title (implemented — do not "fix").** The pages use `DialogState` / `kind` (the existing convention already in `ReadingListPage`), **not** `EntryFlow` / `step` — this is a deliberate choice, revisit only if a generic wizard lands. Per-page unions also still carry the other open dialogs (`add`, `manual`, `edit`, `promote`, `delete`) rather than a single collapsed `details` step; collapsing those into `details` is deferred to the `BookEntryForm` phase (§7 step 2). The `title` is intentionally **one static string per page naming the whole flow** (e.g. "Add a Book", "Add to Reading List") — it is *not* derived per step, so it reads correctly over both the search step and the form step.
 
 **Relation to `decisions/animation-duration-ownership.md`.** That ADR says: when a *second* component pairs a CSS transition with a lifecycle `setTimeout`, consolidate on `transitionend`/`animationend` rather than exporting another constant. This refactor does the better thing — it **removes** the second instance entirely by not unmounting between steps, so no timer/CSS coupling is introduced at all. No change to the Toast pattern; we just don't add to it.
 
@@ -113,7 +116,7 @@ Optionally introduce a shared alias so the embedding is explicit: `Reading` and 
 
 The container and the model changes are separable. Recommended order (lowest-risk first):
 
-1. **Container refactor** — persistent dialog + `SearchStep`, no behavior change to forms/data. Pure UI, reversible, deletes the `setTimeout`.
+1. **Container refactor** — persistent dialog + `BookSearch`, no behavior change to forms/data. Pure UI, reversible, deletes the `setTimeout`.
 2. **`BookEntryForm`** — introduce the unified form, migrate call sites, retire `BookForm`/`TBRForm`.
 3. **Model + migration** — type change, backfill script, service + validation changes, promotion simplification.
 
@@ -137,9 +140,9 @@ Each phase ships independently green (`pnpm run verify`).
 | `lib/core/src/validation.ts` | union-scope freebie helper + tests |
 | `app/web/src/lib/tbr.ts` | signature changes; promote reads payload |
 | `app/web/src/components/BookEntryForm.tsx` | new — unified two-axis form |
-| `app/web/src/components/SearchStep.tsx` | `BookSearchModal` → step content |
-| `app/web/src/pages/ReadingListPage.tsx` | `EntryFlow` union; drop `kind:'manual'` |
-| `app/web/src/pages/MyBooksPage.tsx` | adopt `EntryFlow` union (retire the 3 booleans) |
+| `app/web/src/components/BookSearch.tsx` | `BookSearchModal` → step content (renamed file + component) |
+| `app/web/src/pages/ReadingListPage.tsx` | `DialogState` union; drop `kind:'manual'` |
+| `app/web/src/pages/MyBooksPage.tsx` | adopt `DialogState` union (retire the dialog booleans) |
 | `app/web/src/components/BookList.tsx` | edit uses `BookEntryForm` locked identity |
 | `app/web/src/components/{BookForm,TBRForm}.tsx` | removed |
 | `scripts/migrate-tbr-payload.ts` | new — backfill |
