@@ -3,17 +3,10 @@ packages:
   - lib/*
   - functions
 
+# These dependencies ship build (postinstall) scripts we deliberately skip.
+# Listing them here suppresses pnpm's ERR_PNPM_IGNORED_BUILDS prompt.
+# Uses pnpm-10 syntax (CI and local both run pnpm 10); `allowBuilds` is pnpm 11 only.
 ignoredBuiltDependencies:
+  - '@firebase/util'
   - esbuild
   - protobufjs
-
-onlyBuiltDependencies:
-  - b
-  - d
-  - e
-  - esbuild
-  - i
-  - l
-  - protobufjs
-  - s
-  - u

@@ -144,6 +144,16 @@ emulator-data/
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 
+# Compiled TypeScript output (sources are .ts, run via tsx/vite — never commit emit)
+scripts/**/*.js
+scripts/**/*.js.map
+scripts/**/*.d.ts
+scripts/**/*.d.ts.map
+app/web/*.config.js
+app/web/*.config.js.map
+app/web/*.config.d.ts
+app/web/*.config.d.ts.map
+
 # Migration backup
 pre-migration-backup/
 
