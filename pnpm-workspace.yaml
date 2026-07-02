@@ -3,17 +3,7 @@ packages:
   - lib/*
   - functions
 
-ignoredBuiltDependencies:
-  - esbuild
-  - protobufjs
-
-onlyBuiltDependencies:
-  - b
-  - d
-  - e
-  - esbuild
-  - i
-  - l
-  - protobufjs
-  - s
-  - u
+allowBuilds:
+  '@firebase/util': false
+  esbuild: false
+  protobufjs: false
