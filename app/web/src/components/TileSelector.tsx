@@ -7,19 +7,40 @@ interface TileSelectorProps {
   onChange: (tiles: string[]) => void;
   isFreebie: boolean;
 }
+type TileSelectorItem = {
+  id: string;
+  name: string;
+  isSelected: boolean;
+  isDisabled: boolean;
+};
 
 const bookAssignableTiles = TILES;
 
-export function TileSelector({ selectedTiles, onChange, isFreebie }: TileSelectorProps) {
+export function TileSelector({
+  selectedTiles,
+  onChange,
+  isFreebie,
+}: TileSelectorProps) {
   const [search, setSearch] = useState('');
 
-  const filteredTiles = useMemo(() => {
-    if (!search.trim()) return bookAssignableTiles;
-    const term = search.toLowerCase();
-    return bookAssignableTiles.filter((t) => t.name.toLowerCase().includes(term));
-  }, [search]);
-
   const atLimit = !isFreebie && selectedTiles.length >= MAX_TILES_PER_BOOK;
+  const filteredTiles = useMemo<TileSelectorItem[]>(() => {
+    const items = bookAssignableTiles
+      .map((t) => {
+        const isSelected = selectedTiles.includes(t.id);
+        const isDisabled = atLimit && !isSelected;
+        return {
+          isSelected,
+          isDisabled,
+          id: t.id,
+          name: t.name,
+        };
+      })
+      .sort((a, b) => Number(b.isSelected) - Number(a.isSelected));
+    if (!search.trim()) return items;
+    const term = search.toLowerCase();
+    return items.filter((t) => t.name.toLowerCase().includes(term));
+  }, [search, selectedTiles, atLimit]);
 
   const handleToggle = (tileId: string) => {
     if (selectedTiles.includes(tileId)) {
@@ -44,20 +65,18 @@ export function TileSelector({ selectedTiles, onChange, isFreebie }: TileSelecto
       />
       <div className="max-h-48 overflow-y-auto border border-gray-200 rounded-lg p-2 grid grid-cols-1 sm:grid-cols-2 gap-1">
         {filteredTiles.map((tile) => {
-          const isSelected = selectedTiles.includes(tile.id);
-          const isDisabled = atLimit && !isSelected;
           return (
             <button
               key={tile.id}
               type="button"
               onClick={() => handleToggle(tile.id)}
-              disabled={isDisabled}
-              aria-pressed={isSelected}
+              disabled={tile.isDisabled}
+              aria-pressed={tile.isSelected}
               className={`px-2 py-1.5 rounded text-sm text-left transition-colors ${
-                isSelected
+                tile.isSelected
                   ? 'bg-blue-600 text-white'
                   : 'bg-gray-50 text-gray-800 hover:bg-gray-100'
-              } ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+              } ${tile.isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
               {tile.name}
             </button>
