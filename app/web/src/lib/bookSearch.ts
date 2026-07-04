@@ -1,5 +1,8 @@
 import { httpsCallable } from 'firebase/functions';
-import type { BookSearchResult, BookEnrichmentResult } from '@bookbingo/lib-types';
+import type {
+  BookSearchResult,
+  BookEnrichmentResult,
+} from '@bookbingo/lib-types';
 import { functions } from './firebase';
 
 export type { BookSearchResult, BookEnrichmentResult };

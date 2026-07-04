@@ -80,7 +80,11 @@ describe('books integration (emulator)', () => {
 
   it('getOrCreateBook is idempotent — same identity returns the same id', async () => {
     const first = await getOrCreateBook('Dune', 'Frank Herbert', TEST_USER_ID);
-    const second = await getOrCreateBook('  dune ', 'frank  herbert', TEST_USER_ID);
+    const second = await getOrCreateBook(
+      '  dune ',
+      'frank  herbert',
+      TEST_USER_ID,
+    );
     // Case/whitespace variants normalize to the same deterministic id.
     expect(second).toBe(first);
     await deleteDoc(doc(db, 'books', first)).catch(() => {});
