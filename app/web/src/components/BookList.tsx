@@ -3,7 +3,7 @@ import type { Reading, Book } from '@bookbingo/lib-types';
 import { BookCard } from './BookCard';
 import { BookRow } from './BookRow';
 import { Dialog, AlertDialog, ToggleGroup } from './ui/index.js';
-import { BookFormV1, type BookFormData } from './BookFormV1.js';
+import { BookForm, type BookFormData } from './BookForm';
 import { EmptyState } from './EmptyState';
 import { SearchFilter } from './SearchFilter';
 import { useToast } from '../lib/ToastContext';
@@ -263,7 +263,8 @@ export function BookList({
             onClose={() => setSelectedReading(null)}
             title="Edit Book"
           >
-            <BookFormV1
+            <BookForm
+              identityLocked
               initialData={{
                 title: selectedBook.title,
                 author: selectedBook.author,
