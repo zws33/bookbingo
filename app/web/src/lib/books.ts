@@ -54,7 +54,10 @@ export async function getOrCreateBook(
       author: author.trim(),
       ...(enrichment && {
         externalIds: {
-          openLibrary: { key: enrichment.externalId, enrichedAt: serverTimestamp() },
+          openLibrary: {
+            key: enrichment.externalId,
+            enrichedAt: serverTimestamp(),
+          },
         },
         metadata: enrichment.metadata,
       }),

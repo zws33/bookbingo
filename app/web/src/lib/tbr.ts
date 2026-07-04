@@ -51,7 +51,10 @@ export async function updateTBREntry(
   }
 }
 
-export async function deleteTBREntry(userId: string, tbrId: string): Promise<void> {
+export async function deleteTBREntry(
+  userId: string,
+  tbrId: string,
+): Promise<void> {
   try {
     await deleteDoc(doc(db, 'users', userId, 'tbr', tbrId));
     log.event('delete_tbr_entry', { tbr_id: tbrId });

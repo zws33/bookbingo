@@ -26,7 +26,6 @@ docs/             # Project documentation and planning
 docs/archive/     # Obsolete or completed project records
 ```
 
-
 Each `lib/`, `app/`, and `functions/` directory is a separate pnpm workspace package. All source lives under `src/` subdirectories. Packages reference each other as `@bookbingo/*` workspace dependencies (e.g., `@bookbingo/lib-core`, `@bookbingo/lib-types`).
 
 Business logic lives in `lib/` and is framework-agnostic. The web app in `app/web/` consumes `lib/` and handles UI + Firebase integration. The `functions/` package is the backend; it uses ESM with `NodeNext` module resolution (separate from the monorepo's root tsconfig chain).
@@ -129,6 +128,7 @@ rm -rf lib/*/dist app/*/dist && pnpm run typecheck
 - Write tests for all new logic in `lib/`. Use `node:test` and `node:assert`.
 - Test files live next to the code they test: `scoring.ts` → `scoring.test.ts`.
 - When planning, explicitly state what you will test, where, and what scenarios you will cover.
+- **Web (`app/web`) component/hook tests** use Vitest + Testing Library. Follow `app/web/src/testing/CONVENTIONS.md` and use `app/web/src/components/BookForm.test.tsx` as the reference example (userEvent-only, role-first queries, per-test factories, mock only at the I/O boundary).
 
 ## Git Workflow
 
@@ -145,10 +145,11 @@ rm -rf lib/*/dist app/*/dist && pnpm run typecheck
   git pull --ff-only                     # fast-forwards cleanly when main has no local commits
   git branch -d feat/short-description
   ```
-- **Recommended once:** `git config --global pull.ff only`. A clean `main` always fast-forwards; if it ever diverges (e.g. a stray local commit) the pull *errors loudly* instead of silently merging. Recovery in that case is `git reset --hard origin/main` (safe because the squashed PR already contains your branch's changes).
-- **Why squash + mirror:** squash gives one tidy commit per feature, but it returns your branch's commits to `main` under a *new* SHA — so committing to local `main` directly causes divergence. Keeping `main` as a pure mirror avoids that entirely.
+- **Recommended once:** `git config --global pull.ff only`. A clean `main` always fast-forwards; if it ever diverges (e.g. a stray local commit) the pull _errors loudly_ instead of silently merging. Recovery in that case is `git reset --hard origin/main` (safe because the squashed PR already contains your branch's changes).
+- **Why squash + mirror:** squash gives one tidy commit per feature, but it returns your branch's commits to `main` under a _new_ SHA — so committing to local `main` directly causes divergence. Keeping `main` as a pure mirror avoids that entirely.
 
 Use conventional commit format (the PR title becomes the squashed commit message):
+
 - `feat: add score calculation for multi-tag books`
 - `fix: prevent duplicate category assignment`
 - `test: add edge cases for freebie book scoring`

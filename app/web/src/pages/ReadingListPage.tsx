@@ -10,8 +10,7 @@ import {
   deleteTBREntry,
   promoteTBREntry,
 } from '../lib/tbr';
-import { TBRForm, type TBRFormData } from '../components/TBRForm';
-import { BookForm, type BookFormData } from '../components/BookForm';
+import { BookForm, type BookFormData } from '../components/BookForm.js';
 import { BookSearch } from '../components/BookSearch';
 import { PageStatus } from '../components/PageStatus';
 import {
@@ -58,7 +57,7 @@ export function ReadingListPage({ userId }: ReadingListPageProps) {
   }, []);
 
   const handleAdd = useCallback(
-    async (data: TBRFormData) => {
+    async (data: BookFormData) => {
       if (dialog?.kind !== 'add') return;
       setIsSubmitting(true);
       try {
@@ -71,7 +70,7 @@ export function ReadingListPage({ userId }: ReadingListPageProps) {
             metadata: dialog.enrichment.metadata,
           },
         );
-        await createTBREntry(userId, bookId, data.plannedTiles, data.notes);
+        await createTBREntry(userId, bookId, data.tiles);
         showSuccess('Added to reading list');
         closeDialog();
       } catch (err) {
@@ -85,13 +84,13 @@ export function ReadingListPage({ userId }: ReadingListPageProps) {
   );
 
   const handleManualAdd = useCallback(
-    async (data: TBRFormData) => {
+    async (data: BookFormData) => {
       if (dialog?.kind !== 'manual') return;
       if (!data.title || !data.author) return;
       setIsSubmitting(true);
       try {
         const bookId = await getOrCreateBook(data.title, data.author, userId);
-        await createTBREntry(userId, bookId, data.plannedTiles, data.notes);
+        await createTBREntry(userId, bookId, data.tiles);
         showSuccess('Added to reading list');
         closeDialog();
       } catch (err) {
@@ -105,16 +104,11 @@ export function ReadingListPage({ userId }: ReadingListPageProps) {
   );
 
   const handleEdit = useCallback(
-    async (data: TBRFormData) => {
+    async (data: BookFormData) => {
       if (dialog?.kind !== 'edit') return;
       setIsSubmitting(true);
       try {
-        await updateTBREntry(
-          userId,
-          dialog.entry.id,
-          data.plannedTiles,
-          data.notes,
-        );
+        await updateTBREntry(userId, dialog.entry.id, data.tiles);
         showSuccess('Reading list updated');
         closeDialog();
       } catch (err) {
@@ -241,19 +235,22 @@ export function ReadingListPage({ userId }: ReadingListPageProps) {
           />
         )}
         {dialog?.kind === 'add' && (
-          <TBRForm
-            bookTitle={dialog.enrichment.title}
-            bookAuthor={dialog.enrichment.author}
+          <BookForm
+            identityLocked={true}
+            initialData={{
+              title: dialog.enrichment.title,
+              author: dialog.enrichment.author,
+              tiles: [],
+              isFreebie: false,
+            }}
             onSubmit={handleAdd}
             onCancel={closeDialog}
             isSubmitting={isSubmitting}
           />
         )}
         {dialog?.kind === 'manual' && (
-          <TBRForm
-            editable={true}
-            bookTitle={''}
-            bookAuthor={''}
+          <BookForm
+            identityLocked={false}
             onSubmit={handleManualAdd}
             onCancel={closeDialog}
             isSubmitting={isSubmitting}
@@ -267,12 +264,13 @@ export function ReadingListPage({ userId }: ReadingListPageProps) {
         title="Edit Reading List Entry"
       >
         {dialog?.kind === 'edit' && (
-          <TBRForm
-            bookTitle={dialog.book.title}
-            bookAuthor={dialog.book.author}
+          <BookForm
+            identityLocked={true}
             initialData={{
-              plannedTiles: dialog.entry.plannedTiles,
-              notes: dialog.entry.notes ?? '',
+              title: dialog.book.title,
+              author: dialog.book.author,
+              tiles: dialog.entry.plannedTiles,
+              isFreebie: false,
             }}
             onSubmit={handleEdit}
             onCancel={closeDialog}
@@ -289,6 +287,7 @@ export function ReadingListPage({ userId }: ReadingListPageProps) {
       >
         {dialog?.kind === 'promote' && (
           <BookForm
+            identityLocked={true}
             initialData={{
               title: dialog.book.title,
               author: dialog.book.author,
@@ -339,7 +338,7 @@ function TBREntryCard({
           <img
             src={thumbnailUrl}
             alt=""
-            className="h-16 w-12 flex-shrink-0 rounded object-cover"
+            className="h-16 w-12 shrink-0 rounded object-cover"
           />
         )}
         <div className="min-w-0 flex-1">

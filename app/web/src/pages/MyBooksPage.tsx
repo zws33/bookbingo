@@ -53,7 +53,7 @@ export function MyBooksPage({ userId }: MyBooksPageProps) {
   }, []);
 
   const handleAddBook = async (data: BookFormData) => {
-    setIsSubmitting(true);
+    if (data) setIsSubmitting(true);
     try {
       const enrichment = pendingEnrichment
         ? {
@@ -86,11 +86,12 @@ export function MyBooksPage({ userId }: MyBooksPageProps) {
         isFreebie: false,
       }
     : undefined;
-
   return (
     <>
+      {' '}
       <div className="space-y-6">
-        {scoreBreakdown && <ScoreDisplay breakdown={scoreBreakdown} />}
+        {' '}
+        {scoreBreakdown && <ScoreDisplay breakdown={scoreBreakdown} />}{' '}
         <BookList
           userId={userId}
           readings={readings}
@@ -98,7 +99,6 @@ export function MyBooksPage({ userId }: MyBooksPageProps) {
           loading={loading}
           error={error}
         />
-
         <div className="fixed right-4 bottom-20 sm:right-8">
           <button
             onClick={() => setDialog({ kind: 'search' })}
@@ -121,7 +121,6 @@ export function MyBooksPage({ userId }: MyBooksPageProps) {
           </button>
         </div>
       </div>
-
       <Dialog
         isOpen={dialog !== null}
         onClose={handleAddModalClose}
@@ -135,6 +134,7 @@ export function MyBooksPage({ userId }: MyBooksPageProps) {
         )}
         {dialog?.kind === 'entry' && (
           <BookForm
+            identityLocked={!!pendingEnrichment}
             initialData={addFormInitialData}
             onSubmit={handleAddBook}
             onCancel={handleAddModalClose}

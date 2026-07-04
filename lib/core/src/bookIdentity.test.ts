@@ -16,7 +16,10 @@ test('normalizeForKey strips whitespace and punctuation', () => {
 });
 
 test('normalizeForKey folds diacritics (NFKD + strip marks)', () => {
-  assert.equal(normalizeForKey('Les Misérables'), normalizeForKey('Les Miserables'));
+  assert.equal(
+    normalizeForKey('Les Misérables'),
+    normalizeForKey('Les Miserables'),
+  );
   assert.equal(normalizeForKey('Les Misérables'), 'lesmiserables');
 });
 
@@ -29,25 +32,53 @@ test('normalizeForKey does NOT strip leading articles', () => {
 // =============================================================================
 
 test('catalog id is deterministic for the same Work key', () => {
-  const a = deriveBookId({ openLibraryKey: '/works/OL166894W', title: 'x', author: 'y' });
-  const b = deriveBookId({ openLibraryKey: '/works/OL166894W', title: 'x', author: 'y' });
+  const a = deriveBookId({
+    openLibraryKey: '/works/OL166894W',
+    title: 'x',
+    author: 'y',
+  });
+  const b = deriveBookId({
+    openLibraryKey: '/works/OL166894W',
+    title: 'x',
+    author: 'y',
+  });
   assert.equal(a, b);
 });
 
 test('catalog id ignores title/author — only the Work key matters', () => {
-  const a = deriveBookId({ openLibraryKey: '/works/OL166894W', title: 'Crime and Punishment', author: 'Dostoevsky' });
-  const b = deriveBookId({ openLibraryKey: '/works/OL166894W', title: 'totally different', author: 'someone else' });
+  const a = deriveBookId({
+    openLibraryKey: '/works/OL166894W',
+    title: 'Crime and Punishment',
+    author: 'Dostoevsky',
+  });
+  const b = deriveBookId({
+    openLibraryKey: '/works/OL166894W',
+    title: 'totally different',
+    author: 'someone else',
+  });
   assert.equal(a, b);
 });
 
 test('different Work keys produce different ids', () => {
-  const a = deriveBookId({ openLibraryKey: '/works/OL1W', title: 't', author: 'a' });
-  const b = deriveBookId({ openLibraryKey: '/works/OL2W', title: 't', author: 'a' });
+  const a = deriveBookId({
+    openLibraryKey: '/works/OL1W',
+    title: 't',
+    author: 'a',
+  });
+  const b = deriveBookId({
+    openLibraryKey: '/works/OL2W',
+    title: 't',
+    author: 'a',
+  });
   assert.notEqual(a, b);
 });
 
 test('blank/whitespace openLibraryKey falls back to the manual path', () => {
-  const blank = deriveBookId({ openLibraryKey: '   ', title: 'The Hobbit', author: 'Tolkien' });
+  const blank = deriveBookId({
+    openLibraryKey: '   ',
+    title: 'The Hobbit',
+    author: 'Tolkien',
+  });
   const manual = deriveBookId({ title: 'The Hobbit', author: 'Tolkien' });
   assert.equal(blank, manual);
 });
@@ -69,8 +100,14 @@ test('manual id dedups case/diacritic/punctuation variants', () => {
 });
 
 test('manual id does NOT fold author initials (deliberate)', () => {
-  const a = deriveBookId({ title: 'A Wizard of Earthsea', author: 'U. K. Le Guin' });
-  const b = deriveBookId({ title: 'A Wizard of Earthsea', author: 'Ursula K. Le Guin' });
+  const a = deriveBookId({
+    title: 'A Wizard of Earthsea',
+    author: 'U. K. Le Guin',
+  });
+  const b = deriveBookId({
+    title: 'A Wizard of Earthsea',
+    author: 'Ursula K. Le Guin',
+  });
   assert.notEqual(a, b);
 });
 
@@ -86,14 +123,22 @@ test('manual id keeps the title/author boundary distinct', () => {
 
 test('catalog and manual key spaces are domain-separated', () => {
   // A manual book whose normalized key equals an OL key string must still differ.
-  const catalog = deriveBookId({ openLibraryKey: 'worksOL1W', title: 't', author: 'a' });
+  const catalog = deriveBookId({
+    openLibraryKey: 'worksOL1W',
+    title: 't',
+    author: 'a',
+  });
   const manual = deriveBookId({ title: 'worksOL1W', author: '' });
   assert.notEqual(catalog, manual);
 });
 
 test('derived id is a legal Firestore document id', () => {
   for (const id of [
-    deriveBookId({ openLibraryKey: '/works/OL166894W', title: 't', author: 'a' }),
+    deriveBookId({
+      openLibraryKey: '/works/OL166894W',
+      title: 't',
+      author: 'a',
+    }),
     deriveBookId({ title: 'The Hobbit', author: 'Tolkien' }),
   ]) {
     assert.match(id, /^[0-9a-z]+$/);

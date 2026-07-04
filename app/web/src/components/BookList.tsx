@@ -88,7 +88,9 @@ export function BookList({
     return <PageStatus loading={loading} error={error} />;
   }
 
-  const selectedBookData = selectedReading ? booksById.get(selectedReading.bookId) : undefined;
+  const selectedBookData = selectedReading
+    ? booksById.get(selectedReading.bookId)
+    : undefined;
   const selectedBook = selectedBookData ?? UNKNOWN_BOOK;
 
   return (
@@ -101,10 +103,21 @@ export function BookList({
           <ToggleGroup.Root
             type="single"
             value={viewMode}
-            onValueChange={(value) => { if (value) setViewMode(value as 'cards' | 'list'); }}
+            onValueChange={(value) => {
+              if (value) setViewMode(value as 'cards' | 'list');
+            }}
           >
-            <ToggleGroup.Item value="cards" aria-label="Card view" title="Card view">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <ToggleGroup.Item
+              value="cards"
+              aria-label="Card view"
+              title="Card view"
+            >
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -113,9 +126,23 @@ export function BookList({
                 />
               </svg>
             </ToggleGroup.Item>
-            <ToggleGroup.Item value="list" aria-label="List view" title="List view">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+            <ToggleGroup.Item
+              value="list"
+              aria-label="List view"
+              title="List view"
+            >
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 6h16M4 12h16M4 18h16"
+                />
               </svg>
             </ToggleGroup.Item>
           </ToggleGroup.Root>
@@ -180,34 +207,49 @@ export function BookList({
                   src={selectedBookData.metadata.thumbnailUrl}
                   alt=""
                   className="w-16 h-22 object-cover rounded flex-shrink-0"
-                  onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                  onError={(e) => {
+                    (e.currentTarget as HTMLImageElement).style.display =
+                      'none';
+                  }}
                 />
               )}
               <div className="space-y-1">
                 <p className="text-gray-700">{selectedBook.author}</p>
                 {selectedBookData?.metadata?.publishedDate && (
-                  <p className="text-sm text-gray-500">{selectedBookData.metadata.publishedDate}</p>
+                  <p className="text-sm text-gray-500">
+                    {selectedBookData.metadata.publishedDate}
+                  </p>
                 )}
                 {selectedBookData?.metadata?.pageCount && (
-                  <p className="text-sm text-gray-500">{selectedBookData.metadata.pageCount} pages</p>
+                  <p className="text-sm text-gray-500">
+                    {selectedBookData.metadata.pageCount} pages
+                  </p>
                 )}
               </div>
             </div>
-            {selectedBookData?.metadata?.categories && selectedBookData.metadata.categories.length > 0 && (
-              <div className="flex flex-wrap gap-1">
-                {selectedBookData.metadata.categories.map((cat) => (
-                  <span key={cat} className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded">
-                    {cat}
-                  </span>
-                ))}
-              </div>
-            )}
+            {selectedBookData?.metadata?.categories &&
+              selectedBookData.metadata.categories.length > 0 && (
+                <div className="flex flex-wrap gap-1">
+                  {selectedBookData.metadata.categories.map((cat) => (
+                    <span
+                      key={cat}
+                      className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded"
+                    >
+                      {cat}
+                    </span>
+                  ))}
+                </div>
+              )}
             {selectedReading && selectedReading.tiles.length > 0 && (
               <div className="pt-2 border-t border-gray-100">
                 <p className="text-xs text-gray-500 mb-1">Bingo tiles</p>
                 <div className="flex flex-wrap gap-1">
                   {selectedReading.tiles.map((tile) => (
-                    <span key={tile} className="w-2 h-2 rounded bg-blue-500 inline-block" title={tile} />
+                    <span
+                      key={tile}
+                      className="w-2 h-2 rounded bg-blue-500 inline-block"
+                      title={tile}
+                    />
                   ))}
                 </div>
               </div>
@@ -222,6 +264,7 @@ export function BookList({
             title="Edit Book"
           >
             <BookForm
+              identityLocked
               initialData={{
                 title: selectedBook.title,
                 author: selectedBook.author,
