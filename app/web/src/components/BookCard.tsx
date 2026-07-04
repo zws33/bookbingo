@@ -26,7 +26,7 @@ export function BookCard({ bookTitle, bookAuthor, tiles, metadata, onClick, read
           <img
             src={thumbnailUrl}
             alt=""
-            className="w-10 h-14 object-cover rounded flex-shrink-0"
+            className="w-10 h-14 object-cover rounded shrink-0"
             onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
           />
         )}

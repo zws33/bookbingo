@@ -13,7 +13,7 @@ const sizeClasses = {
 };
 
 export function Avatar({ name, photoURL, size = 'md', className }: AvatarProps) {
-  const base = cn('rounded-full flex-shrink-0', sizeClasses[size], className);
+  const base = cn('rounded-full shrink-0', sizeClasses[size], className);
 
   if (photoURL) {
     return (

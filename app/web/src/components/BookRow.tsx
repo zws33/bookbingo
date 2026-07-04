@@ -30,7 +30,7 @@ export function BookRow({ bookTitle, bookAuthor, tiles, isFreebie, metadata, onC
         <img
           src={thumbnailUrl}
           alt=""
-          className="w-7 h-10 object-cover rounded flex-shrink-0"
+          className="w-7 h-10 object-cover rounded shrink-0"
           onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
         />
       )}
@@ -38,7 +38,7 @@ export function BookRow({ bookTitle, bookAuthor, tiles, isFreebie, metadata, onC
         <div className="flex items-center gap-2">
           <span className="font-medium text-gray-900 truncate">{bookTitle}</span>
           {isFreebie && (
-            <span className="text-yellow-500 flex-shrink-0" title="Freebie">
+            <span className="text-yellow-500 shrink-0" title="Freebie">
               ★
             </span>
           )}
@@ -46,7 +46,7 @@ export function BookRow({ bookTitle, bookAuthor, tiles, isFreebie, metadata, onC
         <span className="text-sm text-gray-500 truncate block">{bookAuthor}</span>
       </div>
       {tiles.length > 0 && (
-        <div className="flex items-center gap-1 flex-shrink-0">
+        <div className="flex items-center gap-1 shrink-0">
           {visibleTiles.map((tile) => {
             const name = getTileById(tile)?.name ?? tile;
             return (

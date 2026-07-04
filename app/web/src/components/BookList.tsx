@@ -206,7 +206,7 @@ export function BookList({
                 <img
                   src={selectedBookData.metadata.thumbnailUrl}
                   alt=""
-                  className="w-16 h-22 object-cover rounded flex-shrink-0"
+                  className="w-16 h-22 object-cover rounded shrink-0"
                   onError={(e) => {
                     (e.currentTarget as HTMLImageElement).style.display =
                       'none';
