@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { TILES, MAX_TILES_PER_BOOK } from '@bookbingo/lib-core';
+import { cn } from '../lib/cn.js';
 import { Input, Label } from './ui/index.js';
 
 interface TileSelectorProps {
@@ -13,6 +14,34 @@ type TileSelectorItem = {
   isSelected: boolean;
   isDisabled: boolean;
 };
+
+type TileButtonProps = {
+  tile: TileSelectorItem;
+  onToggle: (tileId: string) => void;
+};
+
+// Private to TileSelector: renders one toggle cell. Uses a raw <button> rather
+// than the Button primitive because its base padding/alignment/variants don't
+// fit a compact, left-aligned grid cell.
+function TileButton({ tile, onToggle }: TileButtonProps) {
+  return (
+    <button
+      type="button"
+      onClick={() => onToggle(tile.id)}
+      disabled={tile.isDisabled}
+      aria-pressed={tile.isSelected}
+      className={cn(
+        'px-2 py-1.5 rounded text-sm text-left transition-colors',
+        tile.isSelected
+          ? 'bg-blue-600 text-white'
+          : 'bg-gray-50 text-gray-800 hover:bg-gray-100',
+        tile.isDisabled && 'opacity-50 cursor-not-allowed',
+      )}
+    >
+      {tile.name}
+    </button>
+  );
+}
 
 const bookAssignableTiles = TILES;
 
@@ -64,24 +93,9 @@ export function TileSelector({
         className="mb-2 text-sm"
       />
       <div className="max-h-48 overflow-y-auto border border-gray-200 rounded-lg p-2 grid grid-cols-1 sm:grid-cols-2 gap-1">
-        {filteredTiles.map((tile) => {
-          return (
-            <button
-              key={tile.id}
-              type="button"
-              onClick={() => handleToggle(tile.id)}
-              disabled={tile.isDisabled}
-              aria-pressed={tile.isSelected}
-              className={`px-2 py-1.5 rounded text-sm text-left transition-colors ${
-                tile.isSelected
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-50 text-gray-800 hover:bg-gray-100'
-              } ${tile.isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
-            >
-              {tile.name}
-            </button>
-          );
-        })}
+        {filteredTiles.map((tile) => (
+          <TileButton key={tile.id} tile={tile} onToggle={handleToggle} />
+        ))}
       </div>
     </div>
   );
