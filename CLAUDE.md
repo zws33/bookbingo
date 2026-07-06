@@ -134,11 +134,12 @@ rm -rf lib/*/dist app/*/dist && pnpm run typecheck
 
 **Branch + PR + squash.** All work happens on a feature branch and lands via a pull request that is **squash-merged** into `main`. Every squashed commit on `main` should be deployable.
 
-- **Keep local `main` a clean mirror of origin** — never commit directly to it. Branch for everything:
+- **Keep local `main` a clean mirror of origin** — never commit feature work directly to it. Branch for everything:
   ```sh
   git checkout main && git pull          # start from latest
   git checkout -b feat/short-description # do all work here
   ```
+- **Exception — docs-only / trivial cleanup may land directly on `main`.** Pure documentation edits (`docs:`) and no-runtime-surface cleanup (`chore:` formatting, comments, typos) may be committed straight to `main`, **provided you then push directly to origin** (`git push`) rather than routing through a squash-merged PR. Direct push keeps `main` a true mirror because origin advances to the *same* SHA; a squashed PR would re-SHA the commit and cause the exact divergence this rule guards against. Scope is strict: no changes to `lib/`, `app/`, `functions/`, build/TS config, `firestore.rules`, or anything with a behavioral or deploy surface — those still take a branch + PR.
 - **After a PR is squash-merged**, update `main` by fast-forward and delete the merged branch:
   ```sh
   git checkout main
