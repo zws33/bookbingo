@@ -1,8 +1,28 @@
 # Engineering Design: "To Be Read" (TBR) List
 
-**Status:** Implemented (shipped) — see `app/web/src/lib/tbr.ts` and `app/web/src/hooks/useTBR.ts`  
+**Status:** Implemented (shipped), UI layer partially superseded — see `app/web/src/lib/tbr.ts` and `app/web/src/hooks/useTBR.ts`  
 **Author:** Zach Smith  
 **Date:** 2026-06-03
+
+---
+
+> **⚠️ UI layer partially superseded (2026-07-04).** The data model, Firestore schema,
+> service layer (`tbr.ts`), and `useTBR` hook described here remain accurate. The
+> **form and dialog UI has since been refactored** — the sections below describing
+> `TBRForm` and `BookSearchModal` no longer match the code:
+>
+> - **`TBRForm.tsx` was deleted** (#50). Reading-list add/edit/promote dialogs now route
+>   through the shared **`BookForm`** with an `identityLocked` prop, not a bespoke TBR form.
+> - **`BookSearchModal` was deleted** (#48) and inlined as the parent-owned **`BookSearch`**
+>   component (see `ReadingListPage.tsx`).
+> - **The `notes` field was dropped from the form payload** (#50). Note the split: the
+>   `TBREntry` type and `tbr.ts` service still persist `notes`; only the UI form no longer
+>   collects it.
+>
+> The authoritative records for the current form/dialog architecture are
+> `docs/FORM_AND_DIALOG_UNIFICATION.md` and
+> `docs/decisions/tbr-reading-payload-unification.md`. Sections 6 and 7 below are retained
+> for historical context; treat `ReadingListPage.tsx` as the source of truth for the UI.
 
 ---
 
@@ -179,7 +199,7 @@ This reuses the existing `BookForm` and `Dialog` without modification.
 | `app/web/src/lib/tbr.ts` | New — CRUD + `promoteTBREntry` |
 | `app/web/src/hooks/useTBR.ts` | New — Firestore subscription |
 | `app/web/src/pages/ReadingListPage.tsx` | New — page component |
-| `app/web/src/components/TBRForm.tsx` | New — add/edit form |
+| ~~`app/web/src/components/TBRForm.tsx`~~ | ~~New — add/edit form~~ **Deleted (#50); reading-list dialogs now use `BookForm` with `identityLocked`.** |
 | `app/web/src/App.tsx` | Add nav tab + route |
 | `firestore.rules` | Add TBR subcollection rule |
 

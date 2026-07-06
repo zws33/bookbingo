@@ -18,8 +18,8 @@ The scoring algorithm rewards balanced reading across many categories while stil
 
 ### Prerequisites
 
-- [Node.js](https://nodejs.org/) (v18 or higher)
-- [pnpm](https://pnpm.io/) (v8 or higher)
+- [Node.js](https://nodejs.org/) (v24 — pinned via `functions/package.json` engines and CI)
+- [pnpm](https://pnpm.io/) (v10)
 
 ### Running Locally
 
@@ -46,13 +46,15 @@ Open http://localhost:5173 in your browser.
 bookbingo/
 ├── lib/
 │   ├── types/src/        # Shared TypeScript types (Tile, UserBook, Reading, ScoreBreakdown, …)
-│   └── core/src/         # Business logic: scoring, validation, tile definitions, statistics
+│   ├── core/src/         # Business logic: scoring, validation, tile definitions, statistics
+│   └── util/src/         # Cross-platform utilities (logger)
 ├── app/
 │   └── web/src/          # React web application (Vite + Tailwind + Firebase)
+├── functions/src/        # Firebase Cloud Functions (enrichBook, submitFeedback)
 └── docs/                 # Design documents
 ```
 
-Each `lib/` and `app/` directory is a separate [pnpm workspace](https://pnpm.io/workspaces) package. They reference each other as `@bookbingo/*` workspace dependencies.
+Each directory under `lib/`, `app/`, and `functions/` is a separate [pnpm workspace](https://pnpm.io/workspaces) package. They reference each other as `@bookbingo/*` workspace dependencies.
 
 ## Architecture
 
@@ -118,7 +120,7 @@ The result: a reader who covers 25 diverse tiles with 10 books will outscore one
 | Language | TypeScript (strict, ESM only) |
 | Web app | React 19 + Vite + Tailwind CSS |
 | Backend | Firebase (Auth, Firestore, Hosting) |
-| Testing | Node built-in test runner (`node:test`) |
+| Testing | `node:test` in `lib/` + `functions/`; Vitest + Testing Library in `app/web/` |
 | Package manager | pnpm (monorepo workspaces) |
 | Build | `tsc --build` (project references) |
 
