@@ -170,10 +170,20 @@ green; new token utilities confirmed generating via build. ADR:
 - **Icons:** adopt `lucide-react` if icons are wanted (not the Material Symbols
   font the reference uses).
 
-### Phase 5 — Retire the mockup
+### Phase 5 — Retire the mockup + rewrite the catalog
 - Delete `app/web/src/components/design-system/index.html`, or convert it into a
   living in-app reference route that renders real primitives (a lightweight
   Storybook substitute).
+- **Rewrite `app/web/src/pages/CatalogPage.tsx` (the `/catalog` dev page).** It is
+  hand-maintained documentation whose hardcoded swatch labels and
+  `desc`/`note`/`MonoNote` strings still describe the pre-token palette
+  (`bg-blue-600`, `gray-*`, `green-500`). **Deliberately deferred to a single
+  rewrite here** (decision 2026-07-16) rather than patched each phase, because it
+  also documents feature components (board-cell fills) and fonts that don't change
+  until Phases 3–4 — patching per-phase would churn it three times. Do it once
+  against the finished system. Strongly consider **deriving swatches from live CSS
+  custom properties** (`getComputedStyle` on `--color-*`) so the page can't drift
+  from the tokens again.
 
 ## Appendix A — Phase 1 token proposal (DRAFT, pending sign-off)
 

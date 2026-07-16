@@ -113,6 +113,13 @@ function MonoNote({ children }: { children: React.ReactNode }) {
   );
 }
 
+// NOTE: This dev-only catalog is hand-maintained documentation and is KNOWN STALE
+// after the design-token migration (Phase 2+). Its hardcoded swatch labels and
+// `desc`/`note`/`MonoNote` strings still describe the pre-token palette
+// (bg-blue-600, gray-*, green-500). Deliberately deferred: it will be rewritten
+// ONCE against the finished token system after Phase 3 (feature components) and
+// Phase 4 (fonts) land — ideally deriving swatches from live CSS custom properties
+// so it can't drift again. See docs/DESIGN_SYSTEM_ADOPTION_PLAN.md.
 export function CatalogPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [alertOpen, setAlertOpen] = useState(false);
