@@ -32,40 +32,40 @@ export function LeaderboardPage() {
   }
   if (rankedUsers.length === 0) {
     return (
-      <div className="text-center py-8 text-gray-500">No participants yet.</div>
+      <div className="text-center py-8 text-on-surface-variant">No participants yet.</div>
     );
   }
 
   return (
-    <div className="bg-white rounded-lg shadow overflow-hidden">
+    <div className="bg-surface-container-lowest rounded-lg shadow overflow-hidden">
       <table className="w-full text-sm">
         <thead>
-          <tr className="border-b border-gray-200 text-left text-gray-500 text-xs uppercase tracking-wide">
+          <tr className="border-b border-outline-variant text-left text-on-surface-variant text-xs uppercase tracking-wide">
             <th className="px-4 py-3 w-12">#</th>
             <th className="px-4 py-3">Reader</th>
             <th className="px-4 py-3 text-right">Books</th>
             <th className="px-4 py-3 text-right">Score</th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-gray-100">
+        <tbody className="divide-y divide-outline-variant">
           {rankedUsers.map(({ user, score, bookCount }, index) => (
-            <tr key={user.id} className="hover:bg-gray-50 transition-colors">
-              <td className="px-4 py-3 text-gray-400 font-medium">
+            <tr key={user.id} className="hover:bg-surface-container transition-colors">
+              <td className="px-4 py-3 text-on-surface-variant font-medium">
                 {index + 1}
               </td>
               <td className="px-4 py-3">
                 <Link
                   to={`/users/${user.id}`}
-                  className="flex items-center gap-3 hover:text-blue-600"
+                  className="flex items-center gap-3 hover:text-primary"
                 >
                   <Avatar name={user.name} photoURL={user.photoURL ?? undefined} />
-                  <span className="font-medium text-gray-900">{user.name}</span>
+                  <span className="font-medium text-on-surface">{user.name}</span>
                 </Link>
               </td>
-              <td className="px-4 py-3 text-right text-gray-600">
+              <td className="px-4 py-3 text-right text-on-surface-variant">
                 {bookCount}
               </td>
-              <td className="px-4 py-3 text-right font-semibold text-gray-900">
+              <td className="px-4 py-3 text-right font-semibold text-on-surface">
                 {score.toFixed(1)}
               </td>
             </tr>

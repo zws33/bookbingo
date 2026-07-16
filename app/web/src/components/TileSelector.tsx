@@ -33,8 +33,8 @@ function TileButton({ tile, onToggle }: TileButtonProps) {
       className={cn(
         'px-2 py-1.5 rounded text-sm text-left transition-colors',
         tile.isSelected
-          ? 'bg-blue-600 text-white'
-          : 'bg-gray-50 text-gray-800 hover:bg-gray-100',
+          ? 'bg-primary text-on-primary'
+          : 'bg-surface-container-low text-on-surface hover:bg-surface-container-high',
         tile.isDisabled && 'opacity-50 cursor-not-allowed',
       )}
     >
@@ -92,7 +92,7 @@ export function TileSelector({
         placeholder="Search tiles..."
         className="mb-2 text-sm"
       />
-      <div className="max-h-48 overflow-y-auto border border-gray-200 rounded-lg p-2 grid grid-cols-1 sm:grid-cols-2 gap-1">
+      <div className="max-h-48 overflow-y-auto border border-outline-variant rounded-lg p-2 grid grid-cols-1 sm:grid-cols-2 gap-1">
         {filteredTiles.map((tile) => (
           <TileButton key={tile.id} tile={tile} onToggle={handleToggle} />
         ))}

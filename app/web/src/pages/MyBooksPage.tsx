@@ -102,7 +102,7 @@ export function MyBooksPage({ userId }: MyBooksPageProps) {
         <div className="fixed right-4 bottom-20 sm:right-8">
           <button
             onClick={() => setDialog({ kind: 'search' })}
-            className="flex h-14 w-14 items-center justify-center rounded-full bg-blue-600 text-white shadow-lg transition-colors hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none"
+            className="flex h-14 w-14 items-center justify-center rounded-full bg-primary text-on-primary shadow-lg transition-colors hover:bg-primary/90 focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:outline-none"
             aria-label="Add book"
           >
             <svg

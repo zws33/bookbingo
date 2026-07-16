@@ -5,10 +5,13 @@ interface BoardCellProps {
 }
 
 function cellColor(count: number): string {
-  if (count === 0) return 'bg-white text-gray-500 border-gray-200';
-  if (count === 1) return 'bg-blue-50 text-blue-800 border-blue-100';
-  if (count === 2) return 'bg-blue-100 text-blue-900 border-blue-200';
-  return 'bg-blue-200 text-blue-900 border-blue-300';
+  if (count === 0)
+    return 'bg-surface-container-lowest text-on-surface-variant border-outline-variant';
+  if (count === 1)
+    return 'bg-primary/10 text-on-primary-container border-primary/20';
+  if (count === 2)
+    return 'bg-primary/20 text-on-primary-container border-primary/30';
+  return 'bg-primary/30 text-on-primary-container border-primary/40';
 }
 
 export function BoardCell({ tileName, bookCount, onClick }: BoardCellProps) {
@@ -16,7 +19,7 @@ export function BoardCell({ tileName, bookCount, onClick }: BoardCellProps) {
     <button
       onClick={onClick}
       title={tileName}
-      className={`aspect-square overflow-hidden rounded border shadow-sm p-1.5 sm:p-2 text-sm leading-tight relative cursor-pointer hover:ring-2 hover:ring-blue-400 transition-all flex items-center justify-center text-center ${cellColor(bookCount)}`}
+      className={`aspect-square overflow-hidden rounded border shadow-sm p-1.5 sm:p-2 text-sm leading-tight relative cursor-pointer hover:ring-2 hover:ring-primary transition-all flex items-center justify-center text-center ${cellColor(bookCount)}`}
     >
       <span className="line-clamp-3">{tileName}</span>
       {bookCount > 0 && (

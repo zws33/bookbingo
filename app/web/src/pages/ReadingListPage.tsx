@@ -170,10 +170,10 @@ export function ReadingListPage({ userId }: ReadingListPageProps) {
         {entries.length === 0 ? (
           <div className="py-12 text-center">
             <div className="mb-4 text-4xl">📖</div>
-            <h3 className="text-lg font-medium text-gray-900">
+            <h3 className="text-lg font-medium text-on-surface">
               Your reading list is empty
             </h3>
-            <p className="mt-1 text-gray-500">
+            <p className="mt-1 text-on-surface-variant">
               Add books you plan to read using the button below.
             </p>
           </div>
@@ -198,7 +198,7 @@ export function ReadingListPage({ userId }: ReadingListPageProps) {
         <div className="fixed right-4 bottom-20 sm:right-8">
           <button
             onClick={() => setDialog({ kind: 'search' })}
-            className="flex h-14 w-14 items-center justify-center rounded-full bg-blue-600 text-white shadow-lg transition-colors hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none"
+            className="flex h-14 w-14 items-center justify-center rounded-full bg-primary text-on-primary shadow-lg transition-colors hover:bg-primary/90 focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:outline-none"
             aria-label="Add to reading list"
           >
             <svg
@@ -332,7 +332,7 @@ function TBREntryCard({
   const thumbnailUrl = book?.metadata?.thumbnailUrl;
 
   return (
-    <div className="rounded-lg border border-gray-200 bg-white p-4">
+    <div className="rounded-lg border border-outline-variant bg-surface-container-lowest p-4">
       <div className="flex gap-3">
         {thumbnailUrl && (
           <img
@@ -342,10 +342,10 @@ function TBREntryCard({
           />
         )}
         <div className="min-w-0 flex-1">
-          <p className="truncate font-medium text-gray-900">
+          <p className="truncate font-medium text-on-surface">
             {book?.title ?? 'Unknown title'}
           </p>
-          <p className="truncate text-sm text-gray-500">
+          <p className="truncate text-sm text-on-surface-variant">
             {book?.author ?? '—'}
           </p>
 
@@ -358,18 +358,18 @@ function TBREntryCard({
           )}
 
           {entry.notes && (
-            <p className="mt-2 text-sm text-gray-500 italic">{entry.notes}</p>
+            <p className="mt-2 text-sm text-on-surface-variant italic">{entry.notes}</p>
           )}
         </div>
       </div>
 
-      <div className="mt-3 flex justify-end gap-2 border-t border-gray-100 pt-3">
+      <div className="mt-3 flex justify-end gap-2 border-t border-outline-variant pt-3">
         <Button variant="ghost" className="text-sm" onClick={onEdit}>
           Edit
         </Button>
         <Button
           variant="ghost"
-          className="text-sm text-red-600 hover:text-red-700"
+          className="text-sm text-error hover:text-error/90"
           onClick={onDelete}
         >
           Remove

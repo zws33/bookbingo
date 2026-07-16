@@ -153,7 +153,7 @@ export function BookList({
         readings.length === 0 ? (
           <EmptyState />
         ) : (
-          <div className="text-center py-8 text-gray-500">
+          <div className="text-center py-8 text-on-surface-variant">
             No books match your filter.
           </div>
         )
@@ -175,7 +175,7 @@ export function BookList({
           })}
         </div>
       ) : (
-        <div className="divide-y divide-gray-200 bg-white rounded-lg shadow">
+        <div className="divide-y divide-outline-variant bg-surface-container-lowest rounded-lg shadow">
           {filteredReadings.map((reading) => {
             const book = booksById.get(reading.bookId);
             return (
@@ -214,14 +214,14 @@ export function BookList({
                 />
               )}
               <div className="space-y-1">
-                <p className="text-gray-700">{selectedBook.author}</p>
+                <p className="text-on-surface-variant">{selectedBook.author}</p>
                 {selectedBookData?.metadata?.publishedDate && (
-                  <p className="text-sm text-gray-500">
+                  <p className="text-sm text-on-surface-variant">
                     {selectedBookData.metadata.publishedDate}
                   </p>
                 )}
                 {selectedBookData?.metadata?.pageCount && (
-                  <p className="text-sm text-gray-500">
+                  <p className="text-sm text-on-surface-variant">
                     {selectedBookData.metadata.pageCount} pages
                   </p>
                 )}
@@ -233,7 +233,7 @@ export function BookList({
                   {selectedBookData.metadata.categories.map((cat) => (
                     <span
                       key={cat}
-                      className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded"
+                      className="text-xs bg-surface-container-high text-on-surface-variant px-2 py-0.5 rounded"
                     >
                       {cat}
                     </span>
@@ -241,13 +241,13 @@ export function BookList({
                 </div>
               )}
             {selectedReading && selectedReading.tiles.length > 0 && (
-              <div className="pt-2 border-t border-gray-100">
-                <p className="text-xs text-gray-500 mb-1">Bingo tiles</p>
+              <div className="pt-2 border-t border-outline-variant">
+                <p className="text-xs text-on-surface-variant mb-1">Bingo tiles</p>
                 <div className="flex flex-wrap gap-1">
                   {selectedReading.tiles.map((tile) => (
                     <span
                       key={tile}
-                      className="w-2 h-2 rounded bg-blue-500 inline-block"
+                      className="w-2 h-2 rounded bg-primary inline-block"
                       title={tile}
                     />
                   ))}
@@ -275,11 +275,11 @@ export function BookList({
               onCancel={() => setSelectedReading(null)}
               isSubmitting={isSubmitting}
             />
-            <div className="mt-4 pt-4 border-t border-gray-100 flex justify-center">
+            <div className="mt-4 pt-4 border-t border-outline-variant flex justify-center">
               <button
                 type="button"
                 onClick={() => setShowDeleteConfirm(true)}
-                className="text-sm text-red-600 hover:text-red-800"
+                className="text-sm text-error hover:text-error/90"
                 disabled={isSubmitting}
               >
                 Delete this reading

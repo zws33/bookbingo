@@ -72,9 +72,9 @@ export function FeedbackModal({ isOpen, onClose }: FeedbackModalProps) {
                 checked={type === 'bug'}
                 onChange={() => setType('bug')}
                 disabled={isSubmitting}
-                className="text-blue-600"
+                className="text-primary"
               />
-              <span className="text-sm text-gray-700">🐛 Bug Report</span>
+              <span className="text-sm text-on-surface-variant">🐛 Bug Report</span>
             </label>
             <label className="flex items-center gap-2 cursor-pointer">
               <input
@@ -84,9 +84,9 @@ export function FeedbackModal({ isOpen, onClose }: FeedbackModalProps) {
                 checked={type === 'feature'}
                 onChange={() => setType('feature')}
                 disabled={isSubmitting}
-                className="text-blue-600"
+                className="text-primary"
               />
-              <span className="text-sm text-gray-700">✨ Feature Request</span>
+              <span className="text-sm text-on-surface-variant">✨ Feature Request</span>
             </label>
           </div>
         </div>

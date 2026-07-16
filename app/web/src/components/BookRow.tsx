@@ -20,7 +20,7 @@ export function BookRow({ bookTitle, bookAuthor, tiles, isFreebie, metadata, onC
 
   return (
     <div
-      className={`flex items-center gap-3 px-4 py-3${readOnly ? '' : ' cursor-pointer hover:bg-gray-50'} transition-colors`}
+      className={`flex items-center gap-3 px-4 py-3${readOnly ? '' : ' cursor-pointer hover:bg-surface-container'} transition-colors`}
       onClick={readOnly ? undefined : onClick}
       role={readOnly ? undefined : 'button'}
       tabIndex={readOnly ? undefined : 0}
@@ -36,14 +36,14 @@ export function BookRow({ bookTitle, bookAuthor, tiles, isFreebie, metadata, onC
       )}
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
-          <span className="font-medium text-gray-900 truncate">{bookTitle}</span>
+          <span className="font-medium text-on-surface truncate">{bookTitle}</span>
           {isFreebie && (
             <span className="text-yellow-500 shrink-0" title="Freebie">
               ★
             </span>
           )}
         </div>
-        <span className="text-sm text-gray-500 truncate block">{bookAuthor}</span>
+        <span className="text-sm text-on-surface-variant truncate block">{bookAuthor}</span>
       </div>
       {tiles.length > 0 && (
         <div className="flex items-center gap-1 shrink-0">
@@ -53,12 +53,12 @@ export function BookRow({ bookTitle, bookAuthor, tiles, isFreebie, metadata, onC
               <span
                 key={tile}
                 title={name}
-                className="w-2 h-2 rounded-full bg-blue-500"
+                className="w-2 h-2 rounded-full bg-primary"
               />
             );
           })}
           {overflow > 0 && (
-            <span className="text-xs text-gray-400">+{overflow}</span>
+            <span className="text-xs text-on-surface-variant">+{overflow}</span>
           )}
         </div>
       )}

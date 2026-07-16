@@ -24,12 +24,12 @@ export class ErrorBoundary extends Component<Props, State> {
   render() {
     if (this.state.error) {
       return (
-        <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="min-h-screen flex items-center justify-center bg-surface">
           <div className="text-center">
-            <h2 className="text-xl font-semibold text-gray-900 mb-2">
+            <h2 className="text-xl font-semibold text-on-surface mb-2">
               Something went wrong
             </h2>
-            <p className="text-gray-500 mb-6">Reload the page to try again.</p>
+            <p className="text-on-surface-variant mb-6">Reload the page to try again.</p>
             <Button className="text-sm" onClick={() => window.location.reload()}>
               Reload
             </Button>
