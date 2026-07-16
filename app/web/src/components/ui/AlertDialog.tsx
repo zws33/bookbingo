@@ -34,14 +34,14 @@ export function AlertDialog({
           className={cn(
             'fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2',
             'w-[calc(100%-2rem)] max-w-sm',
-            'z-50 bg-white rounded-lg shadow-xl p-6 focus:outline-none',
+            'z-50 bg-surface-container-lowest rounded-lg shadow-xl p-6 focus:outline-none',
             'scale-95 opacity-0 transition-all duration-200 data-[state=open]:scale-100 data-[state=open]:opacity-100',
           )}
         >
-          <RadixAlertDialog.Title className="text-lg font-semibold text-gray-900">
+          <RadixAlertDialog.Title className="text-lg font-semibold text-on-surface">
             {title}
           </RadixAlertDialog.Title>
-          <RadixAlertDialog.Description className="mt-2 text-gray-600">
+          <RadixAlertDialog.Description className="mt-2 text-on-surface-variant">
             {message}
           </RadixAlertDialog.Description>
           <div className="mt-6 flex justify-end gap-3">

@@ -137,10 +137,20 @@ Resolved: full editorial identity (see above). Fonts + treatments are in scope.
 - Tokens coexist with existing raw utilities; nothing breaks yet.
 - Verify with `pnpm run dev:web` + a contrast check on `on-*` pairs.
 
-### Phase 2 — Refactor primitives to tokens (contained blast radius)
-- `Button.tsx`: `bg-blue-600 text-white` → `bg-primary text-on-primary`, etc.
-- `TileBadge.tsx`, `Input.tsx`, `Textarea.tsx`, `Label.tsx`, `Spinner.tsx`.
-- Run existing Vitest primitive tests (`BookForm.test.tsx` reference conventions).
+### Phase 2 — Refactor primitives to tokens (contained blast radius) ✅
+Done. All `components/ui/` primitives moved off raw palette utilities onto tokens:
+`Button`, `TileBadge`, `ToggleGroup`, `Input`, `Textarea`, `Label`, `Avatar`,
+`Tooltip`, `Accordion`, `AlertDialog`, `Dialog`, `Toast`. Only neutral `bg-black/50`
+scrims and the white toast-close affordance retained (both intentional).
+
+Two tokens added beyond Phase 1 (recorded in the ADR): `success`/`on-success`
+(Toast; old `bg-green-500`+white was ~2:1) and `inverse-surface`/`inverse-on-surface`
+(Tooltip; a Phase 1 over-prune). Hover convention: filled buttons darken via `/90`
+alpha; neutral controls step the surface ramp (`-high` → `-highest`).
+
+All 64 web tests pass untouched (role-based, not class-based); `pnpm run verify`
+green; new token utilities confirmed generating via build. ADR:
+[`decisions/design-token-system.md`](decisions/design-token-system.md).
 
 ### Phase 3 — Refactor feature components
 - `BoardCell.tsx`: replace the `blue-50→blue-200` ramp with tonal surface tokens.

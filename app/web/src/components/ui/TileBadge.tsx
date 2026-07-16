@@ -8,8 +8,8 @@ interface TileBadgeProps {
 }
 
 const variantClasses = {
-  primary: 'bg-blue-100 text-blue-800 px-2',
-  secondary: 'bg-gray-100 text-gray-600 px-1.5',
+  primary: 'bg-primary-container text-on-primary-container px-2',
+  secondary: 'bg-surface-container-high text-on-surface-variant px-1.5',
 };
 
 export function TileBadge({ tileId, variant = 'primary', className }: TileBadgeProps) {
