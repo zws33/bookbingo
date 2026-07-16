@@ -17,8 +17,8 @@ export function ToastItem({ message, type, open, onOpenChange }: ToastItemProps)
       onOpenChange={onOpenChange}
       duration={3000}
       className={cn(
-        'flex items-center gap-3 px-4 py-3 rounded-lg shadow-lg text-white',
-        type === 'success' ? 'bg-green-500' : 'bg-red-500',
+        'flex items-center gap-3 px-4 py-3 rounded-lg shadow-lg',
+        type === 'success' ? 'bg-success text-on-success' : 'bg-error text-on-error',
         'opacity-0 translate-y-2 transition-all duration-200',
         'data-[state=open]:opacity-100 data-[state=open]:translate-y-0',
         'data-[state=closed]:opacity-0 data-[state=closed]:translate-y-2',

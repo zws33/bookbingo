@@ -32,17 +32,17 @@ export function Dialog({
           className={cn(
             'fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2',
             'w-[calc(100%-2rem)] max-w-md',
-            'z-50 bg-white rounded-lg shadow-xl overflow-hidden focus:outline-none',
+            'z-50 bg-surface-container-lowest rounded-lg shadow-xl overflow-hidden focus:outline-none',
             'scale-95 opacity-0 transition-all duration-200 data-[state=open]:scale-100 data-[state=open]:opacity-100',
             contentClassName,
           )}
         >
-          <div className="flex items-center justify-between px-4 py-3 border-b">
-            <RadixDialog.Title className="text-lg font-semibold text-gray-900">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-outline-variant">
+            <RadixDialog.Title className="text-lg font-semibold text-on-surface">
               {title}
             </RadixDialog.Title>
             <RadixDialog.Close
-              className="text-gray-400 hover:text-gray-600"
+              className="text-on-surface-variant hover:text-on-surface"
               aria-label="Close"
             >
               <svg

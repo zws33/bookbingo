@@ -27,7 +27,7 @@ export function Avatar({ name, photoURL, size = 'md', className }: AvatarProps) 
 
   return (
     <span
-      className={cn(base, 'bg-gray-200 text-gray-600 flex items-center justify-center font-medium select-none')}
+      className={cn(base, 'bg-surface-container-highest text-on-surface-variant flex items-center justify-center font-medium select-none')}
       aria-label={name}
     >
       {name.charAt(0).toUpperCase()}

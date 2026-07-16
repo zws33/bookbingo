@@ -11,14 +11,14 @@ export interface ButtonProps extends ComponentPropsWithRef<'button'> {
 
 const variantClasses: Record<ButtonVariant, string> = {
   primary:
-    'bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed',
+    'bg-primary text-on-primary hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed',
   secondary:
-    'bg-gray-100 text-gray-800 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed',
-  ghost: 'text-gray-700 hover:text-gray-900',
+    'bg-surface-container-high text-on-surface hover:bg-surface-container-highest disabled:opacity-50 disabled:cursor-not-allowed',
+  ghost: 'text-on-surface-variant hover:text-on-surface',
   danger:
-    'bg-red-600 text-white hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed',
+    'bg-error text-on-error hover:bg-error/90 disabled:opacity-50 disabled:cursor-not-allowed',
   outline:
-    'border border-gray-300 text-gray-700 hover:bg-gray-50 hover:text-gray-900 disabled:opacity-50 disabled:cursor-not-allowed',
+    'border border-outline text-on-surface-variant hover:bg-surface-container hover:text-on-surface disabled:opacity-50 disabled:cursor-not-allowed',
 };
 
 export function Button({

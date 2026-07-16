@@ -6,7 +6,7 @@ const Root = ({ className, ...props }: React.ComponentProps<typeof RadixAccordio
 );
 
 const Item = ({ className, ...props }: React.ComponentProps<typeof RadixAccordion.Item>) => (
-  <RadixAccordion.Item className={cn('border-b border-gray-100 last:border-0', className)} {...props} />
+  <RadixAccordion.Item className={cn('border-b border-outline-variant last:border-0', className)} {...props} />
 );
 
 const Trigger = ({ className, children, ...props }: React.ComponentProps<typeof RadixAccordion.Trigger>) => (
@@ -14,14 +14,14 @@ const Trigger = ({ className, children, ...props }: React.ComponentProps<typeof 
     <RadixAccordion.Trigger
       className={cn(
         'group flex flex-1 items-center justify-between px-4 py-3',
-        'text-left hover:bg-gray-50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-inset',
+        'text-left hover:bg-surface-container-low transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset',
         className,
       )}
       {...props}
     >
       {children}
       <svg
-        className="w-4 h-4 text-gray-400 shrink-0 transition-transform duration-200 group-data-[state=open]:rotate-180"
+        className="w-4 h-4 text-on-surface-variant shrink-0 transition-transform duration-200 group-data-[state=open]:rotate-180"
         fill="none"
         stroke="currentColor"
         viewBox="0 0 24 24"

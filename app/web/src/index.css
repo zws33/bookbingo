@@ -34,6 +34,14 @@
   --color-error-container: #ffdad6;
   --color-on-error-container: #93000a;
 
+  /* ── Success (net-new beyond the reference; needed by Toast, ~6.4:1 on white) ── */
+  --color-success: #2e6a4a;
+  --color-on-success: #ffffff;
+
+  /* ── Inverse surface (dark-on-light chips, e.g. Tooltip) ── */
+  --color-inverse-surface: #303031;
+  --color-inverse-on-surface: #f2f0f0;
+
   /* ── Families (self-hosted faces land in Phase 4; stacks fall back until then) ── */
   --font-display: "Noto Serif", ui-serif, Georgia, serif;
   --font-body: "Inter", system-ui, -apple-system, sans-serif;
