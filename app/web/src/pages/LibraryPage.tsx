@@ -84,26 +84,26 @@ export function LibraryPage() {
 
   if (bookSummaries.length === 0) {
     return (
-      <div className="text-center py-8 text-gray-500">
+      <div className="text-center py-8 text-on-surface-variant">
         No books in the library yet.
       </div>
     );
   }
 
   return (
-    <div className="bg-white rounded-lg shadow overflow-hidden">
+    <div className="bg-surface-container-lowest rounded-lg shadow overflow-hidden">
       <Accordion.Root type="multiple">
         {bookSummaries.map(({ book, readCount, uniqueTiles, readers }) => (
           <Accordion.Item key={book.id} value={book.id}>
             <Accordion.Trigger>
               <div className="flex flex-1 flex-col sm:flex-row sm:items-center sm:gap-4 min-w-0">
                 <div className="flex-1 min-w-0">
-                  <p className="font-medium text-gray-900">{book.title}</p>
-                  <p className="text-sm text-gray-600 mt-0.5">{book.author}</p>
+                  <p className="font-medium text-on-surface">{book.title}</p>
+                  <p className="text-sm text-on-surface-variant mt-0.5">{book.author}</p>
                 </div>
                 <div className="flex flex-wrap items-center gap-2 mt-1 sm:mt-0">
                   {readCount > 0 && (
-                    <span className="text-xs text-gray-500 whitespace-nowrap">
+                    <span className="text-xs text-on-surface-variant whitespace-nowrap">
                       {readCount} {readCount === 1 ? 'reader' : 'readers'}
                     </span>
                   )}
@@ -124,7 +124,7 @@ export function LibraryPage() {
                     <li key={user.id} className="flex items-start gap-2">
                       <Avatar name={user.name} photoURL={user.photoURL ?? undefined} size="sm" className="mt-0.5" />
                       <div className="min-w-0">
-                        <p className="text-sm font-medium text-gray-800">{user.name}</p>
+                        <p className="text-sm font-medium text-on-surface">{user.name}</p>
                         {tiles.length > 0 && (
                           <div className="flex flex-wrap gap-1 mt-0.5">
                             {tiles.map((tileId) => (

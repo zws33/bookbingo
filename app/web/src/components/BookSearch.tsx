@@ -74,18 +74,18 @@ export function BookSearch({ onBookSelected, onManualEntry }: BookSearchProps) {
       />
 
       {isSearching && (
-        <p className="py-2 text-center text-sm text-gray-500">Searching...</p>
+        <p className="py-2 text-center text-sm text-on-surface-variant">Searching...</p>
       )}
 
       {!isSearching && results.length > 0 && (
-        <ul className="max-h-72 divide-y divide-gray-100 overflow-y-auto rounded-md border border-gray-200">
+        <ul className="max-h-72 divide-y divide-outline-variant overflow-y-auto rounded-md border border-outline-variant">
           {results.map((r) => (
             <li key={r.externalId}>
               <button
                 type="button"
                 disabled={isSelecting}
                 onClick={() => handleSelect(r)}
-                className="flex w-full items-center gap-3 px-3 py-2 text-left transition-colors hover:bg-gray-50 disabled:opacity-50"
+                className="flex w-full items-center gap-3 px-3 py-2 text-left transition-colors hover:bg-surface-container disabled:opacity-50"
               >
                 {r.thumbnailUrl ? (
                   <img
@@ -98,13 +98,13 @@ export function BookSearch({ onBookSelected, onManualEntry }: BookSearchProps) {
                     }}
                   />
                 ) : (
-                  <div className="h-11 w-8 shrink-0 rounded bg-gray-100" />
+                  <div className="h-11 w-8 shrink-0 rounded bg-surface-container-high" />
                 )}
                 <div className="min-w-0">
-                  <p className="truncate text-sm font-medium text-gray-900">
+                  <p className="truncate text-sm font-medium text-on-surface">
                     {r.title}
                   </p>
-                  <p className="truncate text-xs text-gray-500">
+                  <p className="truncate text-xs text-on-surface-variant">
                     {r.author}
                     {r.publishedDate ? ` · ${r.publishedDate}` : ''}
                   </p>
@@ -116,7 +116,7 @@ export function BookSearch({ onBookSelected, onManualEntry }: BookSearchProps) {
       )}
 
       {isSelecting && (
-        <p className="py-2 text-center text-sm text-gray-500">
+        <p className="py-2 text-center text-sm text-on-surface-variant">
           Loading book details...
         </p>
       )}
@@ -125,7 +125,7 @@ export function BookSearch({ onBookSelected, onManualEntry }: BookSearchProps) {
         !isSelecting &&
         query.length >= 2 &&
         results.length === 0 && (
-          <p className="py-2 text-center text-sm text-gray-500">
+          <p className="py-2 text-center text-sm text-on-surface-variant">
             No results found.
           </p>
         )}
@@ -135,7 +135,7 @@ export function BookSearch({ onBookSelected, onManualEntry }: BookSearchProps) {
           type="button"
           onClick={handleManualEntry}
           disabled={isSelecting}
-          className="text-sm text-blue-600 hover:text-blue-800 disabled:opacity-50"
+          className="text-sm text-primary hover:text-on-primary-container disabled:opacity-50"
         >
           Enter manually instead
         </button>

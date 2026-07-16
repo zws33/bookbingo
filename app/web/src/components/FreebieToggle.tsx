@@ -12,9 +12,9 @@ export function FreebieToggle({ isFreebie, onChange, disabled }: FreebieTogglePr
         checked={isFreebie}
         onChange={(e) => onChange(e.target.checked)}
         disabled={disabled}
-        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+        className="h-4 w-4 text-primary focus:ring-primary border-outline rounded"
       />
-      <span className="text-sm text-gray-900">Freebie (unlimited tiles)</span>
+      <span className="text-sm text-on-surface">Freebie (unlimited tiles)</span>
     </label>
   );
 }

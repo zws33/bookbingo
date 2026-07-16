@@ -32,7 +32,7 @@ export function BingoBoard({ readings, booksById }: BingoBoardProps) {
 
   return (
     <>
-      <div className="overflow-x-auto p-1 sm:p-2 mx-auto bg-gray-100 rounded-lg shadow-inner">
+      <div className="overflow-x-auto p-1 sm:p-2 mx-auto bg-surface-container-high rounded-lg shadow-inner">
         <div className="grid grid-cols-3 sm:grid-cols-7 gap-1 sm:gap-2">
           {TILES.map((tile) => (
             <BoardCell
@@ -50,15 +50,15 @@ export function BingoBoard({ readings, booksById }: BingoBoardProps) {
         title={selectedTile?.name ?? ''}
       >
         {selectedBooks.length === 0 ? (
-          <p className="text-gray-500">No books tagged with this tile yet.</p>
+          <p className="text-on-surface-variant">No books tagged with this tile yet.</p>
         ) : (
-          <ul className="divide-y divide-gray-100">
+          <ul className="divide-y divide-outline-variant">
             {selectedBooks.map((reading) => {
               const book = booksById.get(reading.bookId) ?? UNKNOWN_BOOK;
               return (
                 <li key={reading.id} className="py-2">
-                  <div className="font-medium text-gray-900">{book.title}</div>
-                  <div className="text-sm text-gray-500">{book.author}</div>
+                  <div className="font-medium text-on-surface">{book.title}</div>
+                  <div className="text-sm text-on-surface-variant">{book.author}</div>
                 </li>
               );
             })}

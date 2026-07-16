@@ -15,7 +15,7 @@ export function BookCard({ bookTitle, bookAuthor, tiles, metadata, onClick, read
 
   return (
     <div
-      className={`bg-white rounded-lg shadow p-4 overflow-hidden${readOnly ? '' : ' cursor-pointer hover:shadow-md'} transition-shadow`}
+      className={`bg-surface-container-lowest rounded-lg shadow p-4 overflow-hidden${readOnly ? '' : ' cursor-pointer hover:shadow-md'} transition-shadow`}
       onClick={readOnly ? undefined : onClick}
       role={readOnly ? undefined : 'button'}
       tabIndex={readOnly ? undefined : 0}
@@ -31,8 +31,8 @@ export function BookCard({ bookTitle, bookAuthor, tiles, metadata, onClick, read
           />
         )}
         <div className="min-w-0 flex-1">
-          <h3 className="font-semibold text-gray-900 truncate">{bookTitle}</h3>
-          <p className="text-sm text-gray-600 mt-1">by {bookAuthor}</p>
+          <h3 className="font-semibold text-on-surface truncate">{bookTitle}</h3>
+          <p className="text-sm text-on-surface-variant mt-1">by {bookAuthor}</p>
           {tiles.length > 0 && (
             <div className="mt-2 flex flex-wrap gap-1 min-w-0">
               {tiles.map((tile) => (

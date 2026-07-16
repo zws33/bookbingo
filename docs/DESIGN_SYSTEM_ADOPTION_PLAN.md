@@ -152,9 +152,21 @@ All 64 web tests pass untouched (role-based, not class-based); `pnpm run verify`
 green; new token utilities confirmed generating via build. ADR:
 [`decisions/design-token-system.md`](decisions/design-token-system.md).
 
-### Phase 3 — Refactor feature components
-- `BoardCell.tsx`: replace the `blue-50→blue-200` ramp with tonal surface tokens.
-- `BookCard.tsx`, `App.tsx` layout, any sidebar/nav.
+### Phase 3 — Refactor feature components ✅
+Done. All 21 feature components + `App.tsx` moved off raw palette utilities onto
+tokens (~120 class occurrences). Highlights:
+- `BoardCell` count ramp rebuilt as a **primary alpha ramp** (`bg-primary/10→/20→/30`,
+  `text-on-primary-container`) since the token set has one `primary-container` tone,
+  not three — preserves graded depth-by-count feedback. Empty cell →
+  `surface-container-lowest`.
+- Nav active/inactive, FABs, links, ScoreDisplay, cards, rows, lists, forms, pages
+  all tokenized. Bulk applied via a boundary-aware script (scratch) to avoid
+  token-prefix corruption (`bg-blue-50` ⊂ `bg-blue-500`) and state-variant precedence
+  bugs; special cases hand-edited.
+- **Intentional literals kept** (not brand-system colors): Google sign-in button
+  brand hex (`#4285F4`…), freebie gold (`text-yellow-500`), staging banner amber.
+- 64 web tests pass unchanged; `verify` green; alpha-ramp + hover utilities confirmed
+  generating (`color-mix()` with hex fallback).
 
 ### Phase 4 — Editorial treatments (committed) + optional dark mode
 - **Fonts (committed):** self-host Noto Serif + Inter; add `--font-display`

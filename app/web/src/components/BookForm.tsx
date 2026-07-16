@@ -41,9 +41,9 @@ export function BookForm({
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       {identityLocked && (
-        <div className="rounded-lg bg-gray-50 px-3 py-2">
-          <p className="text-sm font-medium text-gray-900">{title}</p>
-          <p className="text-sm text-gray-500">{author}</p>
+        <div className="rounded-lg bg-surface-container px-3 py-2">
+          <p className="text-sm font-medium text-on-surface">{title}</p>
+          <p className="text-sm text-on-surface-variant">{author}</p>
         </div>
       )}
       {!identityLocked && (

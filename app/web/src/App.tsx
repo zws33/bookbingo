@@ -53,26 +53,26 @@ function App() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-gray-500">Loading...</div>
+      <div className="min-h-screen flex items-center justify-center bg-surface">
+        <div className="text-on-surface-variant">Loading...</div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-red-500">Error: {error.message}</div>
+      <div className="min-h-screen flex items-center justify-center bg-surface">
+        <div className="text-error">Error: {error.message}</div>
       </div>
     );
   }
 
   return (
-    <div className={`min-h-screen bg-gray-50${isStaging ? ' pt-8' : ''}`}>
+    <div className={`min-h-screen bg-surface${isStaging ? ' pt-8' : ''}`}>
       {isStaging && <StagingBanner />}
-      <header className="bg-white shadow">
+      <header className="bg-surface-container-lowest shadow">
         <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
-          <h1 className="text-xl font-bold text-gray-900">📚 Book Bingo</h1>
+          <h1 className="text-xl font-bold text-on-surface">📚 Book Bingo</h1>
           {user && (
             <div className="flex items-center gap-4">
               <Button
@@ -104,12 +104,12 @@ function App() {
       <main className="max-w-4xl mx-auto px-4 py-6">
         {user ? (
           <>
-            <div className="flex gap-4 border-b border-gray-200 mb-6">
+            <div className="flex gap-4 border-b border-outline-variant mb-6">
               <NavLink
                 to="/"
                 end
                 className={({ isActive }) =>
-                  `pb-2 text-sm font-medium ${isActive ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700'}`
+                  `pb-2 text-sm font-medium ${isActive ? 'border-b-2 border-primary text-primary' : 'text-on-surface-variant hover:text-on-surface'}`
                 }
               >
                 My Books
@@ -117,7 +117,7 @@ function App() {
               <NavLink
                 to="/reading-list"
                 className={({ isActive }) =>
-                  `pb-2 text-sm font-medium ${isActive ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700'}`
+                  `pb-2 text-sm font-medium ${isActive ? 'border-b-2 border-primary text-primary' : 'text-on-surface-variant hover:text-on-surface'}`
                 }
               >
                 Reading List
@@ -125,7 +125,7 @@ function App() {
               <NavLink
                 to="/board"
                 className={({ isActive }) =>
-                  `pb-2 text-sm font-medium ${isActive ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700'}`
+                  `pb-2 text-sm font-medium ${isActive ? 'border-b-2 border-primary text-primary' : 'text-on-surface-variant hover:text-on-surface'}`
                 }
               >
                 Bingo Board
@@ -133,7 +133,7 @@ function App() {
               <NavLink
                 to="/leaderboard"
                 className={({ isActive }) =>
-                  `pb-2 text-sm font-medium ${isActive ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700'}`
+                  `pb-2 text-sm font-medium ${isActive ? 'border-b-2 border-primary text-primary' : 'text-on-surface-variant hover:text-on-surface'}`
                 }
               >
                 Leaderboard
@@ -141,7 +141,7 @@ function App() {
               <NavLink
                 to="/library"
                 className={({ isActive }) =>
-                  `pb-2 text-sm font-medium ${isActive ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700'}`
+                  `pb-2 text-sm font-medium ${isActive ? 'border-b-2 border-primary text-primary' : 'text-on-surface-variant hover:text-on-surface'}`
                 }
               >
                 Library
@@ -150,7 +150,7 @@ function App() {
                 <NavLink
                   to="/catalog"
                   className={({ isActive }) =>
-                    `pb-2 text-sm font-medium ${isActive ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700'}`
+                    `pb-2 text-sm font-medium ${isActive ? 'border-b-2 border-primary text-primary' : 'text-on-surface-variant hover:text-on-surface'}`
                   }
                 >
                   Catalog
@@ -173,15 +173,15 @@ function App() {
           </>
         ) : (
           <div className="text-center py-12">
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">
+            <h2 className="text-3xl font-bold text-on-surface mb-4">
               Welcome to Book Bingo
             </h2>
-            <p className="text-gray-600 mb-8">
+            <p className="text-on-surface-variant mb-8">
               Track your reading progress and compete with friends.
             </p>
             <button
               onClick={handleSignIn}
-              className="inline-flex items-center gap-3 bg-white border border-gray-300 rounded-lg px-6 py-3 text-gray-700 font-medium hover:bg-gray-50 hover:shadow-md transition-all"
+              className="inline-flex items-center gap-3 bg-surface-container-lowest border border-outline rounded-lg px-6 py-3 text-on-surface-variant font-medium hover:bg-surface-container hover:shadow-md transition-all"
             >
               <svg className="w-5 h-5" viewBox="0 0 24 24">
                 <path

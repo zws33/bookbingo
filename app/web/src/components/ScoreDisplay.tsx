@@ -22,68 +22,68 @@ export function ScoreDisplay({ breakdown }: ScoreDisplayProps) {
   const { score, varietyPoints, volumePoints, balanceFactor, totalBooks } = breakdown;
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-      <div className="bg-blue-50 px-6 py-4 border-b border-gray-200">
+    <div className="bg-surface-container-lowest rounded-lg shadow-sm border border-outline-variant overflow-hidden">
+      <div className="bg-primary-container px-6 py-4 border-b border-outline-variant">
         <div className="flex justify-between items-baseline">
-          <h3 className="text-sm font-medium text-blue-900 uppercase tracking-wider">
+          <h3 className="text-sm font-medium text-on-primary-container uppercase tracking-wider">
             Bingo Score
           </h3>
-          <div className="text-3xl font-bold text-blue-600">{score.toFixed(2)}</div>
+          <div className="text-3xl font-bold text-primary">{score.toFixed(2)}</div>
         </div>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 divide-y md:divide-y-0 md:divide-x divide-gray-200">
+      <div className="grid grid-cols-2 md:grid-cols-4 divide-y md:divide-y-0 md:divide-x divide-outline-variant">
         <div className="px-6 py-4">
-          <div className="text-sm text-gray-500 mb-1">Books Read</div>
-          <div className="text-xl font-semibold text-gray-900">{totalBooks}</div>
+          <div className="text-sm text-on-surface-variant mb-1">Books Read</div>
+          <div className="text-xl font-semibold text-on-surface">{totalBooks}</div>
         </div>
 
         <div className="px-6 py-4">
-          <div className="flex items-center gap-1 text-sm text-gray-500 mb-1">
+          <div className="flex items-center gap-1 text-sm text-on-surface-variant mb-1">
             Variety Points
             <Tooltip content="1 point for each unique category covered. Spread your reading for more points.">
               <button
                 type="button"
-                className="inline-flex text-gray-400 hover:text-gray-500 focus:outline-none focus:text-gray-500"
+                className="inline-flex text-on-surface-variant hover:text-on-surface focus:outline-none focus:text-on-surface"
                 aria-label="About variety points"
               >
                 <InfoIcon />
               </button>
             </Tooltip>
           </div>
-          <div className="text-xl font-semibold text-gray-900">{varietyPoints}</div>
+          <div className="text-xl font-semibold text-on-surface">{varietyPoints}</div>
         </div>
 
         <div className="px-6 py-4">
-          <div className="flex items-center gap-1 text-sm text-gray-500 mb-1">
+          <div className="flex items-center gap-1 text-sm text-on-surface-variant mb-1">
             Volume Points
             <Tooltip content="Bonus for repeat books in a category, with diminishing returns.">
               <button
                 type="button"
-                className="inline-flex text-gray-400 hover:text-gray-500 focus:outline-none focus:text-gray-500"
+                className="inline-flex text-on-surface-variant hover:text-on-surface focus:outline-none focus:text-on-surface"
                 aria-label="About volume points"
               >
                 <InfoIcon />
               </button>
             </Tooltip>
           </div>
-          <div className="text-xl font-semibold text-gray-900">{volumePoints.toFixed(2)}</div>
+          <div className="text-xl font-semibold text-on-surface">{volumePoints.toFixed(2)}</div>
         </div>
 
         <div className="px-6 py-4">
-          <div className="flex items-center gap-1 text-sm text-gray-500 mb-1">
+          <div className="flex items-center gap-1 text-sm text-on-surface-variant mb-1">
             Balance Factor
             <Tooltip content="Scales volume points based on how evenly books are spread. Higher is better.">
               <button
                 type="button"
-                className="inline-flex text-gray-400 hover:text-gray-500 focus:outline-none focus:text-gray-500"
+                className="inline-flex text-on-surface-variant hover:text-on-surface focus:outline-none focus:text-on-surface"
                 aria-label="About balance factor"
               >
                 <InfoIcon />
               </button>
             </Tooltip>
           </div>
-          <div className="text-xl font-semibold text-gray-900">x{balanceFactor.toFixed(2)}</div>
+          <div className="text-xl font-semibold text-on-surface">x{balanceFactor.toFixed(2)}</div>
         </div>
       </div>
     </div>
