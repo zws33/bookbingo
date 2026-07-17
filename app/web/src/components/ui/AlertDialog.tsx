@@ -38,7 +38,7 @@ export function AlertDialog({
             'scale-95 opacity-0 transition-all duration-200 data-[state=open]:scale-100 data-[state=open]:opacity-100',
           )}
         >
-          <RadixAlertDialog.Title className="text-lg font-semibold text-on-surface">
+          <RadixAlertDialog.Title className="font-display text-lg font-semibold text-on-surface">
             {title}
           </RadixAlertDialog.Title>
           <RadixAlertDialog.Description className="mt-2 text-on-surface-variant">

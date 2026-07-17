@@ -19,7 +19,7 @@ export function Tooltip({ content, children, side = 'top', className }: TooltipP
             side={side}
             sideOffset={6}
             className={cn(
-              'max-w-[12rem] px-2 py-1.5 bg-inverse-surface text-inverse-on-surface text-xs rounded shadow-lg z-50',
+              'max-w-[12rem] px-2 py-1.5 bg-inverse-surface text-inverse-on-surface text-xs rounded-sm shadow-lg z-50',
               className,
             )}
           >

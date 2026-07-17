@@ -72,7 +72,9 @@ function App() {
       {isStaging && <StagingBanner />}
       <header className="bg-surface-container-lowest shadow">
         <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
-          <h1 className="text-xl font-bold text-on-surface">📚 Book Bingo</h1>
+          <h1 className="font-display text-xl font-bold text-on-surface">
+            📚 Book Bingo
+          </h1>
           {user && (
             <div className="flex items-center gap-4">
               <Button
@@ -173,7 +175,7 @@ function App() {
           </>
         ) : (
           <div className="text-center py-12">
-            <h2 className="text-3xl font-bold text-on-surface mb-4">
+            <h2 className="font-display text-3xl font-bold text-on-surface mb-4">
               Welcome to Book Bingo
             </h2>
             <p className="text-on-surface-variant mb-8">

@@ -98,8 +98,8 @@ export function LibraryPage() {
             <Accordion.Trigger>
               <div className="flex flex-1 flex-col sm:flex-row sm:items-center sm:gap-4 min-w-0">
                 <div className="flex-1 min-w-0">
-                  <p className="font-medium text-on-surface">{book.title}</p>
-                  <p className="text-sm text-on-surface-variant mt-0.5">{book.author}</p>
+                  <p className="font-display font-medium text-on-surface">{book.title}</p>
+                  <p className="text-sm italic text-on-surface-variant mt-0.5">{book.author}</p>
                 </div>
                 <div className="flex flex-wrap items-center gap-2 mt-1 sm:mt-0">
                   {readCount > 0 && (

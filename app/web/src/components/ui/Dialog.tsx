@@ -38,7 +38,7 @@ export function Dialog({
           )}
         >
           <div className="flex items-center justify-between px-4 py-3 border-b border-outline-variant">
-            <RadixDialog.Title className="text-lg font-semibold text-on-surface">
+            <RadixDialog.Title className="font-display text-lg font-semibold text-on-surface">
               {title}
             </RadixDialog.Title>
             <RadixDialog.Close

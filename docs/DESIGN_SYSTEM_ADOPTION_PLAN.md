@@ -168,7 +168,41 @@ tokens (~120 class occurrences). Highlights:
 - 64 web tests pass unchanged; `verify` green; alpha-ramp + hover utilities confirmed
   generating (`color-mix()` with hex fallback).
 
-### Phase 4 — Editorial treatments (committed) + optional dark mode
+### Phase 4 — Fonts + editorial typography ✅
+Done. Self-hosted **Noto Serif + Inter** via `@fontsource-variable/*` (bundled by
+Vite, no CDN — 15 subsetted `.woff2` emitted, lazy-loaded by `unicode-range`).
+- `--font-sans` overridden to Inter → app-wide default body font (one token, no
+  per-component edits; v4 preflight uses `--font-sans` as the page default).
+- `--font-display` → Noto Serif; applied via `font-display` to **chrome headings
+  only** (wordmark, welcome/page/section titles, dialog + alert titles,
+  empty-states). Content + dense UI (book titles, labels, lists, forms) stay sans
+  for scannability.
+- `@font-face` families confirmed matching tokens (`"Inter Variable"`,
+  `"Noto Serif Variable"`); Fontsource defaults to `font-display: swap` (no FOIT).
+- Deferred remaining editorial pillars (vellum, hairlines, tight radii) already
+  shipped via tokens in Phases 1–3.
+- Optional follow-ups (not done): adopt the `--text-*` type scale on headings
+  (currently headings keep ad-hoc sizes + serif); latin-only font subset; dark mode.
+
+### Mockup-driven editorial polish (2026-07-17) ✅
+After Phase 4, a Stitch mockup of the My Books page prompted a design review. The
+mockup's ideas were triaged into three buckets:
+1. **Editorial typography + card polish — DONE (this work).** Serif book titles
+   (`font-display text-headline-sm`), italic author bylines, outlined UPPERCASE
+   tags (`TileBadge` → `label-caps`-sized 10px, blue outline, first real use of the
+   type-scale tokens), prominent 96×144 2:3 covers with placeholder, serif score
+   number, uppercase stat labels. `BookCard` relaid out as a fixed-height flex
+   column so title top-aligns and tags bottom-align to the cover; tags capped at
+   3 + `+N` overflow chip.
+2. **Layout / IA change (left sidebar + dashboard-overview home) — DEFERRED.** A
+   real UX improvement but an information-architecture decision; revisit as its own
+   initiative with a planning doc. ("we can revisit 2 later")
+3. **Invented features (tiers/"Digital Curator", Stats/Settings pages, binary
+   board with % complete, year-scoped board) — REJECTED.** The mockup was generated
+   without knowledge of the data model. Notably the binary board contradicts the
+   count-based scoring — the graded alpha ramp (Phase 3) is kept as more truthful.
+
+### (deferred) — optional dark mode
 - **Fonts (committed):** self-host Noto Serif + Inter; add `--font-display`
   (serif) / `--font-body` (sans) with fallback stacks (`… , serif` /
   `… , system-ui, sans-serif`). Preload the `.woff2`, set `font-display: swap`.

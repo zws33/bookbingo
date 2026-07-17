@@ -25,21 +25,21 @@ export function ScoreDisplay({ breakdown }: ScoreDisplayProps) {
     <div className="bg-surface-container-lowest rounded-lg shadow-sm border border-outline-variant overflow-hidden">
       <div className="bg-primary-container px-6 py-4 border-b border-outline-variant">
         <div className="flex justify-between items-baseline">
-          <h3 className="text-sm font-medium text-on-primary-container uppercase tracking-wider">
+          <h3 className="text-label-caps uppercase text-on-primary-container">
             Bingo Score
           </h3>
-          <div className="text-3xl font-bold text-primary">{score.toFixed(2)}</div>
+          <div className="font-display text-4xl font-bold text-primary">{score.toFixed(2)}</div>
         </div>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 divide-y md:divide-y-0 md:divide-x divide-outline-variant">
         <div className="px-6 py-4">
-          <div className="text-sm text-on-surface-variant mb-1">Books Read</div>
+          <div className="text-label-caps uppercase text-on-surface-variant mb-1">Books Read</div>
           <div className="text-xl font-semibold text-on-surface">{totalBooks}</div>
         </div>
 
         <div className="px-6 py-4">
-          <div className="flex items-center gap-1 text-sm text-on-surface-variant mb-1">
+          <div className="flex items-center gap-1 text-label-caps uppercase text-on-surface-variant mb-1">
             Variety Points
             <Tooltip content="1 point for each unique category covered. Spread your reading for more points.">
               <button
@@ -55,7 +55,7 @@ export function ScoreDisplay({ breakdown }: ScoreDisplayProps) {
         </div>
 
         <div className="px-6 py-4">
-          <div className="flex items-center gap-1 text-sm text-on-surface-variant mb-1">
+          <div className="flex items-center gap-1 text-label-caps uppercase text-on-surface-variant mb-1">
             Volume Points
             <Tooltip content="Bonus for repeat books in a category, with diminishing returns.">
               <button
@@ -71,7 +71,7 @@ export function ScoreDisplay({ breakdown }: ScoreDisplayProps) {
         </div>
 
         <div className="px-6 py-4">
-          <div className="flex items-center gap-1 text-sm text-on-surface-variant mb-1">
+          <div className="flex items-center gap-1 text-label-caps uppercase text-on-surface-variant mb-1">
             Balance Factor
             <Tooltip content="Scales volume points based on how evenly books are spread. Higher is better.">
               <button
