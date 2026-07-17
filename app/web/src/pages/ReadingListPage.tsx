@@ -342,10 +342,10 @@ function TBREntryCard({
           />
         )}
         <div className="min-w-0 flex-1">
-          <p className="truncate font-medium text-on-surface">
+          <p className="truncate font-display font-medium text-on-surface">
             {book?.title ?? 'Unknown title'}
           </p>
-          <p className="truncate text-sm text-on-surface-variant">
+          <p className="truncate text-sm italic text-on-surface-variant">
             {book?.author ?? '—'}
           </p>
 

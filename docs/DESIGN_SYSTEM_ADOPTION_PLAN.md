@@ -184,7 +184,25 @@ Vite, no CDN — 15 subsetted `.woff2` emitted, lazy-loaded by `unicode-range`).
 - Optional follow-ups (not done): adopt the `--text-*` type scale on headings
   (currently headings keep ad-hoc sizes + serif); latin-only font subset; dark mode.
 
-### (was Phase 4) — optional dark mode
+### Mockup-driven editorial polish (2026-07-17) ✅
+After Phase 4, a Stitch mockup of the My Books page prompted a design review. The
+mockup's ideas were triaged into three buckets:
+1. **Editorial typography + card polish — DONE (this work).** Serif book titles
+   (`font-display text-headline-sm`), italic author bylines, outlined UPPERCASE
+   tags (`TileBadge` → `label-caps`-sized 10px, blue outline, first real use of the
+   type-scale tokens), prominent 96×144 2:3 covers with placeholder, serif score
+   number, uppercase stat labels. `BookCard` relaid out as a fixed-height flex
+   column so title top-aligns and tags bottom-align to the cover; tags capped at
+   3 + `+N` overflow chip.
+2. **Layout / IA change (left sidebar + dashboard-overview home) — DEFERRED.** A
+   real UX improvement but an information-architecture decision; revisit as its own
+   initiative with a planning doc. ("we can revisit 2 later")
+3. **Invented features (tiers/"Digital Curator", Stats/Settings pages, binary
+   board with % complete, year-scoped board) — REJECTED.** The mockup was generated
+   without knowledge of the data model. Notably the binary board contradicts the
+   count-based scoring — the graded alpha ramp (Phase 3) is kept as more truthful.
+
+### (deferred) — optional dark mode
 - **Fonts (committed):** self-host Noto Serif + Inter; add `--font-display`
   (serif) / `--font-body` (sans) with fallback stacks (`… , serif` /
   `… , system-ui, sans-serif`). Preload the `.woff2`, set `font-display: swap`.

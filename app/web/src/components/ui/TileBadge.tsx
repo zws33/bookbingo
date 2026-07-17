@@ -8,8 +8,8 @@ interface TileBadgeProps {
 }
 
 const variantClasses = {
-  primary: 'bg-primary-container text-on-primary-container px-2',
-  secondary: 'bg-surface-container-high text-on-surface-variant px-1.5',
+  primary: 'border-primary/40 text-primary',
+  secondary: 'border-outline-variant text-on-surface-variant',
 };
 
 export function TileBadge({ tileId, variant = 'primary', className }: TileBadgeProps) {
@@ -17,7 +17,11 @@ export function TileBadge({ tileId, variant = 'primary', className }: TileBadgeP
   return (
     <span
       title={name}
-      className={cn('inline-block text-xs py-0.5 rounded', variantClasses[variant], className)}
+      className={cn(
+        'inline-flex items-center rounded border px-1.5 py-0.5 text-[10px] font-semibold uppercase leading-none tracking-wide',
+        variantClasses[variant],
+        className,
+      )}
     >
       {name}
     </span>

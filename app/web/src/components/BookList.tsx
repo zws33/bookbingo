@@ -214,7 +214,7 @@ export function BookList({
                 />
               )}
               <div className="space-y-1">
-                <p className="text-on-surface-variant">{selectedBook.author}</p>
+                <p className="italic text-on-surface-variant">{selectedBook.author}</p>
                 {selectedBookData?.metadata?.publishedDate && (
                   <p className="text-sm text-on-surface-variant">
                     {selectedBookData.metadata.publishedDate}
