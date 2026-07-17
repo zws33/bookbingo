@@ -216,7 +216,16 @@ mockup's ideas were triaged into three buckets:
 - **Icons:** adopt `lucide-react` if icons are wanted (not the Material Symbols
   font the reference uses).
 
-### Phase 5 — Retire the mockup + rewrite the catalog
+### Phase 5 — Retire the mockup + rewrite the catalog ✅
+Done. Deleted `app/web/src/components/design-system/index.html` (the live `/catalog`
+route supersedes it). Rewrote `CatalogPage.tsx` as a **drift-proof living reference**:
+color swatches and radius samples read the actual `--color-*` / `--radius-*` values
+via `getComputedStyle` at runtime, so they can't diverge from `index.css` the way the
+old hardcoded labels did. Documents the semantic roles, the type scale (serif display
+vs Inter body), paper-sharp radii, and real primitives with corrected notes. The page
+itself is now fully tokenized. **This completes the design-system migration.**
+
+Original Phase 5 intent (for reference):
 - Delete `app/web/src/components/design-system/index.html`, or convert it into a
   living in-app reference route that renders real primitives (a lightweight
   Storybook substitute).
