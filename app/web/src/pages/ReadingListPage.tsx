@@ -12,13 +12,9 @@ import {
 } from '../lib/tbr';
 import { BookForm, type BookFormData } from '../components/BookForm.js';
 import { BookSearch } from '../components/BookSearch';
+import { BookCard } from '../components/BookCard';
 import { PageStatus } from '../components/PageStatus';
-import {
-  Dialog,
-  AlertDialog,
-  TileBadge,
-  Button,
-} from '../components/ui/index.js';
+import { Dialog, AlertDialog, Button } from '../components/ui/index.js';
 import { log } from '@bookbingo/lib-util';
 import type { BookEnrichmentResult } from '@bookbingo/lib-types';
 
@@ -329,55 +325,30 @@ function TBREntryCard({
   onDelete,
   onPromote,
 }: TBREntryCardProps) {
-  const thumbnailUrl = book?.metadata?.thumbnailUrl;
-
   return (
-    <div className="rounded-lg border border-outline-variant bg-surface-container-lowest p-4">
-      <div className="flex gap-3">
-        {thumbnailUrl && (
-          <img
-            src={thumbnailUrl}
-            alt=""
-            className="h-16 w-12 shrink-0 rounded object-cover"
-          />
-        )}
-        <div className="min-w-0 flex-1">
-          <p className="truncate font-display font-medium text-on-surface">
-            {book?.title ?? 'Unknown title'}
-          </p>
-          <p className="truncate text-sm italic text-on-surface-variant">
-            {book?.author ?? '—'}
-          </p>
-
-          {entry.plannedTiles.length > 0 && (
-            <div className="mt-2 flex flex-wrap gap-1">
-              {entry.plannedTiles.map((tileId) => (
-                <TileBadge key={tileId} tileId={tileId} variant="secondary" />
-              ))}
-            </div>
-          )}
-
-          {entry.notes && (
-            <p className="mt-2 text-sm text-on-surface-variant italic">{entry.notes}</p>
-          )}
+    <BookCard
+      bookTitle={book?.title ?? 'Unknown title'}
+      bookAuthor={book?.author ?? '—'}
+      tiles={entry.plannedTiles}
+      metadata={book?.metadata}
+      notes={entry.notes}
+      footer={
+        <div className="flex justify-end gap-2">
+          <Button variant="ghost" className="text-sm" onClick={onEdit}>
+            Edit
+          </Button>
+          <Button
+            variant="ghost"
+            className="text-sm text-error hover:text-error/90"
+            onClick={onDelete}
+          >
+            Remove
+          </Button>
+          <Button variant="outline" className="text-sm" onClick={onPromote}>
+            Mark as Read
+          </Button>
         </div>
-      </div>
-
-      <div className="mt-3 flex justify-end gap-2 border-t border-outline-variant pt-3">
-        <Button variant="ghost" className="text-sm" onClick={onEdit}>
-          Edit
-        </Button>
-        <Button
-          variant="ghost"
-          className="text-sm text-error hover:text-error/90"
-          onClick={onDelete}
-        >
-          Remove
-        </Button>
-        <Button variant="outline" className="text-sm" onClick={onPromote}>
-          Mark as Read
-        </Button>
-      </div>
-    </div>
+      }
+    />
   );
 }

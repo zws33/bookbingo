@@ -8,7 +8,7 @@ const Root = ({ className, ...props }: React.ComponentProps<typeof RadixToggleGr
 const Item = ({ className, ...props }: React.ComponentProps<typeof RadixToggleGroup.Item>) => (
   <RadixToggleGroup.Item
     className={cn(
-      'p-2 rounded text-outline hover:text-on-surface-variant',
+      'p-2 rounded-sm text-outline hover:text-on-surface-variant',
       'data-[state=on]:bg-primary-container data-[state=on]:text-on-primary-container',
       className,
     )}

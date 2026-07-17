@@ -206,7 +206,7 @@ export function BookList({
                 <img
                   src={selectedBookData.metadata.thumbnailUrl}
                   alt=""
-                  className="w-16 h-22 object-cover rounded shrink-0"
+                  className="w-16 h-22 object-cover rounded-sm shrink-0"
                   onError={(e) => {
                     (e.currentTarget as HTMLImageElement).style.display =
                       'none';
@@ -233,7 +233,7 @@ export function BookList({
                   {selectedBookData.metadata.categories.map((cat) => (
                     <span
                       key={cat}
-                      className="text-xs bg-surface-container-high text-on-surface-variant px-2 py-0.5 rounded"
+                      className="text-xs bg-surface-container-high text-on-surface-variant px-2 py-0.5 rounded-sm"
                     >
                       {cat}
                     </span>
@@ -247,7 +247,7 @@ export function BookList({
                   {selectedReading.tiles.map((tile) => (
                     <span
                       key={tile}
-                      className="w-2 h-2 rounded bg-primary inline-block"
+                      className="w-2 h-2 rounded-sm bg-primary inline-block"
                       title={tile}
                     />
                   ))}

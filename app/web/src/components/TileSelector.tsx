@@ -31,7 +31,7 @@ function TileButton({ tile, onToggle }: TileButtonProps) {
       disabled={tile.isDisabled}
       aria-pressed={tile.isSelected}
       className={cn(
-        'px-2 py-1.5 rounded text-sm text-left transition-colors',
+        'px-2 py-1.5 rounded-sm text-sm text-left transition-colors',
         tile.isSelected
           ? 'bg-primary text-on-primary'
           : 'bg-surface-container-low text-on-surface hover:bg-surface-container-high',

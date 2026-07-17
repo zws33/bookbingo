@@ -30,7 +30,7 @@ export function BookRow({ bookTitle, bookAuthor, tiles, isFreebie, metadata, onC
         <img
           src={thumbnailUrl}
           alt=""
-          className="w-7 h-10 object-cover rounded shrink-0"
+          className="w-7 h-10 object-cover rounded-sm shrink-0"
           onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
         />
       )}

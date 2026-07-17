@@ -18,7 +18,7 @@ export function TileBadge({ tileId, variant = 'primary', className }: TileBadgeP
     <span
       title={name}
       className={cn(
-        'inline-flex items-center rounded border px-1.5 py-0.5 text-[10px] font-semibold uppercase leading-none tracking-wide',
+        'inline-flex items-center rounded-sm border px-1.5 py-0.5 text-[10px] font-semibold uppercase leading-none tracking-wide',
         variantClasses[variant],
         className,
       )}

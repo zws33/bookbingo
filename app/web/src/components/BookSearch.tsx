@@ -91,14 +91,14 @@ export function BookSearch({ onBookSelected, onManualEntry }: BookSearchProps) {
                   <img
                     src={r.thumbnailUrl}
                     alt=""
-                    className="h-11 w-8 shrink-0 rounded object-cover"
+                    className="h-11 w-8 shrink-0 rounded-sm object-cover"
                     onError={(e) => {
                       (e.currentTarget as HTMLImageElement).style.display =
                         'none';
                     }}
                   />
                 ) : (
-                  <div className="h-11 w-8 shrink-0 rounded bg-surface-container-high" />
+                  <div className="h-11 w-8 shrink-0 rounded-sm bg-surface-container-high" />
                 )}
                 <div className="min-w-0">
                   <p className="truncate text-sm font-medium text-on-surface">
