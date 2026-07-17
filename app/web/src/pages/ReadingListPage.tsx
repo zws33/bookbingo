@@ -170,7 +170,7 @@ export function ReadingListPage({ userId }: ReadingListPageProps) {
         {entries.length === 0 ? (
           <div className="py-12 text-center">
             <div className="mb-4 text-4xl">📖</div>
-            <h3 className="text-lg font-medium text-on-surface">
+            <h3 className="font-display text-lg font-medium text-on-surface">
               Your reading list is empty
             </h3>
             <p className="mt-1 text-on-surface-variant">

@@ -168,7 +168,23 @@ tokens (~120 class occurrences). Highlights:
 - 64 web tests pass unchanged; `verify` green; alpha-ramp + hover utilities confirmed
   generating (`color-mix()` with hex fallback).
 
-### Phase 4 — Editorial treatments (committed) + optional dark mode
+### Phase 4 — Fonts + editorial typography ✅
+Done. Self-hosted **Noto Serif + Inter** via `@fontsource-variable/*` (bundled by
+Vite, no CDN — 15 subsetted `.woff2` emitted, lazy-loaded by `unicode-range`).
+- `--font-sans` overridden to Inter → app-wide default body font (one token, no
+  per-component edits; v4 preflight uses `--font-sans` as the page default).
+- `--font-display` → Noto Serif; applied via `font-display` to **chrome headings
+  only** (wordmark, welcome/page/section titles, dialog + alert titles,
+  empty-states). Content + dense UI (book titles, labels, lists, forms) stay sans
+  for scannability.
+- `@font-face` families confirmed matching tokens (`"Inter Variable"`,
+  `"Noto Serif Variable"`); Fontsource defaults to `font-display: swap` (no FOIT).
+- Deferred remaining editorial pillars (vellum, hairlines, tight radii) already
+  shipped via tokens in Phases 1–3.
+- Optional follow-ups (not done): adopt the `--text-*` type scale on headings
+  (currently headings keep ad-hoc sizes + serif); latin-only font subset; dark mode.
+
+### (was Phase 4) — optional dark mode
 - **Fonts (committed):** self-host Noto Serif + Inter; add `--font-display`
   (serif) / `--font-body` (sans) with fallback stacks (`… , serif` /
   `… , system-ui, sans-serif`). Preload the `.woff2`, set `font-display: swap`.

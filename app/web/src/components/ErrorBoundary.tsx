@@ -26,7 +26,7 @@ export class ErrorBoundary extends Component<Props, State> {
       return (
         <div className="min-h-screen flex items-center justify-center bg-surface">
           <div className="text-center">
-            <h2 className="text-xl font-semibold text-on-surface mb-2">
+            <h2 className="font-display text-xl font-semibold text-on-surface mb-2">
               Something went wrong
             </h2>
             <p className="text-on-surface-variant mb-6">Reload the page to try again.</p>

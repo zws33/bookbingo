@@ -5,6 +5,10 @@ import App from './App';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { ToastProvider } from './lib/ToastContext';
 import { log } from '@bookbingo/lib-util';
+// Self-hosted fonts (bundled by Vite, no CDN). Variable flavors: one file per
+// family, all weights. Registered families: "Inter Variable", "Noto Serif Variable".
+import '@fontsource-variable/inter';
+import '@fontsource-variable/noto-serif';
 import './index.css';
 
 window.onerror = (_message, _source, _line, _col, error) => {
