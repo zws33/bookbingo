@@ -57,7 +57,11 @@ describe('OpenLibraryProvider', () => {
     global.fetch = originalFetch;
   });
 
-  function makeProvider(overrides = {}) {
+  type ProviderOptions = NonNullable<
+    ConstructorParameters<typeof OpenLibraryProvider>[0]
+  >;
+
+  function makeProvider(overrides: Partial<ProviderOptions> = {}) {
     return new OpenLibraryProvider({ now: () => clock, ...overrides });
   }
 
