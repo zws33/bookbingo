@@ -120,7 +120,7 @@ export class OpenLibraryProvider implements BookProvider {
     // Guard the delete so a newer in-flight entry isn't dropped by an older
     // failure. Attaching this handler also marks `request` as handled, so the
     // rejection reaches the caller without an unhandled-rejection warning.
-    request.catch(() => {
+    void request.catch(() => {
       if (this.searchCache.get(key)?.request === request) {
         this.searchCache.delete(key);
       }
