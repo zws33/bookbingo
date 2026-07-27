@@ -144,6 +144,71 @@ describe('OpenLibraryProvider', () => {
       assert.equal(retried[0]?.title, 'Dune');
     });
 
+    test('expires an empty result on the shortened TTL', async () => {
+      installSearchFetch(() => jsonResponse({ docs: [] }));
+      const provider = makeProvider({
+        searchCacheTtlMs: 10_000,
+        emptySearchCacheTtlMs: 100,
+      });
+
+      const first = await provider.search('nonesuch');
+      assert.deepEqual(first, []);
+
+      clock = 99;
+      await provider.search('nonesuch');
+      assert.equal(requestedUrls.length, 1, 'still within the shortened TTL');
+
+      clock = 100;
+      await provider.search('nonesuch');
+      assert.equal(requestedUrls.length, 2, 'shortened TTL has elapsed');
+    });
+
+    test('keeps the full TTL for a non-empty result', async () => {
+      installSearchFetch();
+      const provider = makeProvider({
+        searchCacheTtlMs: 10_000,
+        emptySearchCacheTtlMs: 100,
+      });
+
+      await provider.search('dune');
+      // Well past the empty TTL, well inside the full one.
+      clock = 5000;
+      await provider.search('dune');
+
+      assert.equal(requestedUrls.length, 1);
+    });
+
+    test('rejects every concurrent caller and caches nothing', async () => {
+      let shouldFail = true;
+      global.fetch = (async (input: string | URL) => {
+        requestedUrls.push(String(input));
+        await tick();
+        return shouldFail
+          ? errorResponse('Server Error')
+          : jsonResponse(SEARCH_PAYLOAD);
+      }) as typeof fetch;
+      const provider = makeProvider({ searchCacheTtlMs: 1000 });
+
+      const settled = await Promise.allSettled([
+        provider.search('dune'),
+        provider.search('dune'),
+        provider.search('dune'),
+      ]);
+
+      assert.equal(
+        settled.filter((s) => s.status === 'rejected').length,
+        3,
+        'the shared failure reaches every coalesced caller',
+      );
+      assert.equal(requestedUrls.length, 1);
+
+      // The failed entry must have been evicted, not left to occupy the TTL.
+      shouldFail = false;
+      const retried = await provider.search('dune');
+      assert.equal(requestedUrls.length, 2);
+      assert.equal(retried[0]?.title, 'Dune');
+    });
+
     test('keys distinct queries separately', async () => {
       installSearchFetch();
       const provider = makeProvider({ searchCacheTtlMs: 1000 });

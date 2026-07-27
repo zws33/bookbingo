@@ -40,6 +40,14 @@ const EditionsSchema = z.object({
 const DEFAULT_SEARCH_CACHE_TTL_MS = 10 * 60 * 1000;
 
 /**
+ * How long an *empty* search response stays servable. Deliberately much shorter
+ * than the full TTL: a `200 OK` carrying `docs: []` covers both a genuine
+ * no-match and some degraded upstream states, and neither should pin a query to
+ * "no results" for ten minutes while a user iterates in the search box.
+ */
+const DEFAULT_EMPTY_SEARCH_CACHE_TTL_MS = 30 * 1000;
+
+/**
  * Upper bound on cached search queries. This is a memory-leak guard, not a
  * hit-rate optimization — a v2 function instance is long-lived, so an unbounded
  * Map grows for the life of the instance. Entries almost always expire long
@@ -49,17 +57,27 @@ const DEFAULT_SEARCH_CACHE_TTL_MS = 10 * 60 * 1000;
 const DEFAULT_SEARCH_CACHE_MAX_ENTRIES = 200;
 
 interface SearchCacheEntry {
+  /**
+   * Mutable: written optimistically at insert time with the full TTL, then
+   * revised downward by `trackSettlement` if the response turns out to be
+   * empty. The emptiness of a response is only knowable after the promise
+   * resolves, which is after the entry already had to exist.
+   */
   expiresAt: number;
   /**
    * The in-flight or settled request. Caching the *promise* rather than the
    * resolved value collapses concurrent identical queries onto one fetch —
    * caching values alone would let N callers all miss before the first resolves.
+   *
+   * Note that every cache hit hands back this same array instance. Nothing
+   * mutates it today (the callable boundary serializes it), but do not start.
    */
   request: Promise<BookSearchResult[]>;
 }
 
 export interface OpenLibraryProviderOptions {
   searchCacheTtlMs?: number;
+  emptySearchCacheTtlMs?: number;
   searchCacheMaxEntries?: number;
   /** Injectable clock so cache expiry is testable without timer mocking. */
   now?: () => number;
@@ -82,12 +100,15 @@ export class OpenLibraryProvider implements BookProvider {
    */
   private readonly searchCache = new Map<string, SearchCacheEntry>();
   private readonly searchCacheTtlMs: number;
+  private readonly emptySearchCacheTtlMs: number;
   private readonly searchCacheMaxEntries: number;
   private readonly now: () => number;
 
   constructor(options: OpenLibraryProviderOptions = {}) {
     this.searchCacheTtlMs =
       options.searchCacheTtlMs ?? DEFAULT_SEARCH_CACHE_TTL_MS;
+    this.emptySearchCacheTtlMs =
+      options.emptySearchCacheTtlMs ?? DEFAULT_EMPTY_SEARCH_CACHE_TTL_MS;
     this.searchCacheMaxEntries =
       options.searchCacheMaxEntries ?? DEFAULT_SEARCH_CACHE_MAX_ENTRIES;
     this.now = options.now ?? Date.now;
@@ -114,19 +135,52 @@ export class OpenLibraryProvider implements BookProvider {
       request,
     });
     this.evictOverflow();
-
-    // A failed request must not stay cached for the whole TTL — one transient
-    // Open Library error would otherwise blank out a query for ten minutes.
-    // Guard the delete so a newer in-flight entry isn't dropped by an older
-    // failure. Attaching this handler also marks `request` as handled, so the
-    // rejection reaches the caller without an unhandled-rejection warning.
-    void request.catch(() => {
-      if (this.searchCache.get(key)?.request === request) {
-        this.searchCache.delete(key);
-      }
-    });
+    this.trackSettlement(key, request);
 
     return request;
+  }
+
+  /**
+   * Revises the cache entry for `key` once `request` settles. Both outcomes
+   * need after-the-fact correction because the entry has to be inserted before
+   * the response is known — that is the cost of caching the promise rather than
+   * the value.
+   *
+   * On rejection: evict. One transient Open Library error must not blank out a
+   * query for the whole TTL.
+   *
+   * On an empty result: shorten the entry's life to `emptySearchCacheTtlMs`.
+   *
+   * Both paths identity-check the entry first, so a settling request can only
+   * ever modify the entry it created — never a newer one that replaced it.
+   *
+   * Passing an `onRejected` handler here also marks `request` as handled, so
+   * the rejection still reaches the caller without an unhandled-rejection
+   * warning.
+   */
+  private trackSettlement(
+    key: string,
+    request: Promise<BookSearchResult[]>,
+  ): void {
+    void request.then(
+      (results) => {
+        const entry = this.searchCache.get(key);
+        if (entry?.request !== request) return;
+
+        // Anchored at settle rather than insert: the shortened window should
+        // measure from when we learned the response was empty. At 30s the
+        // fetch duration is a visible fraction of the window, unlike the full
+        // TTL where it rounds away.
+        if (results.length === 0) {
+          entry.expiresAt = this.now() + this.emptySearchCacheTtlMs;
+        }
+      },
+      () => {
+        if (this.searchCache.get(key)?.request === request) {
+          this.searchCache.delete(key);
+        }
+      },
+    );
   }
 
   async lookup(externalId: string): Promise<BookEnrichmentResult> {
