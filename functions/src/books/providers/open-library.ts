@@ -48,29 +48,19 @@ const DEFAULT_SEARCH_CACHE_TTL_MS = 10 * 60 * 1000;
 const DEFAULT_EMPTY_SEARCH_CACHE_TTL_MS = 30 * 1000;
 
 /**
- * Upper bound on cached search queries. This is a memory-leak guard, not a
- * hit-rate optimization — a v2 function instance is long-lived, so an unbounded
- * Map grows for the life of the instance. Entries almost always expire long
- * before the cap is reached, which is why eviction is plain oldest-first rather
- * than LRU.
+ * Upper bound on cached search queries.
  */
 const DEFAULT_SEARCH_CACHE_MAX_ENTRIES = 200;
 
 interface SearchCacheEntry {
   /**
-   * Mutable: written optimistically at insert time with the full TTL, then
-   * revised downward by `trackSettlement` if the response turns out to be
-   * empty. The emptiness of a response is only knowable after the promise
-   * resolves, which is after the entry already had to exist.
+   * Written optimistically at insert time with the full TTL, then
+   * revised downward if the response turns out to be
+   * empty.
    */
   expiresAt: number;
   /**
-   * The in-flight or settled request. Caching the *promise* rather than the
-   * resolved value collapses concurrent identical queries onto one fetch —
-   * caching values alone would let N callers all miss before the first resolves.
-   *
-   * Note that every cache hit hands back this same array instance. Nothing
-   * mutates it today (the callable boundary serializes it), but do not start.
+   * The in-flight or settled request.
    */
   request: Promise<BookSearchResult[]>;
 }
@@ -91,13 +81,6 @@ export class OpenLibraryProvider implements BookProvider {
     'User-Agent': 'BookBingo/1.0 (zach.smith33@gmail.com)',
   };
 
-  /**
-   * Ephemeral, per-instance search cache. `handler.ts` constructs one provider
-   * at module scope, so in production its lifetime is the function instance's —
-   * disposable by design, with no invalidation logic. Scoping it to the
-   * instance rather than the module keeps it resettable in tests by
-   * constructing a fresh provider.
-   */
   private readonly searchCache = new Map<string, SearchCacheEntry>();
   private readonly searchCacheTtlMs: number;
   private readonly emptySearchCacheTtlMs: number;
@@ -126,9 +109,6 @@ export class OpenLibraryProvider implements BookProvider {
       this.searchCache.delete(key);
     }
 
-    // The raw query is what actually goes to Open Library; the normalized form
-    // is only a cache key. Queries differing solely in case or spacing share an
-    // entry, populated by whichever arrived first.
     const request = this.fetchSearch(query);
     this.searchCache.set(key, {
       expiresAt: now + this.searchCacheTtlMs,
@@ -141,10 +121,7 @@ export class OpenLibraryProvider implements BookProvider {
   }
 
   /**
-   * Revises the cache entry for `key` once `request` settles. Both outcomes
-   * need after-the-fact correction because the entry has to be inserted before
-   * the response is known — that is the cost of caching the promise rather than
-   * the value.
+   * Revises the cache entry for `key` once `request` settles.
    *
    * On rejection: evict. One transient Open Library error must not blank out a
    * query for the whole TTL.
@@ -167,10 +144,6 @@ export class OpenLibraryProvider implements BookProvider {
         const entry = this.searchCache.get(key);
         if (entry?.request !== request) return;
 
-        // Anchored at settle rather than insert: the shortened window should
-        // measure from when we learned the response was empty. At 30s the
-        // fetch duration is a visible fraction of the window, unlike the full
-        // TTL where it rounds away.
         if (results.length === 0) {
           entry.expiresAt = this.now() + this.emptySearchCacheTtlMs;
         }
@@ -192,9 +165,6 @@ export class OpenLibraryProvider implements BookProvider {
     }
     const work = WorkSchema.parse(await workRes.json());
 
-    // The author and editions lookups are independent — neither reads the
-    // other's result — so they run concurrently. Turns the fan-out from three
-    // sequential round-trips into one followed by two in parallel.
     const [author, pageCount] = await Promise.all([
       this.fetchAuthorName(work.authors?.[0]?.author?.key),
       this.fetchPageCount(externalId),
