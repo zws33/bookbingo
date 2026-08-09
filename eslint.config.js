@@ -9,7 +9,14 @@ export default tseslint.config(
   ...tseslint.configs.recommended,
   prettier,
   {
-    ignores: ['**/coverage/**', '**/dist/**', 'functions/lib/**', '.gemini/**', '**/*.d.ts'],
+    ignores: [
+      '**/coverage/**',
+      '**/dist/**',
+      '**/.tsbuild/**',
+      'functions/lib/**',
+      '.gemini/**',
+      '**/*.d.ts',
+    ],
   },
   {
     languageOptions: {

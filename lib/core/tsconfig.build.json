@@ -5,8 +5,8 @@
     "rootDir": "src"
   },
   "include": ["src/**/*"],
-  "exclude": ["dist/**/*"],
-  "references": [
-    { "path": "../types/tsconfig.build.json" }
-  ]
+  // Tests are typechecked by the root `tsconfig.json` include, not compiled
+  // into the published output.
+  "exclude": ["dist/**/*", "src/**/*.test.ts"],
+  "references": [{ "path": "../types/tsconfig.build.json" }]
 }

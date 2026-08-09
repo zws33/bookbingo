@@ -1,12 +1,21 @@
 {
   "extends": "../../tsconfig.build.json",
   "compilerOptions": {
-    "outDir": "dist",
+    // Not `dist` — that directory is Vite's build output and the Firebase
+    // Hosting public root. Nothing consumes this tsc emit; it is a byproduct
+    // of keeping app/web in the project-reference graph.
+    "outDir": ".tsbuild",
     "rootDir": "src",
     "jsx": "react-jsx"
   },
   "include": ["src/**/*"],
-  "exclude": ["dist/**/*", "node_modules"],
+  "exclude": [
+    ".tsbuild/**/*",
+    "dist/**/*",
+    "node_modules",
+    "src/**/*.test.ts",
+    "src/**/*.test.tsx"
+  ],
   "references": [
     { "path": "../../lib/core/tsconfig.build.json" },
     { "path": "../../lib/types/tsconfig.build.json" },

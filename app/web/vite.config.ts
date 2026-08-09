@@ -12,6 +12,8 @@ export default defineConfig({
     exclude: [
       '**/node_modules/**',
       '**/dist/**',
+      // tsc build output — never a source of tests
+      '**/.tsbuild/**',
       '**/.{idea,git,cache,output,temp}/**',
       '**/*.int.test.*',
     ],

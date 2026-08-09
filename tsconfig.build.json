@@ -11,6 +11,10 @@
     "composite": true,
     "incremental": true
   },
+  // Solution-style config: orchestrates the project graph and holds the shared
+  // compiler options that every sub-project's tsconfig.build.json extends.
+  // It compiles nothing itself — sub-projects each declare their own `include`.
+  "files": [],
   "references": [
     { "path": "./lib/types/tsconfig.build.json" },
     { "path": "./lib/core/tsconfig.build.json" },

@@ -52,10 +52,14 @@ Implements the **near-term + mid-term** horizons of
 4. **`functions/` build config differs from what CLAUDE.md claims.** There is no
    `functions/tsconfig.build.json` — only `functions/tsconfig.json`, which is
    itself `composite` and carries the project `references`. It uses
-   `"moduleResolution": "Bundler"`, **not** `NodeNext`. CLAUDE.md is stale on
-   this and is corrected as part of PR 3. Separately, `../lib/util` is listed in
-   those references but is neither a `functions/package.json` dependency nor
-   imported anywhere in `functions/src` — a dangling reference to clean up when
+   `"moduleResolution": "Bundler"`, **not** `NodeNext`. ~~CLAUDE.md is stale on
+   this and is corrected as part of PR 3.~~ **Corrected in PR #62** (a docs
+   audit), together with the reason for the separate `functions/` typecheck —
+   the root `include` does not cover it, not a resolution conflict. The
+   observation itself still holds: there is no `functions/tsconfig.build.json`.
+   Separately, `../lib/util` is listed in those references but is neither a
+   `functions/package.json` dependency nor imported anywhere in
+   `functions/src` — a dangling reference, **still present**, to clean up when
    `lib-core` is added.
 
 ---
@@ -206,9 +210,16 @@ without the other creates the dead-end path the ADR warns about.
 - `getOrCreateBook` keeps working unchanged for manual entry. For OL books the
   doc will already exist, so its existing early-return makes it a cheap no-op.
 
-**Also in this PR:** update CLAUDE.md — the stale `NodeNext` claim (§0
-constraint 4), the new `lib/core/src/bookMetadata.ts` module, and `functions/`'s
-new dependency on `lib-core`.
+**Also in this PR:** update CLAUDE.md for the new `lib/core/src/bookMetadata.ts`
+module (added in PR 2) and `functions/`'s new dependency on `lib-core` — the
+Architecture Guidance entry for Cloud Functions is the place for both.
+
+> ~~the stale `NodeNext` claim (§0 constraint 4)~~ — **done in PR #62; do not
+> redo it.** That PR rewrote the entire TypeScript Build Configuration section,
+> so read it before editing. It now documents the solution-style root config,
+> one-writer-per-output-directory, and that `functions/` typechecking requires
+> `lib/types/dist`. Adding `lib-core` to `functions/tsconfig.json` `references`
+> does not invalidate any of it.
 
 **Tests:**
 - `functions/src/books/service.test.ts` (new): fresh store doc → provider never
