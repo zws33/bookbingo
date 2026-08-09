@@ -1,7 +1,17 @@
 # Open Library Dependency Roadmap
 
-**Status:** Planning memo (opinionated). Nothing here is committed. When a phase
-is approved, promote its decisions into `docs/decisions/` per the ADR convention.
+**Status:** Planning memo (opinionated). **Partially executed** — the near-term
+horizon is underway; the mid-term is approved. See
+[`OPEN_LIBRARY_READ_THROUGH_PLAN.md`](OPEN_LIBRARY_READ_THROUGH_PLAN.md), which
+implements the near-term + mid-term horizons as four PRs. Long-term remains
+uncommitted and trigger-gated (§4). When a phase is approved, promote its
+decisions into `docs/decisions/` per the ADR convention.
+
+| Near-term deliverable | State |
+|---|---|
+| 1. Read-through `/books` on `lookup` | Approved, not yet shipped — read-through plan PRs 2–4 |
+| 2. Short-TTL `search` response cache | ✅ Shipped (PR #61) |
+| 3. Collapse `lookup`'s internal fan-out | ✅ Shipped (PR #61) |
 
 **Audience:** Solo engineer / very small team. Optimize for reversible,
 incremental moves. Avoid generic future-proofing.
@@ -10,17 +20,26 @@ incremental moves. Avoid generic future-proofing.
 
 ## 0. Grounding: what the code actually does today
 
+> **Updated 2026-08-09** — this section originally described the pre-PR-#61 code
+> ("3 sequential" fetches, "no caching anywhere"). Both facts changed when
+> near-term deliverables 2 and 3 shipped. The table below reflects current code.
+
 Two API touchpoints, both behind a single callable (`enrichBook`):
 
 | Path | Frontend trigger | Backend behavior | OL requests |
 |------|------------------|------------------|-------------|
-| `search` | `BookSearch.tsx`, 300ms debounce, min 2 chars, `limit=10` | `OpenLibraryProvider.search()` → `/search.json` | **1** per query |
-| `lookup` | On result selection | `OpenLibraryProvider.lookup()` → work + author + editions | **3** sequential |
+| `search` | `BookSearch.tsx`, 300ms debounce, min 2 chars, `limit=10` | `OpenLibraryProvider.search()` → `/search.json`, behind a per-instance TTL cache | **1** per distinct query per TTL window |
+| `lookup` | On result selection | `OpenLibraryProvider.lookup()` → work, then author + editions in parallel | **3** — 1 then 2 concurrent |
 
 Flow: `app/web` → `httpsCallable('enrichBook')` → `handler.ts` →
 `BookEnrichmentService` → `OpenLibraryProvider` → `openlibrary.org`.
-There is **no caching anywhere** — not in the function, not at a CDN, not in
-Firestore. Every keystroke-batch and every selection hits OL live.
+
+Caching today is **one layer only**: an in-memory, per-function-instance `Map` in
+`OpenLibraryProvider` covering `search`, with a shorter TTL for empty results and
+max-entries eviction. There is still **no persistent cache** — nothing at a CDN,
+and nothing in Firestore. Every `lookup` hits OL live, even for books already
+sitting in `/books` with full metadata. That gap is deliverable 1, the subject of
+the read-through plan.
 
 **What already exists that matters enormously:** `/books/{bookId}`.
 
@@ -94,13 +113,14 @@ without introducing new infrastructure.
    3-request fan-out, derive the same `bookId` and check `/books`. If the doc
    exists with metadata newer than a staleness threshold, return it and skip OL
    entirely. On miss, fetch OL and **write-through** to `/books`.
-2. **Short-TTL response cache for `search`.** In-memory (per-function-instance)
-   Map keyed by normalized query, TTL ~5–15 min. Cheap, throwaway, absorbs the
+2. **Short-TTL response cache for `search`.** ✅ **Shipped (PR #61).** In-memory
+   (per-function-instance) Map keyed by normalized query, with a shorter TTL for
+   empty results and max-entries eviction. Cheap, throwaway, absorbs the
    debounce-tail and repeated identical queries. Optionally add a
    `Cache-Control` header if the callable ever moves behind a CDN.
-3. **Collapse `lookup`'s internal fan-out where trivial** — e.g. the editions
-   page-count call is the weakest data anyway; consider making it best-effort /
-   parallel rather than a third sequential hop.
+3. **Collapse `lookup`'s internal fan-out where trivial.** ✅ **Shipped (PR #61).**
+   The work fetch stays first (the author key comes out of its response), then
+   author and editions run concurrently via `Promise.all`.
 
 **Why this phase:** It is nearly free — the store and the ID derivation already
 exist — and it delivers the largest correctness/cost/latency win of any phase.
@@ -273,6 +293,9 @@ search is the path you'll never own.
    turns step 1's cache into a real store.
 3. **Ephemeral in-memory `search` cache** in `OpenLibraryProvider.search`. Tiny,
    isolated, high-frequency win. Do it last because it's the least strategic.
+   ✅ **Shipped (PR #61)** — it went first in practice, bundled with the fan-out
+   parallelization, because both were self-contained changes to one file and
+   neither depended on the schema work in step 2.
 
 **Deliberately defer:** dump ingestion, multi-provider code, editions/ISBN
 modeling, any scheduled job, a `provider` abstraction *beyond* the

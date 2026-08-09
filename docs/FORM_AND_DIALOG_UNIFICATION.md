@@ -1,9 +1,17 @@
 # Engineering Design: Form & Dialog Unification
 
-**Status:** Proposed — under review
+**Status:** Partially implemented — step 1 of 3 shipped
 **Author:** Zach Smith
-**Date:** 2026-07-01
+**Date:** 2026-07-01 · status verified against code 2026-08-09
 **Depends on:** [`decisions/tbr-reading-payload-unification.md`](decisions/tbr-reading-payload-unification.md)
+
+| §7 step | State |
+|---|---|
+| 1. Container refactor (persistent dialog, `BookSearch`, no `setTimeout`) | ✅ Shipped — see §2, marked "implemented — do not fix" |
+| 2. `BookEntryForm` (unified two-axis form) | ❌ Not started — no `BookEntryForm.tsx`; `BookForm` with `identityLocked` still serves both pages |
+| 3. Model + migration (`plannedTiles→tiles`, `+isFreebie`, `−notes`) | ❌ Not started — `TBREntry` still has `plannedTiles` and `notes`; `createTBREntry(userId, bookId, plannedTiles, notes?)` unchanged; no `scripts/migrate-tbr-payload.ts` |
+
+Everything in §3–§6 and §9 therefore still describes intended, not current, state.
 
 ---
 

@@ -1,10 +1,28 @@
 # Design System Adoption Plan
 
-Status: **Proposed** · Created 2026-07-15
+Status: **Complete** · Created 2026-07-15 · All phases merged 2026-07-17 (PRs #53–#57)
 
-Evaluates the agent-generated design reference at
-`app/web/src/components/design-system/index.html` and plans how (and how much) of
-it to adopt into the live `app/web` codebase.
+Evaluated an agent-generated design reference and planned how (and how much) of it
+to adopt into the live `app/web` codebase. **All five phases have shipped**; the
+document is retained as the rationale record for the token system.
+
+> **Reading this after the fact:** the reference it evaluates —
+> `app/web/src/components/design-system/index.html` — was **deleted in Phase 5**
+> and is described in the present tense throughout the analysis sections below.
+> The live equivalents are `app/web/src/index.css` (the `@theme` token block) and
+> the `/catalog` route, which renders swatches from the real CSS variables.
+> The authoritative record of what the system *is* — as opposed to how it was
+> chosen — is [`decisions/design-token-system.md`](decisions/design-token-system.md).
+
+**Still open** (not migration phases — separate initiatives):
+
+- Dark mode. Cheap now that components reference tokens, but not started: there
+  is no `prefers-color-scheme` or `data-theme` block in `index.css`.
+- Icons. `lucide-react` was recommended over the reference's Material Symbols
+  font; not adopted, and no icon library is currently a dependency.
+- Adopting the `--text-*` type scale on headings, which still carry ad-hoc sizes.
+- Layout / IA redesign (left sidebar + dashboard home) — deferred in Phase 4's
+  triage; needs its own planning doc.
 
 ## TL;DR
 
@@ -127,7 +145,8 @@ committed rather than optional.
 ### Phase 0 — Decide direction ✅
 Resolved: full editorial identity (see above). Fonts + treatments are in scope.
 
-### Phase 1 — Establish the token layer (no component changes)
+### Phase 1 — Establish the token layer (no component changes) ✅
+Done (PR #53). The `@theme` block below landed in `src/index.css` as specified.
 - In `src/index.css` `@theme`, add reconciled color tokens (light values), the
   type scale (`--text-*` + `--font-*` with fallbacks), spacing, and radius tokens.
 - Pruned set only — roughly: `primary`, `on-primary`, `primary-container`,
@@ -202,19 +221,20 @@ mockup's ideas were triaged into three buckets:
    without knowledge of the data model. Notably the binary board contradicts the
    count-based scoring — the graded alpha ramp (Phase 3) is kept as more truthful.
 
-### (deferred) — optional dark mode
-- **Fonts (committed):** self-host Noto Serif + Inter; add `--font-display`
-  (serif) / `--font-body` (sans) with fallback stacks (`… , serif` /
-  `… , system-ui, sans-serif`). Preload the `.woff2`, set `font-display: swap`.
-- **Radii (committed):** define small-radius tokens (`--radius-DEFAULT` ~2px,
-  `--radius-lg` ~4px, `--radius-xl` ~8px). **Leave `rounded-full` untouched.**
-- **Surfaces/borders (committed):** warm vellum surface values + hairline
-  `outline-variant`; reconcile undertones (surfaces and outlines share a warm base).
-- **Dark mode (optional, now cheap):** add dark values under
-  `@media (prefers-color-scheme: dark)` or a `data-theme` selector; components
-  already reference tokens.
-- **Icons:** adopt `lucide-react` if icons are wanted (not the Material Symbols
-  font the reference uses).
+### Editorial treatment checklist — shipped in Phases 1–4, except where noted
+- **Fonts — ✅ shipped (Phase 4):** self-hosted Noto Serif + Inter via
+  `@fontsource-variable/*`; `--font-display` (serif) / `--font-sans` (Inter) with
+  fallback stacks; `font-display: swap` (Fontsource default).
+- **Radii — ✅ shipped (Phase 1):** small-radius tokens, paper-sharp.
+  `rounded-full` left untouched, as required.
+- **Surfaces/borders — ✅ shipped (Phase 1):** warm vellum surface values +
+  hairline `outline-variant`, undertones reconciled on a shared warm base.
+- **Dark mode — NOT DONE.** Still the cheap win it was: components already
+  reference tokens, so this is a matter of adding dark values under
+  `@media (prefers-color-scheme: dark)` or a `data-theme` selector. Neither
+  exists in `index.css` today.
+- **Icons — NOT DONE.** `lucide-react` remains the recommendation over the
+  reference's Material Symbols font. No icon library is a dependency yet.
 
 ### Phase 5 — Retire the mockup + rewrite the catalog ✅
 Done. Deleted `app/web/src/components/design-system/index.html` (the live `/catalog`
@@ -240,7 +260,7 @@ Original Phase 5 intent (for reference):
   custom properties** (`getComputedStyle` on `--color-*`) so the page can't drift
   from the tokens again.
 
-## Appendix A — Phase 1 token proposal (DRAFT, pending sign-off)
+## Appendix A — Phase 1 token proposal (shipped as specified in PR #53)
 
 Reconciliation applied to the reference dump:
 - **One blue ramp.** Anchored on deep Alexandria Blue `#094CB2`; container/on-container
@@ -270,5 +290,6 @@ primary-blue anchor is confirmed).
 - **One-way-ish:** token *names* become a de-facto contract across components;
   renaming later is a wide refactor. Get the names right in Phase 1.
 - **`rounded-full` trap:** never override it; use a distinct token for small radii.
-- **Record this as an ADR** in `docs/decisions/` once Phase 1 lands (token naming
-  convention + why MD3-style roles), per project convention.
+- **Record this as an ADR** — ✅ done:
+  [`decisions/design-token-system.md`](decisions/design-token-system.md) (token
+  naming convention + why MD3-style roles).

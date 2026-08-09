@@ -15,11 +15,11 @@ Book Bingo is a book reading competition among friends. Users log books they've 
 - **Language**: TypeScript (strict mode, ESM only)
 - **Web app**: React 19 + Vite + Tailwind CSS
 - **Backend**: Firebase (Auth, Firestore, Hosting)
-- **Testing**: Node built-in test runner (`node:test` + `node:assert`)
+- **Testing**: Node built-in test runner (`node:test` + `node:assert`) in `lib/` and `functions/`; Vitest + Testing Library in `app/web/`
 
 ## Project Structure
 
-- `lib/core/` — Scoring engine, validation, tile definitions, statistics
+- `lib/core/` — Scoring engine, validation, tile definitions, statistics, book identity
 - `lib/types/` — Shared type definitions
 - `lib/util/` — Cross-platform utilities (logger)
 - `app/web/` — React web application (Vite + Firebase)

@@ -154,10 +154,15 @@ GET /search.json?q={query}&fields=key,title,author_name,first_publish_year,cover
 ```
 Maps the response: `key` → `externalId` (full path, e.g., `/works/OL166894W`), `author_name[]` → joined `author` string, `cover_i` → constructed `thumbnailUrl`.
 
-**`lookup(externalId)`** — three sequential fetches:
+**`lookup(externalId)`** — three fetches; the work call first, then the other two
+concurrently (`Promise.all`), since both depend on its response or on the OLID:
 1. `GET /works/{olid}.json` — title, description, subjects, covers, first_publish_date
 2. `GET /authors/{authorKey}.json` — name of the first listed author
 3. `GET /works/{olid}/editions.json?limit=1` — page count from `entries[0].number_of_pages`
+
+`search` is additionally fronted by an in-memory, per-function-instance TTL cache
+keyed by normalized query (shorter TTL for empty results, max-entries eviction).
+Both were added in PR #61; see `OPEN_LIBRARY_DEPENDENCY_ROADMAP.md` §2.
 
 All requests include a `User-Agent: BookBingo/1.0 (zach.smith33@gmail.com)` header to stay within the 3 req/sec authenticated rate limit.
 
@@ -165,14 +170,24 @@ All requests include a `User-Agent: BookBingo/1.0 (zach.smith33@gmail.com)` head
 
 ## Search UX Design
 
+> **⚠️ Aspirational, not shipped (flagged 2026-08-09).** Steps 2 and 3 below
+> describe a read-before-network flow that **does not exist in the code**.
+> `BookSearch.tsx` debounces and calls `searchBooks(query)` → `enrichBook`
+> straight through to Open Library; there is no Firestore read on the search or
+> selection path. This is precisely the gap
+> [`OPEN_LIBRARY_READ_THROUGH_PLAN.md`](OPEN_LIBRARY_READ_THROUGH_PLAN.md) PR 3
+> closes — and note it lands the read-through on **`lookup`** (keyed by the
+> deterministic `bookId`), not on `search`, because search must keep hitting the
+> API for the long tail. Treat the sequence below as intent, not description.
+
 The user-facing flow for adding a reading:
 
 1. **User types a title or author** into a search bar
-2. **Internal library search first** — query `/books/` in Firestore for `externalIds.openLibrary` matches against already-known Work OLIDs. If the club has already read this work, surface the existing record immediately. Note: Firestore does not support fuzzy text search, so internal search matches by exact Work OLID, not free text.
-3. **External search fallback** — if no internal match, call `enrichBook({ action: 'search', query })` to search Open Library. Display Work-level results (title, author, first publish year, cover).
+2. *(not implemented)* **Internal library search first** — query `/books/` in Firestore for `externalIds.openLibrary` matches against already-known Work OLIDs. If the club has already read this work, surface the existing record immediately. Note: Firestore does not support fuzzy text search, so internal search matches by exact Work OLID, not free text.
+3. *(currently the only path)* **External search** — call `enrichBook({ action: 'search', query })` to search Open Library. Display Work-level results (title, author, first publish year, cover).
 4. **User selects a result** — app calls `enrichBook({ action: 'lookup', externalId })` to fetch full metadata
-5. **`getOrCreateBook()` runs** — checks `externalIds.openLibrary` for an existing book, creates a new one if absent
-6. **`createReading()` runs** — Firestore rule enforces that the referenced `bookId` exists
+5. **`getOrCreateBook()` runs** — computes `deriveBookId(...)` and does an idempotent write on that document id. *(The original text here said it queries `externalIds.openLibrary`; superseded by deterministic-ID dedup — see `decisions/book-identity-and-deduplication.md`.)*
+6. **`createReading()` runs** — note the referential-integrity rule described in the Security Rules section below **does not ship**; integrity is maintained by ordering, not by rules
 
 ---
 
