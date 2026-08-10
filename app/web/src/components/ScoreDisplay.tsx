@@ -7,7 +7,12 @@ interface ScoreDisplayProps {
 
 function InfoIcon() {
   return (
-    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <svg
+      className="w-4 h-4"
+      fill="none"
+      stroke="currentColor"
+      viewBox="0 0 24 24"
+    >
       <path
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -19,7 +24,8 @@ function InfoIcon() {
 }
 
 export function ScoreDisplay({ breakdown }: ScoreDisplayProps) {
-  const { score, varietyPoints, volumePoints, balanceFactor, totalBooks } = breakdown;
+  const { score, varietyPoints, volumePoints, balanceFactor, totalBooks } =
+    breakdown;
 
   return (
     <div className="bg-surface-container-lowest rounded-lg shadow-sm border border-outline-variant overflow-hidden">
@@ -28,14 +34,20 @@ export function ScoreDisplay({ breakdown }: ScoreDisplayProps) {
           <h3 className="text-label-caps uppercase text-on-primary-container">
             Bingo Score
           </h3>
-          <div className="font-display text-4xl font-bold text-primary">{score.toFixed(2)}</div>
+          <div className="font-display text-4xl font-bold text-primary">
+            {score.toFixed(2)}
+          </div>
         </div>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 divide-y md:divide-y-0 md:divide-x divide-outline-variant">
         <div className="px-6 py-4">
-          <div className="text-label-caps uppercase text-on-surface-variant mb-1">Books Read</div>
-          <div className="text-xl font-semibold text-on-surface">{totalBooks}</div>
+          <div className="text-label-caps uppercase text-on-surface-variant mb-1">
+            Books Read
+          </div>
+          <div className="text-xl font-semibold text-on-surface">
+            {totalBooks}
+          </div>
         </div>
 
         <div className="px-6 py-4">
@@ -51,7 +63,9 @@ export function ScoreDisplay({ breakdown }: ScoreDisplayProps) {
               </button>
             </Tooltip>
           </div>
-          <div className="text-xl font-semibold text-on-surface">{varietyPoints}</div>
+          <div className="text-xl font-semibold text-on-surface">
+            {varietyPoints}
+          </div>
         </div>
 
         <div className="px-6 py-4">
@@ -67,7 +81,9 @@ export function ScoreDisplay({ breakdown }: ScoreDisplayProps) {
               </button>
             </Tooltip>
           </div>
-          <div className="text-xl font-semibold text-on-surface">{volumePoints.toFixed(2)}</div>
+          <div className="text-xl font-semibold text-on-surface">
+            {volumePoints.toFixed(2)}
+          </div>
         </div>
 
         <div className="px-6 py-4">
@@ -83,7 +99,9 @@ export function ScoreDisplay({ breakdown }: ScoreDisplayProps) {
               </button>
             </Tooltip>
           </div>
-          <div className="text-xl font-semibold text-on-surface">x{balanceFactor.toFixed(2)}</div>
+          <div className="text-xl font-semibold text-on-surface">
+            x{balanceFactor.toFixed(2)}
+          </div>
         </div>
       </div>
     </div>

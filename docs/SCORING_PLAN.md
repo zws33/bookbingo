@@ -51,13 +51,13 @@ where H(n) = 1 + 1/2 + 1/3 + ... + 1/n   (the harmonic sum)
 The `-1` removes the first book from each tile (that's already counted in VarietyPoints).
 
 | Books in tile | Volume contribution | Marginal value of last book |
-|---|---|---|
-| 1 | 0.000 | (counted in variety) |
-| 2 | 0.500 | 0.500 |
-| 3 | 0.833 | 0.333 |
-| 4 | 1.083 | 0.250 |
-| 5 | 1.283 | 0.200 |
-| 10 | 1.929 | 0.100 |
+| ------------- | ------------------- | --------------------------- |
+| 1             | 0.000               | (counted in variety)        |
+| 2             | 0.500               | 0.500                       |
+| 3             | 0.833               | 0.333                       |
+| 4             | 1.083               | 0.250                       |
+| 5             | 1.283               | 0.200                       |
+| 10            | 1.929               | 0.100                       |
 
 This curve means that stacking books into one tile has sharply diminishing returns. Reading your 10th book in the same category adds only 0.1 points, while covering a brand-new category adds 1.0 points.
 
@@ -71,13 +71,13 @@ BalanceFactor = 1 / (1 + CV²)
 where CV = standard deviation / mean   of tile counts
 ```
 
-| Distribution | CV | Balance Factor |
-|---|---|---|
-| Perfectly even | 0 | 1.00 |
-| Slightly uneven | 0.3 | 0.92 |
-| Moderately uneven | 0.5 | 0.80 |
-| Very uneven | 1.0 | 0.50 |
-| Extremely uneven | 2.0 | 0.20 |
+| Distribution      | CV  | Balance Factor |
+| ----------------- | --- | -------------- |
+| Perfectly even    | 0   | 1.00           |
+| Slightly uneven   | 0.3 | 0.92           |
+| Moderately uneven | 0.5 | 0.80           |
+| Very uneven       | 1.0 | 0.50           |
+| Extremely uneven  | 2.0 | 0.20           |
 
 The balance factor only scales the **volume points** — it never reduces variety points. This means a reader is never penalized for covering new tiles, only for how unevenly they stack repeat books.
 

@@ -9,7 +9,12 @@ interface TooltipProps {
   className?: string;
 }
 
-export function Tooltip({ content, children, side = 'top', className }: TooltipProps) {
+export function Tooltip({
+  content,
+  children,
+  side = 'top',
+  className,
+}: TooltipProps) {
   return (
     <RadixTooltip.Provider delayDuration={200}>
       <RadixTooltip.Root>

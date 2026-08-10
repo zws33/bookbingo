@@ -31,6 +31,7 @@
 Users want to maintain a planning queue of books they intend to read as part of the competition. Each TBR entry captures the enriched book metadata (via the existing search/enrich pipeline) and the tiles they plan to assign — so when they finish the book, the "log it" flow is pre-populated and friction-free.
 
 **Goals:**
+
 - Add, edit, and remove books from a personal TBR list
 - Attach planned tile assignments to each TBR entry
 - Surface enriched book metadata (cover, page count, etc.) on TBR entries
@@ -38,6 +39,7 @@ Users want to maintain a planning queue of books they intend to read as part of 
 - Zero impact on scoring (TBR entries are never counted)
 
 **Non-goals:**
+
 - Social/shared TBR lists — this is personal planning only
 - Priority ordering or custom sort
 - Reading progress tracking (% read, current page)
@@ -65,6 +67,7 @@ export interface TBREntry {
 **Why a separate type, not a flag on `Reading`?**
 
 `Reading` is a completed, scored record. It has a `readAt` timestamp and feeds the scoring engine directly. Adding a `status: 'tbr' | 'read'` field would require:
+
 - Making `readAt` nullable (currently assumed present throughout)
 - Filtering TBR entries out of every scoring call
 - Branching logic in `BookList`, `BingoBoard`, and future leaderboard queries
@@ -170,6 +173,7 @@ Separate tab over a section within My Books — the workflows are distinct enoug
 ### 6c. `TBRForm` (`app/web/src/components/TBRForm.tsx`)
 
 Structurally similar to `BookForm`, but:
+
 - Fields: `plannedTiles` (via `TileSelector`), optional `notes` (via `Textarea`)
 - No `isFreebie` toggle — deferred to when the book is logged
 - Pre-populated title/author shown as read-only display (not editable — book identity is fixed at search time)
@@ -193,15 +197,15 @@ This reuses the existing `BookForm` and `Dialog` without modification.
 
 ## 7. Component & File Inventory
 
-| File | Action |
-|---|---|
-| `lib/types/src/index.ts` | Add `TBREntry` interface |
-| `app/web/src/lib/tbr.ts` | New — CRUD + `promoteTBREntry` |
-| `app/web/src/hooks/useTBR.ts` | New — Firestore subscription |
-| `app/web/src/pages/ReadingListPage.tsx` | New — page component |
+| File                                     | Action                                                                                                    |
+| ---------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| `lib/types/src/index.ts`                 | Add `TBREntry` interface                                                                                  |
+| `app/web/src/lib/tbr.ts`                 | New — CRUD + `promoteTBREntry`                                                                            |
+| `app/web/src/hooks/useTBR.ts`            | New — Firestore subscription                                                                              |
+| `app/web/src/pages/ReadingListPage.tsx`  | New — page component                                                                                      |
 | ~~`app/web/src/components/TBRForm.tsx`~~ | ~~New — add/edit form~~ **Deleted (#50); reading-list dialogs now use `BookForm` with `identityLocked`.** |
-| `app/web/src/App.tsx` | Add nav tab + route |
-| `firestore.rules` | Add TBR subcollection rule |
+| `app/web/src/App.tsx`                    | Add nav tab + route                                                                                       |
+| `firestore.rules`                        | Add TBR subcollection rule                                                                                |
 
 No changes to `lib/core`, scoring, validation, or existing Reading/Book flows.
 

@@ -52,7 +52,11 @@ describe('submitFeedbackHandler', () => {
 
   describe('auth validation', () => {
     it('throws unauthenticated when request has no auth', async () => {
-      const req = makeRequest(null, { type: 'bug', title: 'oops', description: 'it broke' });
+      const req = makeRequest(null, {
+        type: 'bug',
+        title: 'oops',
+        description: 'it broke',
+      });
       await assert.rejects(
         () => submitFeedbackHandler(req as never, TEST_DEPS),
         (err: HttpsErrorLike) => {
@@ -70,7 +74,10 @@ describe('submitFeedbackHandler', () => {
     it('throws invalid-argument for an unrecognised type', async () => {
       await assert.rejects(
         () =>
-          submitFeedbackHandler(authedReq({ type: 'unknown', title: 'a', description: 'b' }), TEST_DEPS),
+          submitFeedbackHandler(
+            authedReq({ type: 'unknown', title: 'a', description: 'b' }),
+            TEST_DEPS,
+          ),
         (err: HttpsErrorLike) => {
           assert.equal(err.code, 'invalid-argument');
           return true;
@@ -81,7 +88,10 @@ describe('submitFeedbackHandler', () => {
     it('throws invalid-argument for an empty title', async () => {
       await assert.rejects(
         () =>
-          submitFeedbackHandler(authedReq({ type: 'bug', title: '  ', description: 'b' }), TEST_DEPS),
+          submitFeedbackHandler(
+            authedReq({ type: 'bug', title: '  ', description: 'b' }),
+            TEST_DEPS,
+          ),
         (err: HttpsErrorLike) => {
           assert.equal(err.code, 'invalid-argument');
           return true;
@@ -93,7 +103,10 @@ describe('submitFeedbackHandler', () => {
       const longTitle = 'a'.repeat(TITLE_MAX_LENGTH + 1);
       await assert.rejects(
         () =>
-          submitFeedbackHandler(authedReq({ type: 'bug', title: longTitle, description: 'b' }), TEST_DEPS),
+          submitFeedbackHandler(
+            authedReq({ type: 'bug', title: longTitle, description: 'b' }),
+            TEST_DEPS,
+          ),
         (err: HttpsErrorLike) => {
           assert.equal(err.code, 'invalid-argument');
           assert.match(err.message, /title must be at most/);
@@ -106,7 +119,11 @@ describe('submitFeedbackHandler', () => {
       globalThis.fetch = makeFetchOk('https://github.com/issues/1', 1) as never;
       const maxTitle = 'a'.repeat(TITLE_MAX_LENGTH);
       const result = await submitFeedbackHandler(
-        authedReq({ type: 'bug', title: maxTitle, description: 'some description' }),
+        authedReq({
+          type: 'bug',
+          title: maxTitle,
+          description: 'some description',
+        }),
         TEST_DEPS,
       );
       assert.equal(result.issueNumber, 1);
@@ -115,7 +132,10 @@ describe('submitFeedbackHandler', () => {
     it('throws invalid-argument for an empty description', async () => {
       await assert.rejects(
         () =>
-          submitFeedbackHandler(authedReq({ type: 'bug', title: 'a title', description: '' }), TEST_DEPS),
+          submitFeedbackHandler(
+            authedReq({ type: 'bug', title: 'a title', description: '' }),
+            TEST_DEPS,
+          ),
         (err: HttpsErrorLike) => {
           assert.equal(err.code, 'invalid-argument');
           return true;
@@ -128,7 +148,11 @@ describe('submitFeedbackHandler', () => {
       await assert.rejects(
         () =>
           submitFeedbackHandler(
-            authedReq({ type: 'feature', title: 'a title', description: longDesc }),
+            authedReq({
+              type: 'feature',
+              title: 'a title',
+              description: longDesc,
+            }),
             TEST_DEPS,
           ),
         (err: HttpsErrorLike) => {
@@ -155,14 +179,24 @@ describe('submitFeedbackHandler', () => {
       makeRequest({ uid: 'user-1', token: {} }, data) as never;
 
     it('returns issueUrl and issueNumber on success', async () => {
-      globalThis.fetch = makeFetchOk('https://github.com/zws33/bookbingo/issues/42', 42) as never;
+      globalThis.fetch = makeFetchOk(
+        'https://github.com/zws33/bookbingo/issues/42',
+        42,
+      ) as never;
 
       const result = await submitFeedbackHandler(
-        authedReq({ type: 'bug', title: 'Broken thing', description: 'Steps to reproduce' }),
+        authedReq({
+          type: 'bug',
+          title: 'Broken thing',
+          description: 'Steps to reproduce',
+        }),
         TEST_DEPS,
       );
 
-      assert.equal(result.issueUrl, 'https://github.com/zws33/bookbingo/issues/42');
+      assert.equal(
+        result.issueUrl,
+        'https://github.com/zws33/bookbingo/issues/42',
+      );
       assert.equal(result.issueNumber, 42);
     });
 
@@ -171,7 +205,11 @@ describe('submitFeedbackHandler', () => {
       globalThis.fetch = fetchMock as never;
 
       await submitFeedbackHandler(
-        authedReq({ type: 'bug', title: 'A title', description: 'A description' }),
+        authedReq({
+          type: 'bug',
+          title: 'A title',
+          description: 'A description',
+        }),
         TEST_DEPS,
       );
 
@@ -187,7 +225,11 @@ describe('submitFeedbackHandler', () => {
       globalThis.fetch = fetchMock as never;
 
       await submitFeedbackHandler(
-        authedReq({ type: 'feature', title: 'New feature', description: 'Please add this' }),
+        authedReq({
+          type: 'feature',
+          title: 'New feature',
+          description: 'Please add this',
+        }),
         TEST_DEPS,
       );
 
@@ -203,7 +245,11 @@ describe('submitFeedbackHandler', () => {
       globalThis.fetch = fetchMock as never;
 
       await submitFeedbackHandler(
-        authedReq({ type: 'bug', title: '  whitespace  ', description: '  spaces  ' }),
+        authedReq({
+          type: 'bug',
+          title: '  whitespace  ',
+          description: '  spaces  ',
+        }),
         TEST_DEPS,
       );
 
@@ -217,12 +263,19 @@ describe('submitFeedbackHandler', () => {
     });
 
     it('throws internal error when GitHub API returns a non-OK response', async () => {
-      globalThis.fetch = makeFetchFail(422, '{"message":"Validation Failed"}') as never;
+      globalThis.fetch = makeFetchFail(
+        422,
+        '{"message":"Validation Failed"}',
+      ) as never;
 
       await assert.rejects(
         () =>
           submitFeedbackHandler(
-            authedReq({ type: 'bug', title: 'A title', description: 'A description' }),
+            authedReq({
+              type: 'bug',
+              title: 'A title',
+              description: 'A description',
+            }),
             TEST_DEPS,
           ),
         (err: HttpsErrorLike) => {
@@ -233,13 +286,18 @@ describe('submitFeedbackHandler', () => {
     });
 
     it('does not leak the GitHub error body in the thrown error', async () => {
-      const secretBody = 'PAT is not configured correctly — secret error details';
+      const secretBody =
+        'PAT is not configured correctly — secret error details';
       globalThis.fetch = makeFetchFail(403, secretBody) as never;
 
       await assert.rejects(
         () =>
           submitFeedbackHandler(
-            authedReq({ type: 'bug', title: 'A title', description: 'A description' }),
+            authedReq({
+              type: 'bug',
+              title: 'A title',
+              description: 'A description',
+            }),
             TEST_DEPS,
           ),
         (err: HttpsErrorLike) => {

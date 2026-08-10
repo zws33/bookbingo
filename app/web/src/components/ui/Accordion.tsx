@@ -1,15 +1,28 @@
 import { Accordion as RadixAccordion } from 'radix-ui';
 import { cn } from '../../lib/cn.js';
 
-const Root = ({ className, ...props }: React.ComponentProps<typeof RadixAccordion.Root>) => (
+const Root = ({
+  className,
+  ...props
+}: React.ComponentProps<typeof RadixAccordion.Root>) => (
   <RadixAccordion.Root className={cn('w-full', className)} {...props} />
 );
 
-const Item = ({ className, ...props }: React.ComponentProps<typeof RadixAccordion.Item>) => (
-  <RadixAccordion.Item className={cn('border-b border-outline-variant last:border-0', className)} {...props} />
+const Item = ({
+  className,
+  ...props
+}: React.ComponentProps<typeof RadixAccordion.Item>) => (
+  <RadixAccordion.Item
+    className={cn('border-b border-outline-variant last:border-0', className)}
+    {...props}
+  />
 );
 
-const Trigger = ({ className, children, ...props }: React.ComponentProps<typeof RadixAccordion.Trigger>) => (
+const Trigger = ({
+  className,
+  children,
+  ...props
+}: React.ComponentProps<typeof RadixAccordion.Trigger>) => (
   <RadixAccordion.Header className="flex">
     <RadixAccordion.Trigger
       className={cn(
@@ -27,13 +40,22 @@ const Trigger = ({ className, children, ...props }: React.ComponentProps<typeof 
         viewBox="0 0 24 24"
         aria-hidden="true"
       >
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={2}
+          d="M19 9l-7 7-7-7"
+        />
       </svg>
     </RadixAccordion.Trigger>
   </RadixAccordion.Header>
 );
 
-const Content = ({ className, children, ...props }: React.ComponentProps<typeof RadixAccordion.Content>) => (
+const Content = ({
+  className,
+  children,
+  ...props
+}: React.ComponentProps<typeof RadixAccordion.Content>) => (
   <RadixAccordion.Content
     className={cn(
       'overflow-hidden',

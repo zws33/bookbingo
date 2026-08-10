@@ -14,7 +14,11 @@ function getFirstName(fullName: string): string {
 export function UserBooksPage() {
   const { userId } = useParams<{ userId: string }>();
   const { profile, loading: profileLoading } = useUserProfile(userId ?? '');
-  const { readings, loading: readingsLoading, error: readingsError } = useReadings(userId ?? '');
+  const {
+    readings,
+    loading: readingsLoading,
+    error: readingsError,
+  } = useReadings(userId ?? '');
   const { booksById, loading: booksLoading, error: booksError } = useBooks();
 
   const loading = readingsLoading || booksLoading;
@@ -30,11 +34,19 @@ export function UserBooksPage() {
   }
 
   if (profileLoading) {
-    return <div className="text-center py-8 text-on-surface-variant">Loading profile...</div>;
+    return (
+      <div className="text-center py-8 text-on-surface-variant">
+        Loading profile...
+      </div>
+    );
   }
 
   if (!profile) {
-    return <div className="text-center py-8 text-on-surface-variant">User not found.</div>;
+    return (
+      <div className="text-center py-8 text-on-surface-variant">
+        User not found.
+      </div>
+    );
   }
 
   return (
@@ -45,8 +57,18 @@ export function UserBooksPage() {
           className="text-primary hover:text-on-primary-container"
           aria-label="Back to leaderboard"
         >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          <svg
+            className="w-5 h-5"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M15 19l-7-7 7-7"
+            />
           </svg>
         </Link>
         <h2 className="font-display text-lg font-semibold text-on-surface">

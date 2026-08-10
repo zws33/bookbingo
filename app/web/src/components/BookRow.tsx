@@ -13,7 +13,15 @@ interface BookRowProps {
 
 const MAX_DOTS = 5;
 
-export function BookRow({ bookTitle, bookAuthor, tiles, isFreebie, metadata, onClick, readOnly }: BookRowProps) {
+export function BookRow({
+  bookTitle,
+  bookAuthor,
+  tiles,
+  isFreebie,
+  metadata,
+  onClick,
+  readOnly,
+}: BookRowProps) {
   const visibleTiles = tiles.slice(0, MAX_DOTS);
   const overflow = tiles.length - MAX_DOTS;
   const thumbnailUrl = metadata?.thumbnailUrl ?? null;
@@ -31,19 +39,25 @@ export function BookRow({ bookTitle, bookAuthor, tiles, isFreebie, metadata, onC
           src={thumbnailUrl}
           alt=""
           className="w-7 h-10 object-cover rounded-sm shrink-0"
-          onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+          onError={(e) => {
+            (e.currentTarget as HTMLImageElement).style.display = 'none';
+          }}
         />
       )}
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
-          <span className="font-display font-medium text-on-surface truncate">{bookTitle}</span>
+          <span className="font-display font-medium text-on-surface truncate">
+            {bookTitle}
+          </span>
           {isFreebie && (
             <span className="text-yellow-500 shrink-0" title="Freebie">
               ★
             </span>
           )}
         </div>
-        <span className="text-sm italic text-on-surface-variant truncate block">{bookAuthor}</span>
+        <span className="text-sm italic text-on-surface-variant truncate block">
+          {bookAuthor}
+        </span>
       </div>
       {tiles.length > 0 && (
         <div className="flex items-center gap-1 shrink-0">

@@ -24,48 +24,56 @@ BookBingo is a small React 19/Vite/Tailwind app with clean component architectur
 ## B. UI Inventory
 
 ### Modal.tsx → ui/Dialog
+
 - **Location:** BingoBoard, MyBooksPage, BookList
 - **Priority:** P1 | Complexity: Low
 - **Gaps:** No portal, no focus trap, no scroll lock, no focus restoration. Escape handled via `document.addEventListener` (not trapped in modal tree). `id="modal-title"` hardcoded — would collide if two modals mounted simultaneously.
 - **Recommended:** `@radix-ui/react-dialog`
 
 ### ConfirmDialog.tsx → ui/AlertDialog
+
 - **Location:** BookList
 - **Priority:** P1 | Complexity: Low
 - **Gaps:** Same gaps as Modal.tsx. Duplicates the entire pattern (Escape, backdrop, overlay) with no code sharing.
 - **Recommended:** `@radix-ui/react-alert-dialog`
 
 ### Toast.tsx + ToastContext.tsx → ui/Toast
+
 - **Location:** Provider in `main.tsx`, consumed via `useToast()`
 - **Priority:** P2 | Complexity: Medium
 - **Gaps:** No portal (renders in React tree, may be clipped by stacking contexts), single-item only (new toast silently replaces old), no animation, no ARIA live region. Imperative API (`showSuccess(msg)`) is a mismatch for Radix's declarative model.
 - **Recommended:** `@radix-ui/react-toast`
 
 ### View toggle (cards/list)
+
 - **Location:** BookList
 - **Priority:** P3 | Complexity: Low
 - **Gaps:** Missing `aria-pressed` state on toggle buttons — keyboard users cannot tell which view is active.
 - **Recommended:** `@radix-ui/react-toggle-group` (or simple `aria-pressed` attribute fix — see Phase 4)
 
 ### TileSelector (multi-select)
+
 - **Location:** TileSelector
 - **Priority:** Skip
 - **Gaps:** Missing `aria-pressed`. Multi-select pattern with search — not a natural Toggle Group target. Adding `aria-pressed={isSelected}` to existing buttons resolves the a11y gap directly.
 - **Recommended:** None — fix `aria-pressed` inline, do not replace with Radix.
 
 ### FreebieToggle (checkbox)
+
 - **Location:** FreebieToggle
 - **Priority:** Skip
 - **Gaps:** None. Native `<input type="checkbox">` wrapped in `<label>` is already accessible.
 - **Recommended:** None needed.
 
 ### ui/Input and ui/Label
+
 - **Location:** Used widely
 - **Priority:** Skip
 - **Gaps:** Already solid. `Input` has `forwardRef`.
 - **Recommended:** None needed.
 
 ### ui/Button
+
 - **Location:** Used widely
 - **Priority:** P1 prerequisite | Complexity: Low
 - **Gaps:** Missing `ref` forwarding and `asChild` support. Pattern improvement only — not a primitive replacement.
@@ -147,6 +155,7 @@ Either approach works. The audit recommends `radix-ui` for simplicity.
 ### Install sequence
 
 **Phase 1 (now):**
+
 ```sh
 pnpm --filter @bookbingo/web add radix-ui
 ```
@@ -199,6 +208,7 @@ Use `tailwindcss-animate` if you want prebuilt keyframes, or define keyframes in
 ## G. Phased Migration Roadmap
 
 ### Phase 0 — Audit ✓
+
 This document. No code changes.
 
 ---
@@ -208,10 +218,12 @@ This document. No code changes.
 **Goal:** Replace `Modal.tsx` with a Radix Dialog wrapper. Fix `Button` ref forwarding as a prerequisite.
 
 **Prerequisites:**
+
 - `radix-ui` installed
 - `Button` accepts `ref` as a prop (React 19 pattern)
 
 **Components to create/modify:**
+
 - `components/ui/Dialog.tsx` — new Radix Dialog wrapper with `Root`, `Portal`, `Overlay`, `Content`, `Title`, `Close` exported as a compound component or as named sub-exports
 - `components/Modal.tsx` — update to use `ui/Dialog`, or delete and update all 3 consumers directly
 - `components/BingoBoard.tsx` — update Modal import
@@ -220,6 +232,7 @@ This document. No code changes.
 - `components/Modal.test.tsx` — rewrite: assert behavior (Escape closes, focus returns to trigger) not DOM identity (`document.activeElement === modalElement` will change since Radix autofocuses first focusable child, not the dialog wrapper)
 
 **Risks:**
+
 - `Modal.test.tsx` test `document.activeElement` assertion will fail — it tests DOM identity not behavior. This is expected and the tests should be rewritten.
 - `FeedbackModal` uses `Modal` — it will need updating too.
 
@@ -232,6 +245,7 @@ This document. No code changes.
 **Prerequisites:** Phase 1 complete (establishes the wrapper pattern to follow)
 
 **Components to create/modify:**
+
 - `components/ui/AlertDialog.tsx` — new Radix AlertDialog wrapper
 - `components/ConfirmDialog.tsx` — delete once consumer updated
 - `components/BookList.tsx` — update ConfirmDialog import
@@ -256,11 +270,13 @@ The current `ToastContext` imperatively calls `setToast({...})` and `setTimeout`
 The `useToast()` hook interface stays identical — this is an implementation change behind the API boundary.
 
 **Components to create/modify:**
+
 - `components/ui/Toast.tsx` — new Radix Toast wrapper (`Root`, `Viewport`, `Title`, `Close`)
 - `lib/ToastContext.tsx` — rewrite internals to use Radix Toast
 - `components/Toast.tsx` (root-level) — delete once replaced
 
 **Risks:**
+
 - Largest surface area of the three phases
 - Queue logic needs to handle `setTimeout`-based auto-dismiss vs. Radix's `duration` prop
 - Two toast items now have correct simultaneous display — test the edge case where multiple toasts queue (e.g., fast success + error)
@@ -272,6 +288,7 @@ The `useToast()` hook interface stays identical — this is an implementation ch
 **Goal:** Add `aria-pressed` semantics to the card/list view toggle in `BookList`.
 
 **Options:**
+
 1. Simple: add `aria-pressed={viewMode === 'cards'}` / `aria-pressed={viewMode === 'list'}` to existing buttons — 2-line fix, no new dependency.
 2. Radix `ToggleGroup`: replaces the two buttons with a proper toggle group component.
 

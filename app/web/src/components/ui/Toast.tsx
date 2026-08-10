@@ -10,7 +10,12 @@ export interface ToastItemProps {
   onOpenChange: (open: boolean) => void;
 }
 
-export function ToastItem({ message, type, open, onOpenChange }: ToastItemProps) {
+export function ToastItem({
+  message,
+  type,
+  open,
+  onOpenChange,
+}: ToastItemProps) {
   return (
     <RadixToast.Root
       open={open}
@@ -18,7 +23,9 @@ export function ToastItem({ message, type, open, onOpenChange }: ToastItemProps)
       duration={3000}
       className={cn(
         'flex items-center gap-3 px-4 py-3 rounded-lg shadow-lg',
-        type === 'success' ? 'bg-success text-on-success' : 'bg-error text-on-error',
+        type === 'success'
+          ? 'bg-success text-on-success'
+          : 'bg-error text-on-error',
         'opacity-0 translate-y-2 transition-all duration-200',
         'data-[state=open]:opacity-100 data-[state=open]:translate-y-0',
         'data-[state=closed]:opacity-0 data-[state=closed]:translate-y-2',
@@ -31,7 +38,12 @@ export function ToastItem({ message, type, open, onOpenChange }: ToastItemProps)
         className="ml-auto text-white/80 hover:text-white"
         aria-label="Close notification"
       >
-        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg
+          className="w-4 h-4"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
           <path
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -47,7 +59,9 @@ export function ToastItem({ message, type, open, onOpenChange }: ToastItemProps)
 export function ToastViewport() {
   return (
     <RadixToast.Viewport
-      className={cn('fixed bottom-4 right-4 z-50 flex flex-col gap-2 outline-none')}
+      className={cn(
+        'fixed bottom-4 right-4 z-50 flex flex-col gap-2 outline-none',
+      )}
     />
   );
 }

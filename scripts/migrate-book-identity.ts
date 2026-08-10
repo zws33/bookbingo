@@ -61,7 +61,9 @@ const DRY_RUN = args.includes('--dry-run');
 const CLEANUP = args.includes('--cleanup');
 
 if (process.env.FIRESTORE_EMULATOR_HOST) {
-  console.log('Note: FIRESTORE_EMULATOR_HOST is set — connecting to local emulator.');
+  console.log(
+    'Note: FIRESTORE_EMULATOR_HOST is set — connecting to local emulator.',
+  );
 }
 
 initializeApp({ projectId: PROJECT_ID });
@@ -160,7 +162,8 @@ async function runRekey() {
       createdAt: earliest.createdAt ?? FieldValue.serverTimestamp(),
     };
 
-    const metadata = olDoc?.metadata ?? docs.map((d) => d.data().metadata).find(Boolean);
+    const metadata =
+      olDoc?.metadata ?? docs.map((d) => d.data().metadata).find(Boolean);
     if (metadata) newDoc.metadata = metadata;
 
     const olKey = olDoc ? olKeyOf(olDoc) : null;
@@ -202,7 +205,9 @@ async function runRekey() {
 
   if (!DRY_RUN && ops > 0) await writeBatch.commit();
 
-  console.log(`\nRe-pointing references for ${remap.size} re-keyed book id(s)...`);
+  console.log(
+    `\nRe-pointing references for ${remap.size} re-keyed book id(s)...`,
+  );
   const readingsUpdated = await repointCollectionGroup(db, 'readings', remap);
   const tbrUpdated = await repointCollectionGroup(db, 'tbr', remap);
 
@@ -248,7 +253,9 @@ async function runCleanup() {
     if (!isStale) continue;
 
     if (referenced.has(doc.id)) {
-      console.warn(`  [SKIP] stale doc ${doc.id} is still referenced — not deleting.`);
+      console.warn(
+        `  [SKIP] stale doc ${doc.id} is still referenced — not deleting.`,
+      );
       skipped++;
       continue;
     }

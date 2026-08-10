@@ -15,10 +15,13 @@ import { getAuth } from 'firebase-admin/auth';
 import { getFirestore, Timestamp } from 'firebase-admin/firestore';
 
 // These env vars are set by the emulator:seed npm script
-if (!process.env.FIRESTORE_EMULATOR_HOST || !process.env.FIREBASE_AUTH_EMULATOR_HOST) {
+if (
+  !process.env.FIRESTORE_EMULATOR_HOST ||
+  !process.env.FIREBASE_AUTH_EMULATOR_HOST
+) {
   console.error(
     'FIRESTORE_EMULATOR_HOST and FIREBASE_AUTH_EMULATOR_HOST must be set.\n' +
-    'Run via: pnpm --filter @bookbingo/web emulator:seed',
+      'Run via: pnpm --filter @bookbingo/web emulator:seed',
   );
   process.exit(1);
 }
@@ -38,7 +41,7 @@ interface SeedUser {
   displayName: string;
   photoURL: string;
   emailVerified: boolean;
-  password: string
+  password: string;
 }
 
 const USERS: SeedUser[] = [
@@ -184,7 +187,10 @@ function toTimestamp(d: Date): Timestamp {
   return Timestamp.fromDate(d);
 }
 
-async function seedUser(user: SeedUser, readings: SeedReading[]): Promise<void> {
+async function seedUser(
+  user: SeedUser,
+  readings: SeedReading[],
+): Promise<void> {
   // Idempotency check — skip only if both Auth user and Firestore doc exist.
   // Checking Auth alone causes Firestore writes to be skipped if the emulator
   // was restarted after Auth was seeded but before Firestore data was exported.
@@ -238,7 +244,9 @@ async function seedUser(user: SeedUser, readings: SeedReading[]): Promise<void> 
   }
   await batch.commit();
 
-  console.log(`  [ok]   ${user.displayName} — ${readings.length} readings seeded`);
+  console.log(
+    `  [ok]   ${user.displayName} — ${readings.length} readings seeded`,
+  );
 }
 
 async function main(): Promise<void> {

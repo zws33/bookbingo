@@ -11,10 +11,13 @@ const githubPat = defineSecret('GITHUB_PAT');
 // TODO: Add rate limiting to prevent authenticated users from spamming GitHub Issues
 export const submitFeedback = onCall(
   { invoker: 'public', secrets: [githubPat] },
-  (request) => submitFeedbackHandler(request, { pat: githubPat.value(), apiUrl: GITHUB_API_URL }),
+  (request) =>
+    submitFeedbackHandler(request, {
+      pat: githubPat.value(),
+      apiUrl: GITHUB_API_URL,
+    }),
 );
 
-export const enrichBook = onCall(
-  { invoker: 'public' },
-  (request) => enrichBookHandler(request),
+export const enrichBook = onCall({ invoker: 'public' }, (request) =>
+  enrichBookHandler(request),
 );

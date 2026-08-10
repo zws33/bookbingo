@@ -20,13 +20,13 @@ What the current trust boundary actually looks like (verified in code):
 - **`readings` writes are ownership-checked but unvalidated.** The rule is
   `allow write: if request.auth.uid == userId`. Nothing enforces the invariants
   in `lib/core/src/validation.ts` (valid tile IDs, ≤3 tiles unless freebie, a
-  real `bookId`). `validation.ts` runs *client-side only*, so it is advisory — a
+  real `bookId`). `validation.ts` runs _client-side only_, so it is advisory — a
   bad actor bypasses it by writing to Firestore directly with the SDK.
 - **The freebie invariant is not expressible in rules.** Per
   `tbr-reading-payload-unification.md`, a freebie is valid iff freebies across
   `union(readings, tbr) ≤ 1`. Firestore rules can do single-document `get()`
   lookups but cannot practically evaluate a constraint across a whole collection.
-  This invariant is *only* enforceable in server code.
+  This invariant is _only_ enforceable in server code.
 - **`/books` is world-writable.** `allow create: if request.auth != null` lets
   any authenticated user create or pollute a **shared, cross-user** collection.
   For a friends' club that's noise; at public scale it is catalog spam and
@@ -46,7 +46,7 @@ reversible, adopted only as far as it earns its keep.
 ## Decision
 
 Adopt **guarded writes, direct reads** — a deliberately minimal slice of CQRS
-("CQRS-lite"): segregate the *command* (write) path from the *query* (read)
+("CQRS-lite"): segregate the _command_ (write) path from the _query_ (read)
 path, and nothing else. No separate read store, no event sourcing, no eventual
 consistency. One Firestore, strong consistency.
 
@@ -91,7 +91,7 @@ consistency. One Firestore, strong consistency.
      appears. Explicitly out of scope for server mediation.
 
 5. **The command's contract is narrow.** A command validates intent, enforces
-   invariants, persists or rejects — it is *not* a general-purpose backend or a
+   invariants, persists or rejects — it is _not_ a general-purpose backend or a
    data-shaping read API. It may return what the client needs for an optimistic
    update (the created doc, a recomputed projection); that pragmatic leak from
    strict CQRS is accepted and bounded.
@@ -108,7 +108,7 @@ consistency. One Firestore, strong consistency.
 
 - **Status quo + tighter Firestore rules only (rejected as sufficient, retained
   as backstop).** Keep all writes client-side, express more validation in rules.
-  Rejected as *insufficient* because the load-bearing invariant — freebie
+  Rejected as _insufficient_ because the load-bearing invariant — freebie
   union(readings, tbr) ≤ 1 — is not expressible in rules, and richer field
   validation in rules is awkward and unmaintainable. Rules remain valuable as a
   **defense-in-depth backstop** (ownership, deny-by-default), but cannot be the
@@ -125,12 +125,12 @@ consistency. One Firestore, strong consistency.
 
 - **Loses Firestore's offline write queue / optimistic sync for guarded writes.**
   A write routed through a callable no longer queues offline automatically.
-  Accepted for *scored* writes (integrity outranks offline convenience for an
+  Accepted for _scored_ writes (integrity outranks offline convenience for an
   occasional "I finished a book" action) and explicitly avoided for profile
   writes (kept client-side). Optimistic UI can be reconstructed in the client
   while the command is in flight if needed.
 - **Adds per-write latency and Cloud Functions cost (cold starts).** Tolerable
-  precisely because guarded writes are *low-frequency* (logging a reading is a
+  precisely because guarded writes are _low-frequency_ (logging a reading is a
   deliberate, occasional act). This is the economic mirror of why `search`
   (high-frequency) stays a cached query-path concern, never a command — see the
   OL roadmap §5.
@@ -143,7 +143,7 @@ consistency. One Firestore, strong consistency.
   in the same file (`getBook`) stay as-is. Staged per collection, so blast radius
   per step is one write path.
 - **Multi-client benefit is real but conditional.** Centralizing write logic pays
-  off most when future clients are *heterogeneous* (native Swift/Kotlin that
+  off most when future clients are _heterogeneous_ (native Swift/Kotlin that
   can't reuse `lib/`). If mobile is Expo/React Native reusing `lib/`, the security
   argument still holds but the code-reuse argument is weaker. Adopt for the
   security/abuse reason, and take the multi-client benefit as a bonus.
@@ -158,8 +158,8 @@ inverts the recommendation:**
 - The server-side `/books` enrichment write is **no longer deferred** — it is
   scope item (b). Deferring it would mean building a client-write path this
   decision commits to removing (a dead-end, not reversible progress).
-- The roadmap's near-term "risk" — *"writing to `/books` from the function
-  crosses a trust boundary"* — is **reclassified as the objective**, not a hazard.
+- The roadmap's near-term "risk" — _"writing to `/books` from the function
+  crosses a trust boundary"_ — is **reclassified as the objective**, not a hazard.
 - The roadmap's read-through (step 1) moves to the **query side** per Decision 3:
   direct client read of `/books`, command invoked only on cache miss. Cache hits
   cost zero function invocations.
@@ -174,10 +174,10 @@ inverts the recommendation:**
   becomes necessary for performance — neither is remotely true today.
 - **Revisit "reads stay direct"** if privacy requirements tighten such that raw
   `readings` should no longer be world-readable (currently required for the
-  leaderboard `collectionGroup` query); that would push *some* reads behind a
+  leaderboard `collectionGroup` query); that would push _some_ reads behind a
   server projection and is a data-model decision in its own right.
 - If public launch is abandoned, most of this can stay unbuilt — the friends'-club
-  threat model doesn't require it. The decision records the *direction* so the
+  threat model doesn't require it. The decision records the _direction_ so the
   seam is understood, not a mandate to build now.
 
 ## Related

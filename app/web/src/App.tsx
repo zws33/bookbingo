@@ -47,7 +47,9 @@ function App() {
 
   useEffect(() => {
     if (user) {
-      saveUserProfile(user).catch((err) => { log.error('save user error:', err) })
+      saveUserProfile(user).catch((err) => {
+        log.error('save user error:', err);
+      });
     }
   }, [user]);
 
@@ -162,9 +164,20 @@ function App() {
 
             <Routes>
               <Route path="/" element={<MyBooksPage userId={user.uid} />} />
-              <Route path="/reading-list" element={<ReadingListPage userId={user.uid} />} />
-              <Route path="/board" element={<BingoBoard readings={readings} booksById={booksById} />} />
-              <Route path="/users" element={<Navigate to="/leaderboard" replace />} />
+              <Route
+                path="/reading-list"
+                element={<ReadingListPage userId={user.uid} />}
+              />
+              <Route
+                path="/board"
+                element={
+                  <BingoBoard readings={readings} booksById={booksById} />
+                }
+              />
+              <Route
+                path="/users"
+                element={<Navigate to="/leaderboard" replace />}
+              />
               <Route path="/users/:userId" element={<UserBooksPage />} />
               <Route path="/leaderboard" element={<LeaderboardPage />} />
               <Route path="/library" element={<LibraryPage />} />

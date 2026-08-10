@@ -1,4 +1,8 @@
-import { BookProvider, BookSearchResult, BookEnrichmentResult } from './types.js';
+import {
+  BookProvider,
+  BookSearchResult,
+  BookEnrichmentResult,
+} from './types.js';
 
 /**
  * Orchestrates one or more BookProviders to search and enrich book data.

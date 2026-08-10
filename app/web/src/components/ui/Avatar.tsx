@@ -12,22 +12,26 @@ const sizeClasses = {
   md: 'w-8 h-8 text-sm',
 };
 
-export function Avatar({ name, photoURL, size = 'md', className }: AvatarProps) {
+export function Avatar({
+  name,
+  photoURL,
+  size = 'md',
+  className,
+}: AvatarProps) {
   const base = cn('rounded-full shrink-0', sizeClasses[size], className);
 
   if (photoURL) {
     return (
-      <img
-        src={photoURL}
-        alt={name}
-        className={cn(base, 'object-cover')}
-      />
+      <img src={photoURL} alt={name} className={cn(base, 'object-cover')} />
     );
   }
 
   return (
     <span
-      className={cn(base, 'bg-surface-container-highest text-on-surface-variant flex items-center justify-center font-medium select-none')}
+      className={cn(
+        base,
+        'bg-surface-container-highest text-on-surface-variant flex items-center justify-center font-medium select-none',
+      )}
       aria-label={name}
     >
       {name.charAt(0).toUpperCase()}

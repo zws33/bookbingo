@@ -32,7 +32,9 @@ export function LeaderboardPage() {
   }
   if (rankedUsers.length === 0) {
     return (
-      <div className="text-center py-8 text-on-surface-variant">No participants yet.</div>
+      <div className="text-center py-8 text-on-surface-variant">
+        No participants yet.
+      </div>
     );
   }
 
@@ -49,7 +51,10 @@ export function LeaderboardPage() {
         </thead>
         <tbody className="divide-y divide-outline-variant">
           {rankedUsers.map(({ user, score, bookCount }, index) => (
-            <tr key={user.id} className="hover:bg-surface-container transition-colors">
+            <tr
+              key={user.id}
+              className="hover:bg-surface-container transition-colors"
+            >
               <td className="px-4 py-3 text-on-surface-variant font-medium">
                 {index + 1}
               </td>
@@ -58,8 +63,13 @@ export function LeaderboardPage() {
                   to={`/users/${user.id}`}
                   className="flex items-center gap-3 hover:text-primary"
                 >
-                  <Avatar name={user.name} photoURL={user.photoURL ?? undefined} />
-                  <span className="font-medium text-on-surface">{user.name}</span>
+                  <Avatar
+                    name={user.name}
+                    photoURL={user.photoURL ?? undefined}
+                  />
+                  <span className="font-medium text-on-surface">
+                    {user.name}
+                  </span>
                 </Link>
               </td>
               <td className="px-4 py-3 text-right text-on-surface-variant">

@@ -50,15 +50,21 @@ export function BingoBoard({ readings, booksById }: BingoBoardProps) {
         title={selectedTile?.name ?? ''}
       >
         {selectedBooks.length === 0 ? (
-          <p className="text-on-surface-variant">No books tagged with this tile yet.</p>
+          <p className="text-on-surface-variant">
+            No books tagged with this tile yet.
+          </p>
         ) : (
           <ul className="divide-y divide-outline-variant">
             {selectedBooks.map((reading) => {
               const book = booksById.get(reading.bookId) ?? UNKNOWN_BOOK;
               return (
                 <li key={reading.id} className="py-2">
-                  <div className="font-medium text-on-surface">{book.title}</div>
-                  <div className="text-sm text-on-surface-variant">{book.author}</div>
+                  <div className="font-medium text-on-surface">
+                    {book.title}
+                  </div>
+                  <div className="text-sm text-on-surface-variant">
+                    {book.author}
+                  </div>
                 </li>
               );
             })}

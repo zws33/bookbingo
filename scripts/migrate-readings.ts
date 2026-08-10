@@ -21,14 +21,18 @@ const args = process.argv.slice(2);
 const projectFlagIndex = args.indexOf('--project');
 if (projectFlagIndex === -1 || !args[projectFlagIndex + 1]) {
   console.error('Error: --project <project-id> is required.');
-  console.error('  Example: tsx scripts/migrate-readings.ts --project bookbingo-staging --dry-run');
+  console.error(
+    '  Example: tsx scripts/migrate-readings.ts --project bookbingo-staging --dry-run',
+  );
   process.exit(1);
 }
 const PROJECT_ID = args[projectFlagIndex + 1];
 const DRY_RUN = args.includes('--dry-run');
 
 if (process.env.FIRESTORE_EMULATOR_HOST) {
-  console.log(`Note: FIRESTORE_EMULATOR_HOST is set — connecting to local emulator.`);
+  console.log(
+    `Note: FIRESTORE_EMULATOR_HOST is set — connecting to local emulator.`,
+  );
 }
 
 initializeApp({ projectId: PROJECT_ID });
@@ -54,9 +58,12 @@ function getCacheKey(title: string, author: string): string {
   return `${normalize(title)}|${normalize(author)}`;
 }
 
-async function findOrCreateBookId(title: string, author: string): Promise<string | null> {
+async function findOrCreateBookId(
+  title: string,
+  author: string,
+): Promise<string | null> {
   const key = getCacheKey(title, author);
-  
+
   // 1. Check local cache
   if (bookCache.has(key)) {
     return bookCache.get(key)!;
@@ -65,7 +72,7 @@ async function findOrCreateBookId(title: string, author: string): Promise<string
   // 2. Query Firestore /books/
   const titleLower = normalize(title);
   const authorLower = normalize(author);
-  
+
   const booksRef = db.collection('books');
   const snapshot = await booksRef
     .where('titleLower', '==', titleLower)
@@ -113,7 +120,9 @@ async function run() {
 
   // Use collectionGroup to find ALL readings across all users
   const readingsSnapshot = await db.collectionGroup('readings').get();
-  console.log(`Found ${readingsSnapshot.size} total readings across all users.`);
+  console.log(
+    `Found ${readingsSnapshot.size} total readings across all users.`,
+  );
 
   let batch = db.batch();
   let opsInBatch = 0;
@@ -132,32 +141,39 @@ async function run() {
     const author = data.bookAuthor;
 
     if (!title) {
-      console.warn(`  [WARN] Skipping document ${doc.ref.path}: Missing bookTitle`);
+      console.warn(
+        `  [WARN] Skipping document ${doc.ref.path}: Missing bookTitle`,
+      );
       skippedCount++;
       continue;
     }
 
     const bookId = await findOrCreateBookId(title, author || 'Unknown Author');
-    
+
     if (!bookId) {
       console.error(`  [ERROR] Failed to resolve bookId for "${title}"`);
       continue;
     }
 
     // Determine if it was a match or a creation (log purposes only)
-    if (bookId.startsWith('new-book-id-for-') || !bookCache.has(getCacheKey(title, author || 'Unknown Author'))) {
-       // logic slightly fuzzy for dry-run vs real but good enough for logging
+    if (
+      bookId.startsWith('new-book-id-for-') ||
+      !bookCache.has(getCacheKey(title, author || 'Unknown Author'))
+    ) {
+      // logic slightly fuzzy for dry-run vs real but good enough for logging
     }
 
     if (DRY_RUN) {
-      console.log(`  [DRY-RUN] Would update reading ${doc.ref.path} -> bookId: ${bookId}`);
+      console.log(
+        `  [DRY-RUN] Would update reading ${doc.ref.path} -> bookId: ${bookId}`,
+      );
     } else {
-      batch.update(doc.ref, { 
+      batch.update(doc.ref, {
         bookId,
-        updatedAt: FieldValue.serverTimestamp()
+        updatedAt: FieldValue.serverTimestamp(),
       });
       opsInBatch++;
-      
+
       if (opsInBatch >= 500) {
         await batch.commit();
         console.log(`  [BATCH] Committed 500 updates...`);
@@ -182,11 +198,11 @@ async function run() {
   if (!DRY_RUN) {
     console.log(`- New Shared Books Created: ${newBooksCreated}`);
   }
-  
+
   console.log(`\nFinished.`);
 }
 
-run().catch(err => {
+run().catch((err) => {
   console.error('Migration failed:', err);
   process.exit(1);
 });
