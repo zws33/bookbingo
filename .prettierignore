@@ -1,0 +1,18 @@
+# Build output — see CLAUDE.md "Output directories"
+**/dist/
+app/web/.tsbuild/
+functions/lib/
+*.tsbuildinfo
+
+node_modules/
+coverage/
+
+# Firebase local state, emulator data, and console exports
+.firebase/
+emulator-data/
+firebase-export-*/
+pre-migration-backup/
+*.log
+
+# Generated
+pnpm-lock.yaml

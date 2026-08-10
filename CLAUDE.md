@@ -79,11 +79,12 @@ Tests (`*.test.ts`) are excluded from every `tsconfig.build.json`, so they are n
 
 ## Commands
 
-- `pnpm run verify` — run full verification suite (lint, build, test, typecheck). Passes from a clean tree; `build` runs before `typecheck` because the `functions/` typecheck needs `lib/types/dist`
+- `pnpm run verify` — run full verification suite (format:check, lint, build, test, typecheck). Passes from a clean tree; `build` runs before `typecheck` because the `functions/` typecheck needs `lib/types/dist`
 - `pnpm test` — run unit tests across all packages
 - `pnpm run test:integration` — run integration tests (emulator lifecycle managed automatically via `firebase emulators:exec`)
 - `pnpm run lint` — lint all packages (ESLint from repo root)
-- `pnpm run format` — format with Prettier
+- `pnpm run format` — format the repo with Prettier (`prettier --write .`, scoped by `.prettierignore`)
+- `pnpm run format:check` — assert formatting without writing; this is the gate inside `verify`
 - `pnpm run typecheck` — type-check `lib/`, `app/web/`, and `scripts/` with `tsc --build --noEmit`, then `functions/` separately. **Needs `lib/types/dist` present** — on a cold tree run `pnpm run build` first (or just use `pnpm run verify`)
 - `pnpm run build` — build the whole project-reference graph (`tsc --build tsconfig.build.json`): `lib/*`, `app/web`, `functions`
 - `pnpm run build:libs` / `pnpm run build:apps` — build a subset of the graph
@@ -162,7 +163,7 @@ Finally, check `git status` — a build that emits outside a package `outDir` le
 
 - ESM only. No CommonJS (`require`, `module.exports`).
 - Prefer `const` over `let`. Never use `var`.
-- Formatting is handled by Prettier — do not manually align code.
+- Formatting is handled by Prettier — do not manually align code. Prettier owns **every** tracked file type (`.ts`, `.tsx`, `.js`, `.json`, `.css`, `.md`); `.prettierignore` carves out build output, dependencies, and Firebase local state. `verify` fails on unformatted files, so run `pnpm run format` before committing.
 
 ## Testing
 
