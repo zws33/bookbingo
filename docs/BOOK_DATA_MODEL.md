@@ -14,9 +14,9 @@ This document describes the engineering design for how BookBingo models, stores,
 
 3. **Open Library as the primary provider.** Open Library's API returns Work-level records by default and models books using a subset of the FRBR Work/Edition hierarchy. Work OLIDs (e.g., `/works/OL166894W`) are stable, edition-agnostic identifiers suitable as deduplication keys.
 
-4. **Metadata is optional.** ~~All book entities must carry a `metadata` object.~~ *Corrected 2026-06-22:* `metadata` is optional on `Book` (`metadata?: BookMetadata`). It is populated for enriched (Open Library) books and absent for manual entries. When present, individual fields within the object may still be null.
+4. **Metadata is optional.** ~~All book entities must carry a `metadata` object.~~ _Corrected 2026-06-22:_ `metadata` is optional on `Book` (`metadata?: BookMetadata`). It is populated for enriched (Open Library) books and absent for manual entries. When present, individual fields within the object may still be null.
 
-5. **Deduplication by deterministic doc ID.** ~~For API-sourced books, the `externalIds.openLibrary` Work OLID is the deduplication key. Manual-entry books skip deduplication.~~ *Superseded:* the document ID is now a hash derived from the Work OLID (catalog books) or from a normalized title+author key (manual books), so dedup is a `getDoc` on the computed ID rather than a query. Manual books **also** dedup. See the identity decision record.
+5. **Deduplication by deterministic doc ID.** ~~For API-sourced books, the `externalIds.openLibrary` Work OLID is the deduplication key. Manual-entry books skip deduplication.~~ _Superseded:_ the document ID is now a hash derived from the Work OLID (catalog books) or from a normalized title+author key (manual books), so dedup is a `getDoc` on the computed ID rather than a query. Manual books **also** dedup. See the identity decision record.
 
 6. **Remove `titleLower` / `authorLower`.** These write-time normalization fields were used for case-insensitive deduplication. They are superseded by OLID-based dedup for API-sourced books and will be cleaned up from existing documents via migration.
 
@@ -50,14 +50,14 @@ Enumerates all supported external catalog providers.
 ```ts
 // lib/types/src/index.ts
 export interface ExternalRef {
-  key: string;       // provider-native id, e.g. "/works/OL166894W"
-  enrichedAt: Date;  // when this reference was attached
+  key: string; // provider-native id, e.g. "/works/OL166894W"
+  enrichedAt: Date; // when this reference was attached
 }
 
 export type ExternalBookIds = Partial<Record<BookProvider, ExternalRef>>;
 ```
 
-A map from provider to a reference *record* for a given book. For Open Library, `key` is the full Work key path (e.g., `"/works/OL166894W"`). Each entry is optional — manual-entry books have no external IDs. `externalIds` is **provenance only**: it no longer drives deduplication (the deterministic doc ID does), but `externalIds.openLibrary.key` remains queryable.
+A map from provider to a reference _record_ for a given book. For Open Library, `key` is the full Work key path (e.g., `"/works/OL166894W"`). Each entry is optional — manual-entry books have no external IDs. `externalIds` is **provenance only**: it no longer drives deduplication (the deterministic doc ID does), but `externalIds.openLibrary.key` remains queryable.
 
 ### `Book` (updated)
 
@@ -65,8 +65,8 @@ A map from provider to a reference *record* for a given book. For Open Library, 
 export interface Book {
   id: string;
   title: string;
-  author: string;          // joined string, e.g. "Fyodor Dostoevsky"
-  metadata?: BookMetadata;  // optional — present for enriched books, absent for manual
+  author: string; // joined string, e.g. "Fyodor Dostoevsky"
+  metadata?: BookMetadata; // optional — present for enriched books, absent for manual
   externalIds?: ExternalBookIds; // replaces externalId?: string | null
   createdBy: string;
   createdAt: Date;
@@ -74,6 +74,7 @@ export interface Book {
 ```
 
 Removed fields (cleaned up by migration):
+
 - `externalId?: string | null` — superseded by `externalIds`
 - `titleLower` and `authorLower` — superseded by OLID-based dedup
 
@@ -93,6 +94,7 @@ export interface BookMetadata {
 Shape is unchanged. The object is **optional** on `Book` (present for enriched books, absent for manual entries). When present, individual fields may be null.
 
 **Open Library field mapping:**
+
 - `pageCount` — not available at the Work level; fetched from the first edition via `/works/{olid}/editions.json?limit=1` (`number_of_pages` field)
 - `publishedDate` — from `first_publish_date` on the Work record
 - `categories` — mapped from `subjects[]` on the Work record (flat string array)
@@ -110,7 +112,7 @@ The `Reading` shape is unchanged. The `bookTitle?` and `bookAuthor?` legacy fiel
 
 > **⚠️ Superseded 2026-06-19.** The query-based strategy below is replaced by **deterministic, hash-derived document IDs**. Dedup is now `getDoc(deriveBookId(...))`, not a query, and it applies to manual books too. The authoritative spec — ID derivation, the frozen normalization pipeline, the hash, collapse-on-migration safety, and accepted limits — lives in `docs/decisions/book-identity-and-deduplication.md`. The original strategy is retained below for historical context.
 
-### ~~API-sourced books (primary path)~~ *(superseded)*
+### ~~API-sourced books (primary path)~~ _(superseded)_
 
 When a user selects a book from Open Library search results:
 
@@ -118,7 +120,7 @@ When a user selects a book from Open Library search results:
 2. If a match exists → return the existing `bookId`
 3. If no match → create a new `Book` with `externalIds.openLibrary`, `metadata`, and `createdBy` populated
 
-### ~~Manual-entry books (fallback path)~~ *(superseded)*
+### ~~Manual-entry books (fallback path)~~ _(superseded)_
 
 Manual entry is reserved for obscure books that return no usable API results. Creates a new `Book` with user-supplied `metadata` and no `externalIds`. No deduplication is performed. Duplication risk for truly obscure books is accepted.
 
@@ -131,6 +133,7 @@ Manual entry is reserved for obscure books that return no usable API results. Cr
 The `enrichBook` callable Cloud Function lives in `functions/src/` and provides search and detail-lookup over an external provider. It is the backend for the book search UX and for the enrichment migration script.
 
 Actions:
+
 - `search` — queries the provider by title/author string, returns `BookSearchResult[]`
 - `lookup` — fetches full metadata for a specific external ID, returns `BookEnrichmentResult`
 
@@ -149,13 +152,16 @@ interface BookProvider {
 Lives at `functions/src/books/providers/open-library.ts`. Implements `BookProvider` against the Open Library API.
 
 **`search(query)`** — calls `/search.json` with a `fields` projection:
+
 ```
 GET /search.json?q={query}&fields=key,title,author_name,first_publish_year,cover_i&limit=10
 ```
+
 Maps the response: `key` → `externalId` (full path, e.g., `/works/OL166894W`), `author_name[]` → joined `author` string, `cover_i` → constructed `thumbnailUrl`.
 
 **`lookup(externalId)`** — three fetches; the work call first, then the other two
 concurrently (`Promise.all`), since both depend on its response or on the OLID:
+
 1. `GET /works/{olid}.json` — title, description, subjects, covers, first_publish_date
 2. `GET /authors/{authorKey}.json` — name of the first listed author
 3. `GET /works/{olid}/editions.json?limit=1` — page count from `entries[0].number_of_pages`
@@ -183,10 +189,10 @@ All requests include a `User-Agent: BookBingo/1.0 (zach.smith33@gmail.com)` head
 The user-facing flow for adding a reading:
 
 1. **User types a title or author** into a search bar
-2. *(not implemented)* **Internal library search first** — query `/books/` in Firestore for `externalIds.openLibrary` matches against already-known Work OLIDs. If the club has already read this work, surface the existing record immediately. Note: Firestore does not support fuzzy text search, so internal search matches by exact Work OLID, not free text.
-3. *(currently the only path)* **External search** — call `enrichBook({ action: 'search', query })` to search Open Library. Display Work-level results (title, author, first publish year, cover).
+2. _(not implemented)_ **Internal library search first** — query `/books/` in Firestore for `externalIds.openLibrary` matches against already-known Work OLIDs. If the club has already read this work, surface the existing record immediately. Note: Firestore does not support fuzzy text search, so internal search matches by exact Work OLID, not free text.
+3. _(currently the only path)_ **External search** — call `enrichBook({ action: 'search', query })` to search Open Library. Display Work-level results (title, author, first publish year, cover).
 4. **User selects a result** — app calls `enrichBook({ action: 'lookup', externalId })` to fetch full metadata
-5. **`getOrCreateBook()` runs** — computes `deriveBookId(...)` and does an idempotent write on that document id. *(The original text here said it queries `externalIds.openLibrary`; superseded by deterministic-ID dedup — see `decisions/book-identity-and-deduplication.md`.)*
+5. **`getOrCreateBook()` runs** — computes `deriveBookId(...)` and does an idempotent write on that document id. _(The original text here said it queries `externalIds.openLibrary`; superseded by deterministic-ID dedup — see `decisions/book-identity-and-deduplication.md`.)_
 6. **`createReading()` runs** — note the referential-integrity rule described in the Security Rules section below **does not ship**; integrity is maintained by ordering, not by rules
 
 ---
@@ -195,14 +201,14 @@ The user-facing flow for adding a reading:
 
 When a user manually adds a book, the UI collects the following fields. The `metadata` object is always written; fields the user cannot provide are written as `null` or `[]`.
 
-| Field           | Type             | Notes                                        |
-| --------------- | ---------------- | -------------------------------------------- |
+| Field           | Type             | Notes                                         |
+| --------------- | ---------------- | --------------------------------------------- |
 | `pageCount`     | `number \| null` | May be null; informs tiles like "1000+ pages" |
-| `publishedDate` | `string \| null` | Optional                                     |
-| `categories`    | `string[]`       | Optional, defaults to `[]`                   |
-| `language`      | `string \| null` | Optional                                     |
-| `isbn`          | `string \| null` | Optional; can help with identification       |
-| `thumbnailUrl`  | `string \| null` | Optional                                     |
+| `publishedDate` | `string \| null` | Optional                                      |
+| `categories`    | `string[]`       | Optional, defaults to `[]`                    |
+| `language`      | `string \| null` | Optional                                      |
+| `isbn`          | `string \| null` | Optional; can help with identification        |
+| `thumbnailUrl`  | `string \| null` | Optional                                      |
 
 ---
 
@@ -245,6 +251,7 @@ match /{path=**}/readings/{readingId} {
 ```
 
 Notes on the live rules:
+
 - **Book updates are owner-gated** — only the `createdBy` user (or the `system-migration`
   principal) may update a book, not any authenticated member.
 - **There is no `exists()` referential-integrity check** on reading creation. Book/reading
@@ -276,6 +283,7 @@ pnpm run typecheck
 ### Step 3 — Rewrite `getOrCreateBook()` in `app/web/src/lib/books.ts`
 
 New signature:
+
 ```ts
 export async function getOrCreateBook(
   title: string,
@@ -283,7 +291,7 @@ export async function getOrCreateBook(
   userId: string,
   metadata: BookMetadata,
   externalIds?: ExternalBookIds,
-): Promise<string>
+): Promise<string>;
 ```
 
 > **⚠️ Superseded 2026-06-19** — the query-based dedup logic below is replaced by deterministic-ID dedup. `getOrCreateBook` should compute `deriveBookId(...)` (from `lib/core`) and do an idempotent `setDoc`/`getDoc` on that ID — no query. See `docs/decisions/book-identity-and-deduplication.md`.
@@ -291,6 +299,7 @@ export async function getOrCreateBook(
 ~~Deduplication logic: if `externalIds.openLibrary` is present, query `where('externalIds.openLibrary', '==', externalIds.openLibrary)`. If a match exists, return its ID. Otherwise create a new book document with `metadata` and `externalIds` (no `titleLower`/`authorLower`).~~
 
 Updated import from `@bookbingo/lib-types`:
+
 ```ts
 import { Book, BookMetadata, ExternalBookIds } from '@bookbingo/lib-types';
 ```
@@ -372,10 +381,10 @@ After enrichment, a separate pass removes `titleLower`, `authorLower`, and the o
 
 Rate limit: 1 req/sec unauthenticated; 3 req/sec with `User-Agent` header.
 
-| Endpoint | Use |
-| -------- | --- |
+| Endpoint                                                                             | Use                                      |
+| ------------------------------------------------------------------------------------ | ---------------------------------------- |
 | `GET /search.json?q={query}&fields=key,title,author_name,first_publish_year,cover_i` | Book search (returns Work-level records) |
-| `GET /works/{olid}.json` | Full Work metadata |
-| `GET /works/{olid}/editions.json?limit=1` | Page count from first edition |
-| `GET /authors/{olid}.json` | Author name |
-| `GET https://covers.openlibrary.org/b/id/{cover_id}-M.jpg` | Cover image (medium) |
+| `GET /works/{olid}.json`                                                             | Full Work metadata                       |
+| `GET /works/{olid}/editions.json?limit=1`                                            | Page count from first edition            |
+| `GET /authors/{olid}.json`                                                           | Author name                              |
+| `GET https://covers.openlibrary.org/b/id/{cover_id}-M.jpg`                           | Cover image (medium)                     |

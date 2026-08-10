@@ -21,7 +21,10 @@ export function AlertDialog({
   confirmLabel = 'Confirm',
 }: AlertDialogProps) {
   return (
-    <RadixAlertDialog.Root open={isOpen} onOpenChange={(open) => !open && onClose()}>
+    <RadixAlertDialog.Root
+      open={isOpen}
+      onOpenChange={(open) => !open && onClose()}
+    >
       <RadixAlertDialog.Portal>
         <RadixAlertDialog.Overlay
           className={cn(
@@ -46,9 +49,7 @@ export function AlertDialog({
           </RadixAlertDialog.Description>
           <div className="mt-6 flex justify-end gap-3">
             <RadixAlertDialog.Cancel asChild>
-              <Button variant="ghost">
-                Cancel
-              </Button>
+              <Button variant="ghost">Cancel</Button>
             </RadixAlertDialog.Cancel>
             <RadixAlertDialog.Action asChild>
               <Button variant="danger" onClick={onConfirm}>

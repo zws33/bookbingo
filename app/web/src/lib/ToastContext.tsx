@@ -1,6 +1,16 @@
-import { createContext, useContext, useState, useCallback, type ReactNode } from 'react';
+import {
+  createContext,
+  useContext,
+  useState,
+  useCallback,
+  type ReactNode,
+} from 'react';
 import { Toast as RadixToast } from 'radix-ui';
-import { ToastItem, ToastViewport, TOAST_EXIT_DURATION_MS } from '../components/ui/Toast.js';
+import {
+  ToastItem,
+  ToastViewport,
+  TOAST_EXIT_DURATION_MS,
+} from '../components/ui/Toast.js';
 
 interface ToastQueueItem {
   id: string;
@@ -38,7 +48,9 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 
   const handleOpenChange = useCallback((id: string, open: boolean) => {
     if (!open) {
-      setToasts((prev) => prev.map((t) => (t.id === id ? { ...t, open: false } : t)));
+      setToasts((prev) =>
+        prev.map((t) => (t.id === id ? { ...t, open: false } : t)),
+      );
       setTimeout(
         () => setToasts((prev) => prev.filter((t) => t.id !== id)),
         TOAST_EXIT_DURATION_MS,

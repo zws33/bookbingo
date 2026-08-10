@@ -16,10 +16,16 @@ window.onerror = (_message, _source, _line, _col, error) => {
   return false;
 };
 
-window.addEventListener('unhandledrejection', (event: PromiseRejectionEvent) => {
-  const reason = event.reason instanceof Error ? event.reason : new Error(String(event.reason));
-  log.error('global', reason);
-});
+window.addEventListener(
+  'unhandledrejection',
+  (event: PromiseRejectionEvent) => {
+    const reason =
+      event.reason instanceof Error
+        ? event.reason
+        : new Error(String(event.reason));
+    log.error('global', reason);
+  },
+);
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
@@ -30,5 +36,5 @@ createRoot(document.getElementById('root')!).render(
         </ErrorBoundary>
       </ToastProvider>
     </BrowserRouter>
-  </StrictMode>
+  </StrictMode>,
 );

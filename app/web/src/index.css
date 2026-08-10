@@ -1,4 +1,4 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 
 @theme {
   /* ── Primary: one reconciled blue ramp (deep "Alexandria Blue") ── */
@@ -45,9 +45,9 @@
   /* ── Families: self-hosted via @fontsource-variable (imported in main.tsx).
      Overriding --font-sans makes Inter the app-wide default (v4 preflight uses it
      as the page default); --font-display carries Noto Serif for headline roles. ── */
-  --font-sans: "Inter Variable", "Inter", system-ui, -apple-system, sans-serif;
+  --font-sans: 'Inter Variable', 'Inter', system-ui, -apple-system, sans-serif;
   --font-body: var(--font-sans);
-  --font-display: "Noto Serif Variable", "Noto Serif", ui-serif, Georgia, serif;
+  --font-display: 'Noto Serif Variable', 'Noto Serif', ui-serif, Georgia, serif;
 
   /* ── Type scale: size + paired leading / tracking / weight ── */
   --text-display-lg: 48px;

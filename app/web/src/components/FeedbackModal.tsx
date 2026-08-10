@@ -74,7 +74,9 @@ export function FeedbackModal({ isOpen, onClose }: FeedbackModalProps) {
                 disabled={isSubmitting}
                 className="text-primary"
               />
-              <span className="text-sm text-on-surface-variant">🐛 Bug Report</span>
+              <span className="text-sm text-on-surface-variant">
+                🐛 Bug Report
+              </span>
             </label>
             <label className="flex items-center gap-2 cursor-pointer">
               <input
@@ -86,7 +88,9 @@ export function FeedbackModal({ isOpen, onClose }: FeedbackModalProps) {
                 disabled={isSubmitting}
                 className="text-primary"
               />
-              <span className="text-sm text-on-surface-variant">✨ Feature Request</span>
+              <span className="text-sm text-on-surface-variant">
+                ✨ Feature Request
+              </span>
             </label>
           </div>
         </div>

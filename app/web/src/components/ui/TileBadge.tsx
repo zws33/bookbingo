@@ -12,7 +12,11 @@ const variantClasses = {
   secondary: 'border-outline-variant text-on-surface-variant',
 };
 
-export function TileBadge({ tileId, variant = 'primary', className }: TileBadgeProps) {
+export function TileBadge({
+  tileId,
+  variant = 'primary',
+  className,
+}: TileBadgeProps) {
   const name = getTileById(tileId)?.name ?? tileId;
   return (
     <span

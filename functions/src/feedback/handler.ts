@@ -1,7 +1,8 @@
 import { HttpsError, type CallableRequest } from 'firebase-functions/v2/https';
 import { logger } from 'firebase-functions';
 
-export const GITHUB_API_URL = 'https://api.github.com/repos/zws33/bookbingo/issues';
+export const GITHUB_API_URL =
+  'https://api.github.com/repos/zws33/bookbingo/issues';
 export const TITLE_MAX_LENGTH = 200;
 export const DESCRIPTION_MAX_LENGTH = 2000;
 
@@ -23,14 +24,20 @@ export async function submitFeedbackHandler(
   deps: FeedbackDeps,
 ): Promise<{ issueUrl: string; issueNumber: number }> {
   if (!request.auth) {
-    throw new HttpsError('unauthenticated', 'Must be signed in to submit feedback.');
+    throw new HttpsError(
+      'unauthenticated',
+      'Must be signed in to submit feedback.',
+    );
   }
 
   const data = request.data as SubmitFeedbackData;
   const { type, title, description } = data;
 
   if (!type || (type !== 'bug' && type !== 'feature')) {
-    throw new HttpsError('invalid-argument', 'type must be "bug" or "feature".');
+    throw new HttpsError(
+      'invalid-argument',
+      'type must be "bug" or "feature".',
+    );
   }
   if (!title || typeof title !== 'string' || title.trim().length === 0) {
     throw new HttpsError('invalid-argument', 'title is required.');
@@ -41,7 +48,11 @@ export async function submitFeedbackHandler(
       `title must be at most ${TITLE_MAX_LENGTH} characters.`,
     );
   }
-  if (!description || typeof description !== 'string' || description.trim().length === 0) {
+  if (
+    !description ||
+    typeof description !== 'string' ||
+    description.trim().length === 0
+  ) {
     throw new HttpsError('invalid-argument', 'description is required.');
   }
   if (description.trim().length > DESCRIPTION_MAX_LENGTH) {
@@ -70,13 +81,20 @@ export async function submitFeedbackHandler(
 
   if (!response.ok) {
     const errorBody = await response.text();
-    logger.error('GitHub API error', { status: response.status, body: errorBody });
-    throw new HttpsError('internal', 'Failed to create GitHub issue. Please try again.');
+    logger.error('GitHub API error', {
+      status: response.status,
+      body: errorBody,
+    });
+    throw new HttpsError(
+      'internal',
+      'Failed to create GitHub issue. Please try again.',
+    );
   }
 
-  const { html_url: issueUrl, number: issueNumber } = (await response.json()) as {
-    html_url: string;
-    number: number;
-  };
+  const { html_url: issueUrl, number: issueNumber } =
+    (await response.json()) as {
+      html_url: string;
+      number: number;
+    };
   return { issueUrl, issueNumber };
 }

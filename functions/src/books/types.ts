@@ -1,4 +1,7 @@
-import type { BookSearchResult, BookEnrichmentResult } from '@bookbingo/lib-types';
+import type {
+  BookSearchResult,
+  BookEnrichmentResult,
+} from '@bookbingo/lib-types';
 
 export type { BookSearchResult, BookEnrichmentResult };
 

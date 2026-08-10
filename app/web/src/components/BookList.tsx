@@ -214,7 +214,9 @@ export function BookList({
                 />
               )}
               <div className="space-y-1">
-                <p className="italic text-on-surface-variant">{selectedBook.author}</p>
+                <p className="italic text-on-surface-variant">
+                  {selectedBook.author}
+                </p>
                 {selectedBookData?.metadata?.publishedDate && (
                   <p className="text-sm text-on-surface-variant">
                     {selectedBookData.metadata.publishedDate}
@@ -242,7 +244,9 @@ export function BookList({
               )}
             {selectedReading && selectedReading.tiles.length > 0 && (
               <div className="pt-2 border-t border-outline-variant">
-                <p className="text-xs text-on-surface-variant mb-1">Bingo tiles</p>
+                <p className="text-xs text-on-surface-variant mb-1">
+                  Bingo tiles
+                </p>
                 <div className="flex flex-wrap gap-1">
                   {selectedReading.tiles.map((tile) => (
                     <span

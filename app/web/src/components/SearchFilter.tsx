@@ -6,7 +6,11 @@ interface SearchFilterProps {
   placeholder?: string;
 }
 
-export function SearchFilter({ value, onChange, placeholder = 'Filter by author...' }: SearchFilterProps) {
+export function SearchFilter({
+  value,
+  onChange,
+  placeholder = 'Filter by author...',
+}: SearchFilterProps) {
   return (
     <div className="relative">
       <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">

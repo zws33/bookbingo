@@ -18,7 +18,7 @@ evaluation of that reference and the phased adoption.
 
 **Adopt a semantic, role-based color token layer, expressed as Tailwind v4 `@theme`
 CSS custom properties in `app/web/src/index.css`.** Components reference tokens by
-*role* (`bg-primary`, `text-on-surface`, `border-outline-variant`), never raw
+_role_ (`bg-primary`, `text-on-surface`, `border-outline-variant`), never raw
 palette hues.
 
 **Naming convention (MD3-derived):**
@@ -26,7 +26,7 @@ palette hues.
 - **Color roles** come in pairs: a container/surface color and its `on-` foreground
   (`primary`/`on-primary`, `surface`/`on-surface`, `error`/`on-error`,
   `success`/`on-success`, `inverse-surface`/`inverse-on-surface`). The `on-` color is
-  the accessible text/icon color to use *on top of* its base.
+  the accessible text/icon color to use _on top of_ its base.
 - **Surfaces use a tonal ramp** for elevation instead of relying on shadows:
   `surface`, `surface-container-{lowest,low,,high,highest}`. Higher = more elevated.
 - **Neutrals share a warm undertone** to match the vellum (`#FBF9F8`) base — including

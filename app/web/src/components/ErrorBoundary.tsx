@@ -29,8 +29,13 @@ export class ErrorBoundary extends Component<Props, State> {
             <h2 className="font-display text-xl font-semibold text-on-surface mb-2">
               Something went wrong
             </h2>
-            <p className="text-on-surface-variant mb-6">Reload the page to try again.</p>
-            <Button className="text-sm" onClick={() => window.location.reload()}>
+            <p className="text-on-surface-variant mb-6">
+              Reload the page to try again.
+            </p>
+            <Button
+              className="text-sm"
+              onClick={() => window.location.reload()}
+            >
               Reload
             </Button>
           </div>

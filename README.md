@@ -115,14 +115,14 @@ The result: a reader who covers 25 diverse tiles with 10 books will outscore one
 
 ## Tech Stack
 
-| Layer | Technology |
-|---|---|
-| Language | TypeScript (strict, ESM only) |
-| Web app | React 19 + Vite + Tailwind CSS |
-| Backend | Firebase (Auth, Firestore, Hosting) |
-| Testing | `node:test` in `lib/` + `functions/`; Vitest + Testing Library in `app/web/` |
-| Package manager | pnpm (monorepo workspaces) |
-| Build | `tsc --build` (project references) |
+| Layer           | Technology                                                                   |
+| --------------- | ---------------------------------------------------------------------------- |
+| Language        | TypeScript (strict, ESM only)                                                |
+| Web app         | React 19 + Vite + Tailwind CSS                                               |
+| Backend         | Firebase (Auth, Firestore, Hosting)                                          |
+| Testing         | `node:test` in `lib/` + `functions/`; Vitest + Testing Library in `app/web/` |
+| Package manager | pnpm (monorepo workspaces)                                                   |
+| Build           | `tsc --build` (project references)                                           |
 
 ## License
 

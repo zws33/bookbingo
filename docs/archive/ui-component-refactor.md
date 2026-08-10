@@ -9,13 +9,13 @@ Branch: `refactor/ui-components`
 
 ## Task List
 
-| # | Component | Issue | Status |
-|---|-----------|-------|--------|
-| 1 | `PageStatus` | #75 | ✅ Done |
-| 2 | `TilePill` | #76 | 🔲 Next |
-| 3 | `UserAvatar` | #77 | 🔲 Pending |
-| 4 | Refactor `LeaderboardPage` | #78 | 🔲 Blocked on #75, #77 |
-| 5 | Refactor `LibraryPage` | #79 | 🔲 Blocked on #75, #76 |
+| #   | Component                  | Issue | Status                 |
+| --- | -------------------------- | ----- | ---------------------- |
+| 1   | `PageStatus`               | #75   | ✅ Done                |
+| 2   | `TilePill`                 | #76   | 🔲 Next                |
+| 3   | `UserAvatar`               | #77   | 🔲 Pending             |
+| 4   | Refactor `LeaderboardPage` | #78   | 🔲 Blocked on #75, #77 |
+| 5   | Refactor `LibraryPage`     | #79   | 🔲 Blocked on #75, #76 |
 
 ---
 
@@ -32,35 +32,41 @@ Branch: `refactor/ui-components`
 Two components render tile ID badge pills with identical markup but minor differences:
 
 **`BookCard.tsx`** — with truncation:
+
 ```tsx
-{tiles.map((tile) => {
-  const name = getTileById(tile)?.name ?? tile;
-  return (
-    <span
-      key={tile}
-      title={name}
-      className="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded min-w-0 max-w-full truncate"
-    >
-      {truncate(name, 25)}
-    </span>
-  );
-})}
+{
+  tiles.map((tile) => {
+    const name = getTileById(tile)?.name ?? tile;
+    return (
+      <span
+        key={tile}
+        title={name}
+        className="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded min-w-0 max-w-full truncate"
+      >
+        {truncate(name, 25)}
+      </span>
+    );
+  });
+}
 ```
 
 **`LibraryPage.tsx`** — without truncation:
+
 ```tsx
-{uniqueTiles.map((tileId) => {
-  const name = getTileById(tileId)?.name ?? tileId;
-  return (
-    <span
-      key={tileId}
-      title={name}
-      className="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded"
-    >
-      {name}
-    </span>
-  );
-})}
+{
+  uniqueTiles.map((tileId) => {
+    const name = getTileById(tileId)?.name ?? tileId;
+    return (
+      <span
+        key={tileId}
+        title={name}
+        className="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded"
+      >
+        {name}
+      </span>
+    );
+  });
+}
 ```
 
 **`BookRow.tsx`** — uses dots, not pills. Leave it alone.

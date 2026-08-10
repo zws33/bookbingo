@@ -7,11 +7,11 @@ implements the near-term + mid-term horizons as four PRs. Long-term remains
 uncommitted and trigger-gated (§4). When a phase is approved, promote its
 decisions into `docs/decisions/` per the ADR convention.
 
-| Near-term deliverable | State |
-|---|---|
-| 1. Read-through `/books` on `lookup` | Approved, not yet shipped — read-through plan PRs 2–4 |
-| 2. Short-TTL `search` response cache | ✅ Shipped (PR #61) |
-| 3. Collapse `lookup`'s internal fan-out | ✅ Shipped (PR #61) |
+| Near-term deliverable                   | State                                                 |
+| --------------------------------------- | ----------------------------------------------------- |
+| 1. Read-through `/books` on `lookup`    | Approved, not yet shipped — read-through plan PRs 2–4 |
+| 2. Short-TTL `search` response cache    | ✅ Shipped (PR #61)                                   |
+| 3. Collapse `lookup`'s internal fan-out | ✅ Shipped (PR #61)                                   |
 
 **Audience:** Solo engineer / very small team. Optimize for reversible,
 incremental moves. Avoid generic future-proofing.
@@ -26,10 +26,10 @@ incremental moves. Avoid generic future-proofing.
 
 Two API touchpoints, both behind a single callable (`enrichBook`):
 
-| Path | Frontend trigger | Backend behavior | OL requests |
-|------|------------------|------------------|-------------|
+| Path     | Frontend trigger                                          | Backend behavior                                                                 | OL requests                             |
+| -------- | --------------------------------------------------------- | -------------------------------------------------------------------------------- | --------------------------------------- |
 | `search` | `BookSearch.tsx`, 300ms debounce, min 2 chars, `limit=10` | `OpenLibraryProvider.search()` → `/search.json`, behind a per-instance TTL cache | **1** per distinct query per TTL window |
-| `lookup` | On result selection | `OpenLibraryProvider.lookup()` → work, then author + editions in parallel | **3** — 1 then 2 concurrent |
+| `lookup` | On result selection                                       | `OpenLibraryProvider.lookup()` → work, then author + editions in parallel        | **3** — 1 then 2 concurrent             |
 
 Flow: `app/web` → `httpsCallable('enrichBook')` → `handler.ts` →
 `BookEnrichmentService` → `OpenLibraryProvider` → `openlibrary.org`.
@@ -55,7 +55,7 @@ the read-through plan.
 The catch: `/books` is written **only** by `getOrCreateBook` at reading-create
 time, is **never consulted before** the 3-request `lookup` fan-out, is **never
 refreshed**, and has no `fetchedAt` / `source` / `schemaVersion`. It is a
-*byproduct*, not a *store*.
+_byproduct_, not a _store_.
 
 This is the load-bearing fact of the whole memo: **you are not building a
 canonical store from scratch. You are promoting a byproduct you already have,
@@ -65,7 +65,7 @@ and reading from it before you hit the network.**
 
 ## 1. Open Library guidance → architectural implications
 
-OL's stated guidance, and what each clause implies *for this specific codebase*:
+OL's stated guidance, and what each clause implies _for this specific codebase_:
 
 **"Cache API-backed data where possible."**
 → Your `lookup` path violates this most sharply: 3 network round-trips per book,
@@ -74,19 +74,20 @@ metadata. Caching `lookup` is not just polite to OL — it's a latency and
 Cloud-Functions-cost win for you.
 
 **"Web APIs suit low-volume, real-time lookups."**
-→ Your **`search`** path is exactly this use case and should *stay on the API
-indefinitely*. Interactive title search over the long tail of all books is
+→ Your **`search`** path is exactly this use case and should _stay on the API
+indefinitely_. Interactive title search over the long tail of all books is
 precisely what a real-time API is for. Do not try to own search.
 
 **"Use monthly bulk dumps for bulk import / large-scale access."**
 → You have **no bulk access pattern today**, and for a friends' book club you
 likely never will at "full dataset" scale. The addressable set of books is
 "whatever this group reads" — hundreds, maybe low thousands, ever. This clause
-is a signal about *when ingestion is justified* (see §4/§7), and the honest
+is a signal about _when ingestion is justified_ (see §4/§7), and the honest
 answer for now is: **not yet, possibly not ever at full scale.**
 
 **How strongly does this push us toward owning the data?**
 Moderately, and asymmetrically:
+
 - For **detail/enrichment** (`lookup`): strongly. The data is stable
   (a work's title/author/subjects rarely change), you re-request it constantly,
   and you already have the store to hold it. Owning this is squarely aligned
@@ -95,8 +96,8 @@ Moderately, and asymmetrically:
   and relevance — a different and much larger project that OL explicitly tells
   you the API already solves.
 
-**The dividing line:** cache/own the *stable, repeatedly-requested, small*
-(works you've touched). Keep renting the *volatile, long-tail, discovery* path
+**The dividing line:** cache/own the _stable, repeatedly-requested, small_
+(works you've touched). Keep renting the _volatile, long-tail, discovery_ path
 (search).
 
 ---
@@ -109,6 +110,7 @@ Moderately, and asymmetrically:
 without introducing new infrastructure.
 
 **Deliverables:**
+
 1. **Read-through `/books` on `lookup` (highest leverage).** Before the
    3-request fan-out, derive the same `bookId` and check `/books`. If the doc
    exists with metadata newer than a staleness threshold, return it and skip OL
@@ -124,12 +126,13 @@ without introducing new infrastructure.
 
 **Why this phase:** It is nearly free — the store and the ID derivation already
 exist — and it delivers the largest correctness/cost/latency win of any phase.
-It is also a *down payment on the future*, not a throwaway: the `lookup`
+It is also a _down payment on the future_, not a throwaway: the `lookup`
 read-through writes into the exact store the mid-term canonical catalog will
 formalize. Only the ephemeral `search` cache is genuinely disposable, and it's
-disposable *by design*.
+disposable _by design_.
 
 **Risks:**
+
 - Serving stale metadata from `/books`. Mitigated by a `fetchedAt` timestamp +
   generous TTL (works are stable; staleness is low-stakes here).
 - In-memory search cache doesn't share across function instances / cold starts.
@@ -145,10 +148,11 @@ requests. Identical `search` queries within TTL make **1** OL request, not N.
 ### Mid term — durable canonical works store (coexists with API)
 
 **Objective:** Promote `/books` from an add-time byproduct into a first-class,
-read-through canonical works store, still populated *from real traffic* (not
+read-through canonical works store, still populated _from real traffic_ (not
 bulk).
 
 **Deliverables:**
+
 1. **First-class enrichment fields on `/books`:** `metadataFetchedAt`,
    `metadataSource` (`'openLibrary'`), `schemaVersion`. These make staleness and
    provenance explicit instead of implicit.
@@ -165,6 +169,7 @@ and moving the write authority for `/books` into the function (a boundary change
 worth doing deliberately, not in a hurry).
 
 **Risks:**
+
 - Schema drift between docs written pre- and post-`schemaVersion`. Handle by
   treating missing fields as "unknown / needs refresh," never by a big-bang
   migration.
@@ -179,12 +184,13 @@ consulted only on cache miss or staleness.
 
 ### Long term — ingestion pipeline + provider-agnostic catalog
 
-**Objective:** Reduce OL from a *runtime dependency* to a *data source among
-sources*, refreshed offline.
+**Objective:** Reduce OL from a _runtime dependency_ to a _data source among
+sources_, refreshed offline.
 
 **Deliverables (only if triggered — see §4):**
-1. A refresh job that re-fetches or dump-sources metadata for the *specific
-   works you already hold* (targeted, not full-dataset ingestion).
+
+1. A refresh job that re-fetches or dump-sources metadata for the _specific
+   works you already hold_ (targeted, not full-dataset ingestion).
 2. A provider-agnostic seam: `metadataSource` becomes a real union, `externalIds`
    holds multiple providers, and a small resolution policy decides precedence.
 3. Only if scale/coverage demands it: partial ingestion from OL monthly dumps
@@ -192,15 +198,15 @@ sources*, refreshed offline.
 
 **Why this phase / why last:** For a book-club hobby app, full bulk ingestion of
 OL's multi-GB works dump is almost certainly over-engineering — you'd ingest
-millions of records to serve hundreds. The realistic long-term is a *targeted
-refresh* of the small set you actually hold, and that only earns its keep once a
+millions of records to serve hundreds. The realistic long-term is a _targeted
+refresh_ of the small set you actually hold, and that only earns its keep once a
 concrete trigger appears.
 
 **Risks:** Operational weight (a scheduled pipeline, dump parsing, storage) that
 a solo maintainer must own forever. This is the phase most likely to be
 premature — resist it until §4's triggers fire.
 
-**Exit criteria (to *start*, not finish):** At least two triggers from §4 are
+**Exit criteria (to _start_, not finish):** At least two triggers from §4 are
 true simultaneously.
 
 ---
@@ -209,20 +215,21 @@ true simultaneously.
 
 Four concrete options, ordered by increasing ownership:
 
-| | Time-to-value | Ops complexity | Data correctness | Long-term maint. | Migration difficulty |
-|---|---|---|---|---|---|
-| **A. Request/response cache only** (search + lookup) | Hours–days | Very low (in-memory) | Neutral; risks light staleness | Low; disposable | Trivial — delete it |
-| **B. Read-through persistence** (write fetched works to `/books`) | Days | Low — reuses `/books` + IDs | Improves (stable snapshot, explicit `fetchedAt`) | Low–medium | None — it *is* the forward path |
-| **C. Dump ingestion** (full/partial OL dumps) | Weeks | High (pipeline, parsing, storage, schedule) | High coverage, but staleness between dumps | High — a system to babysit | Medium — coexists via same `/books` |
-| **D. Provider-agnostic store** (multi-source, precedence) | Weeks–months | High + design cost | Highest ceiling; merge-conflict risk | Medium if seams are clean; high if speculative | Medium |
+|                                                                   | Time-to-value | Ops complexity                              | Data correctness                                 | Long-term maint.                               | Migration difficulty                |
+| ----------------------------------------------------------------- | ------------- | ------------------------------------------- | ------------------------------------------------ | ---------------------------------------------- | ----------------------------------- |
+| **A. Request/response cache only** (search + lookup)              | Hours–days    | Very low (in-memory)                        | Neutral; risks light staleness                   | Low; disposable                                | Trivial — delete it                 |
+| **B. Read-through persistence** (write fetched works to `/books`) | Days          | Low — reuses `/books` + IDs                 | Improves (stable snapshot, explicit `fetchedAt`) | Low–medium                                     | None — it _is_ the forward path     |
+| **C. Dump ingestion** (full/partial OL dumps)                     | Weeks         | High (pipeline, parsing, storage, schedule) | High coverage, but staleness between dumps       | High — a system to babysit                     | Medium — coexists via same `/books` |
+| **D. Provider-agnostic store** (multi-source, precedence)         | Weeks–months  | High + design cost                          | Highest ceiling; merge-conflict risk             | Medium if seams are clean; high if speculative | Medium                              |
 
-**Reading of the table for *this* project:**
+**Reading of the table for _this_ project:**
+
 - **A is worth doing immediately** but recognize part of it (search cache) is
   throwaway and part of it (lookup read-through) is really B in disguise.
 - **B is the destination for the foreseeable future.** It's the cheapest option
-  that is *also* strategically forward-compatible. Time-to-value is days because
+  that is _also_ strategically forward-compatible. Time-to-value is days because
   the store exists.
-- **C and D are latent, not scheduled.** They are prudent to *not foreclose*
+- **C and D are latent, not scheduled.** They are prudent to _not foreclose_
   (keep IDs opaque, keep `externalIds` provider-keyed — both already true), but
   building them now is over-engineering.
 
@@ -230,8 +237,8 @@ Four concrete options, ordered by increasing ownership:
 logic, editions/ISBN modeling, a search index you own.
 **Prudent foundation (already in place or cheap):** opaque internal IDs,
 provider-keyed provenance, a read-through write into `/books`, an explicit
-`fetchedAt`/`source`. Note the foundation is mostly *already built* — the prudent
-move is to *use it*, not to add to it.
+`fetchedAt`/`source`. Note the foundation is mostly _already built_ — the prudent
+move is to _use it_, not to add to it.
 
 ---
 
@@ -241,7 +248,7 @@ Not on a date — on **triggers**. Require **≥2 simultaneously** before starti
 
 1. **Coverage/quality gaps hurt real users** — books your group reads that OL
    lacks or mis-describes, frequently enough to complain about.
-2. **A second provider must be *merged*, not just fallen back to** — i.e. you
+2. **A second provider must be _merged_, not just fallen back to** — i.e. you
    need field-level precedence (Google Books pageCount, OL subjects), not "try B
    if A is empty."
 3. **OL availability/rate-limits actually cause user-visible failures** — not
@@ -250,8 +257,8 @@ Not on a date — on **triggers**. Require **≥2 simultaneously** before starti
    API guidance stops applying.
 
 For a friends' book club, realistically only (1) or (2) ever fire, and even then
-the answer is likely a *second provider behind the existing `BookProvider`
-seam* — not a dump pipeline. **Full ingestion is the least likely branch and
+the answer is likely a _second provider behind the existing `BookProvider`
+seam_ — not a dump pipeline. **Full ingestion is the least likely branch and
 should be treated as such.**
 
 ---
@@ -260,20 +267,20 @@ should be treated as such.**
 
 Distinguish three layers explicitly (the user asked for this):
 
-1. **Short-term API request caching** — *search*. Lives **in-function memory**
+1. **Short-term API request caching** — _search_. Lives **in-function memory**
    (per-instance `Map`), keyed by normalized query. **TTL 5–15 min.** No
    invalidation logic; entries expire. Disposable by design.
-2. **Longer-lived persistence of fetched metadata** — *lookup*. Lives in
+2. **Longer-lived persistence of fetched metadata** — _lookup_. Lives in
    **`/books/{bookId}` in Firestore** (the store you already have). Keyed by the
    deterministic `bookId`. **"TTL" is a staleness threshold** on
    `metadataFetchedAt` (weeks–months is fine; works are stable), checked on read,
-   refreshed lazily on miss. This is a cache that is *also* the canonical store —
+   refreshed lazily on miss. This is a cache that is _also_ the canonical store —
    which is exactly why it isn't a dead-end.
 3. **Eventual replacement of runtime API dependence** — the long-term refresh
    job updates `metadataFetchedAt` in the same store. No new cache tier.
 
-**How to avoid a dead-end cache:** the rule is *"the durable cache and the future
-canonical store must be the same Firestore collection with the same key."* They
+**How to avoid a dead-end cache:** the rule is _"the durable cache and the future
+canonical store must be the same Firestore collection with the same key."_ They
 already are (`/books`, deterministic `bookId`). The only genuinely throwaway
 cache is the ephemeral in-memory search cache — and that's fine precisely because
 search is the path you'll never own.
@@ -287,7 +294,7 @@ search is the path you'll never own.
 1. **Read-through + write-through `/books` in the `lookup` path.**
    In `service.getBookDetails` (or the provider caller), derive `bookId`, check
    `/books` for fresh metadata, return on hit; on miss, fetch OL and write the
-   doc. *This is the whole near-term win and the mid-term foundation in one move.*
+   doc. _This is the whole near-term win and the mid-term foundation in one move._
 2. **Add explicit provenance fields** (`metadataFetchedAt`, `metadataSource`,
    `schemaVersion`) to the `/books` write and the `Book` type. Small, and it
    turns step 1's cache into a real store.
@@ -298,11 +305,12 @@ search is the path you'll never own.
    neither depended on the schema work in step 2.
 
 **Deliberately defer:** dump ingestion, multi-provider code, editions/ISBN
-modeling, any scheduled job, a `provider` abstraction *beyond* the
+modeling, any scheduled job, a `provider` abstraction _beyond_ the
 `BookProvider` interface that already exists. Do **not** generalize
 `metadataSource` into a resolution engine until §4 triggers.
 
 **Migration path (keeps current behavior working throughout):**
+
 - Steps 1–2 are additive: read-through falls back to the exact current code path
   on cache miss, so behavior is identical when the store is cold and strictly
   better as it warms.
@@ -328,7 +336,7 @@ modeling, any scheduled job, a `provider` abstraction *beyond* the
 
 **Q1. Is request caching valuable enough to do immediately even if we later
 replace the API dependency?**
-Yes — but be precise about *which* cache. The **lookup read-through is not
+Yes — but be precise about _which_ cache. The **lookup read-through is not
 throwaway**: it writes into `/books`, the very store that becomes the canonical
 catalog, so it's a down payment, not sunk cost. The **search cache is
 throwaway** — and that's correct, because search is the path you should keep
@@ -338,13 +346,13 @@ one is disposable.
 **Q2. Should the next step after caching be a read-through local works store
 rather than immediate bulk ingestion?**
 Yes, unambiguously. And note it's ~70% built already (opaque IDs, provider-keyed
-`externalIds`, persisted metadata). Read-through is *days* of work reusing
-existing infrastructure; bulk ingestion is *weeks* of new infrastructure to
+`externalIds`, persisted metadata). Read-through is _days_ of work reusing
+existing infrastructure; bulk ingestion is _weeks_ of new infrastructure to
 serve a set of books small enough to fit in real-traffic caching. Ingestion
 before read-through would be inverting the cost/value order.
 
 **Q3. What is the minimum internal canonical-work model worth introducing now?**
-Almost none *new* — the model largely exists. The minimum *additions* are three
+Almost none _new_ — the model largely exists. The minimum _additions_ are three
 fields on `/books`: `metadataFetchedAt` (staleness), `metadataSource`
 (provenance), `schemaVersion` (safe evolution). That's it. Explicitly **do not**
 add: multi-provider merge, editions/ISBN entities, a normalized author entity, or
@@ -356,9 +364,9 @@ decoupled IDs → opaque hash ✅, room for more sources →
 
 **Q4. At what point does provider-agnostic ingestion become justified?**
 When ≥2 of the §4 triggers are simultaneously true — realistically coverage gaps
-*plus* a genuine need to field-merge a second provider. Until then it's
-speculative. And even when justified, the first response should be *a second
-provider behind the existing `BookProvider` seam*, not a dump pipeline. Full
+_plus_ a genuine need to field-merge a second provider. Until then it's
+speculative. And even when justified, the first response should be _a second
+provider behind the existing `BookProvider` seam_, not a dump pipeline. Full
 bulk ingestion is the least likely and most deferrable branch for a book-club
 app; be candid that it may never be warranted.
 

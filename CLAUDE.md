@@ -39,7 +39,7 @@ Two parallel tsconfig chains, with **different jobs**. Getting these confused is
 
 ### The two chains
 
-- **`tsconfig.build.json`** — the **emit** chain. The root file is a *solution-style* config: it declares `"files": []`, holds the shared compiler options every sub-project extends, and lists the project `references`. It compiles nothing itself; each sub-project's `tsconfig.build.json` declares its own `include` and `outDir`.
+- **`tsconfig.build.json`** — the **emit** chain. The root file is a _solution-style_ config: it declares `"files": []`, holds the shared compiler options every sub-project extends, and lists the project `references`. It compiles nothing itself; each sub-project's `tsconfig.build.json` declares its own `include` and `outDir`.
 - **`tsconfig.json`** — the **typecheck / IDE** chain. Extends `tsconfig.build.json`, then adds `paths` aliases, `jsx`, and broad `include` globs (`app/**/*`, `lib/**/*`, `docs/**/*`, `scripts/**/*`). It resolves `@bookbingo/*` straight to **source**, never to `dist`, and type-checks everything as one flat program.
 
 **`references` is NOT inherited through `extends`.** This is the trap. The root `tsconfig.json` extends `tsconfig.build.json` but gets an **empty** project graph. Consequently, every build command must **name the build config explicitly**:
@@ -57,12 +57,12 @@ Sanity check any change with `npx tsc --build --dry --verbose`, which prints the
 
 Each output path has exactly one writer. Do not add a second.
 
-| Path | Written by | Notes |
-| --- | --- | --- |
-| `lib/*/dist` | `tsc -b` | Consumed by `functions/` via node_modules → `main`/`types` |
-| `app/web/.tsbuild` | `tsc -b` | Throwaway. Nothing consumes it; `app/web` is a leaf in the graph |
-| `app/web/dist` | **`vite build` only** | The Firebase Hosting public root |
-| `functions/lib` | `tsc -b` | Deployed by the `firebase.json` predeploy hook |
+| Path               | Written by            | Notes                                                            |
+| ------------------ | --------------------- | ---------------------------------------------------------------- |
+| `lib/*/dist`       | `tsc -b`              | Consumed by `functions/` via node_modules → `main`/`types`       |
+| `app/web/.tsbuild` | `tsc -b`              | Throwaway. Nothing consumes it; `app/web` is a leaf in the graph |
+| `app/web/dist`     | **`vite build` only** | The Firebase Hosting public root                                 |
+| `functions/lib`    | `tsc -b`              | Deployed by the `firebase.json` predeploy hook                   |
 
 `app/web` deliberately does **not** emit into `dist` — that belongs to Vite. A new build output directory must be added to three ignore lists: `.gitignore`, `eslint.config.js` `ignores`, and the Vitest `exclude` in `app/web/vite.config.ts`.
 
@@ -79,11 +79,12 @@ Tests (`*.test.ts`) are excluded from every `tsconfig.build.json`, so they are n
 
 ## Commands
 
-- `pnpm run verify` — run full verification suite (lint, build, test, typecheck). Passes from a clean tree; `build` runs before `typecheck` because the `functions/` typecheck needs `lib/types/dist`
+- `pnpm run verify` — run full verification suite (format:check, lint, build, test, typecheck). Passes from a clean tree; `build` runs before `typecheck` because the `functions/` typecheck needs `lib/types/dist`
 - `pnpm test` — run unit tests across all packages
 - `pnpm run test:integration` — run integration tests (emulator lifecycle managed automatically via `firebase emulators:exec`)
 - `pnpm run lint` — lint all packages (ESLint from repo root)
-- `pnpm run format` — format with Prettier
+- `pnpm run format` — format the repo with Prettier (`prettier --write .`, scoped by `.prettierignore`)
+- `pnpm run format:check` — assert formatting without writing; this is the gate inside `verify`
 - `pnpm run typecheck` — type-check `lib/`, `app/web/`, and `scripts/` with `tsc --build --noEmit`, then `functions/` separately. **Needs `lib/types/dist` present** — on a cold tree run `pnpm run build` first (or just use `pnpm run verify`)
 - `pnpm run build` — build the whole project-reference graph (`tsc --build tsconfig.build.json`): `lib/*`, `app/web`, `functions`
 - `pnpm run build:libs` / `pnpm run build:apps` — build a subset of the graph
@@ -162,7 +163,7 @@ Finally, check `git status` — a build that emits outside a package `outDir` le
 
 - ESM only. No CommonJS (`require`, `module.exports`).
 - Prefer `const` over `let`. Never use `var`.
-- Formatting is handled by Prettier — do not manually align code.
+- Formatting is handled by Prettier — do not manually align code. Prettier owns **every** tracked file type (`.ts`, `.tsx`, `.js`, `.json`, `.css`, `.md`); `.prettierignore` carves out build output, dependencies, and Firebase local state. `verify` fails on unformatted files, so run `pnpm run format` before committing.
 
 ## Testing
 
@@ -180,7 +181,7 @@ Finally, check `git status` — a build that emits outside a package `outDir` le
   git checkout main && git pull          # start from latest
   git checkout -b feat/short-description # do all work here
   ```
-- **Exception — docs-only / trivial cleanup may land directly on `main`.** Pure documentation edits (`docs:`) and no-runtime-surface cleanup (`chore:` formatting, comments, typos) may be committed straight to `main`, **provided you then push directly to origin** (`git push`) rather than routing through a squash-merged PR. Direct push keeps `main` a true mirror because origin advances to the *same* SHA; a squashed PR would re-SHA the commit and cause the exact divergence this rule guards against. Scope is strict: no changes to `lib/`, `app/`, `functions/`, build/TS config, `firestore.rules`, or anything with a behavioral or deploy surface — those still take a branch + PR.
+- **Exception — docs-only / trivial cleanup may land directly on `main`.** Pure documentation edits (`docs:`) and no-runtime-surface cleanup (`chore:` formatting, comments, typos) may be committed straight to `main`, **provided you then push directly to origin** (`git push`) rather than routing through a squash-merged PR. Direct push keeps `main` a true mirror because origin advances to the _same_ SHA; a squashed PR would re-SHA the commit and cause the exact divergence this rule guards against. Scope is strict: no changes to `lib/`, `app/`, `functions/`, build/TS config, `firestore.rules`, or anything with a behavioral or deploy surface — those still take a branch + PR.
 - **After a PR is squash-merged**, update `main` by fast-forward and delete the merged branch:
   ```sh
   git checkout main
@@ -217,6 +218,7 @@ When creating PRs, include a summary of changes but do not include a test plan s
   - _Plain presentational_, **no a11y guarantees**: `Button`, `Input`, `Label`, `Textarea`, `Avatar`, `Spinner`, `TileBadge`.
 
   Prefer these over raw `<button>`/`<input>`. `Button` variants are `primary | secondary | ghost | danger | outline`; use `ghost` for interactive inline controls (e.g. row expand toggles). Compose conditional Tailwind classes with `cn()` from `app/web/src/lib/cn.ts`. Components reference **semantic design tokens** (`bg-primary`, `text-on-surface`), never raw palette hues — see `docs/decisions/design-token-system.md`, and `/catalog` for the live reference.
+
 - **Cloud Functions** are wired in `functions/src/index.ts`, which only declares the `onCall` handlers; the implementations live in feature folders.
   - **`enrichBook`** (`functions/src/books/`) — the Open Library integration and the backend for book search. Two actions: `search` (query → `BookSearchResult[]`) and `lookup` (Work key → `BookEnrichmentResult`). `providers/open-library.ts` implements the `BookProvider` interface in `books/types.ts` and holds an in-memory TTL cache for `search`. The frontend calls it through `app/web/src/lib/bookSearch.ts`. See `docs/BOOK_DATA_MODEL.md` and `docs/OPEN_LIBRARY_DEPENDENCY_ROADMAP.md`.
   - **`submitFeedback`** (`functions/src/feedback/handler.ts`) — reads the `GITHUB_PAT` secret (set via `firebase functions:secrets:set GITHUB_PAT`) and POSTs to the GitHub Issues API. The frontend calls it via `httpsCallable(functions, 'submitFeedback')`; `app/web/src/components/FeedbackModal.tsx` provides the UI.

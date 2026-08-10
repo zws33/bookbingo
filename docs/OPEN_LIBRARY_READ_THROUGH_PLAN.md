@@ -17,16 +17,16 @@ Implements the **near-term + mid-term** horizons of
 
 ## 0. Grounding — verified in code
 
-| Fact | Location |
-|---|---|
-| Client already has the OL work key at selection time | `app/web/src/components/BookSearch.tsx:46-50` |
-| `deriveBookId` is pure, in `lib/core`, callable from browser and Node | `lib/core/src/bookIdentity.ts:36` |
-| A direct `/books` read already exists | `app/web/src/lib/books.ts:75` (`getBook`) |
-| `lookup` is 3 **sequential** fetches | `functions/src/books/providers/open-library.ts:67,73,74` |
-| `enrichBook` is stateless — no Firestore access at all today | `functions/src/books/{handler,service}.ts` |
-| `/books` is written **only** client-side | `app/web/src/lib/books.ts:30` (`getOrCreateBook`) |
-| `functions/` does **not** depend on `@bookbingo/lib-core` | `functions/package.json` |
-| No Firestore rules test harness exists | repo-wide |
+| Fact                                                                  | Location                                                 |
+| --------------------------------------------------------------------- | -------------------------------------------------------- |
+| Client already has the OL work key at selection time                  | `app/web/src/components/BookSearch.tsx:46-50`            |
+| `deriveBookId` is pure, in `lib/core`, callable from browser and Node | `lib/core/src/bookIdentity.ts:36`                        |
+| A direct `/books` read already exists                                 | `app/web/src/lib/books.ts:75` (`getBook`)                |
+| `lookup` is 3 **sequential** fetches                                  | `functions/src/books/providers/open-library.ts:67,73,74` |
+| `enrichBook` is stateless — no Firestore access at all today          | `functions/src/books/{handler,service}.ts`               |
+| `/books` is written **only** client-side                              | `app/web/src/lib/books.ts:30` (`getOrCreateBook`)        |
+| `functions/` does **not** depend on `@bookbingo/lib-core`             | `functions/package.json`                                 |
+| No Firestore rules test harness exists                                | repo-wide                                                |
 
 **Four constraints the roadmap does not call out:**
 
@@ -94,7 +94,7 @@ schemaVersion?: number;
 ```
 
 Added to `Book` in `lib/types/src/index.ts`. All three are **optional**, and
-missing fields mean *"unknown / needs refresh"* — never a big-bang migration
+missing fields mean _"unknown / needs refresh"_ — never a big-bang migration
 (roadmap mid-term risk note). Existing docs stay valid and lazily upgrade the
 first time anyone selects that book.
 
@@ -131,7 +131,7 @@ else, and benefits every lookup happening today — which is why it leads.
   promise must be evicted so a transient OL failure isn't cached for the TTL.
 
 **Tests** — `functions/src/books/providers/open-library.test.ts`: hit within TTL
-issues 1 fetch for N identical queries; N *concurrent* identical queries issue 1
+issues 1 fetch for N identical queries; N _concurrent_ identical queries issue 1
 fetch; miss after TTL refetches; a rejected lookup is not cached; distinct
 queries don't collide; cap evicts; fan-out issues its two calls concurrently.
 
@@ -143,6 +143,7 @@ Pure `lib/` change. **No behavior change** — nothing reads the policy yet.
 - `lib/core/src/bookMetadata.ts` (new): the staleness policy, shared by client
   and function per guarded-writes Decision 3. Takes **primitives only** so
   `lib/core` stays free of Firebase types (§5.1):
+
   ```ts
   export const BOOK_METADATA_SCHEMA_VERSION = 1;
   export const BOOK_METADATA_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
@@ -161,6 +162,7 @@ Pure `lib/` change. **No behavior change** — nothing reads the policy yet.
     nowMs?: number,
   ): boolean;
   ```
+
 - Export from `lib/core/src/index.ts`.
 
 **Tests** — `lib/core/src/bookMetadata.test.ts` (`node:test`):
@@ -174,6 +176,7 @@ The core movement. Read-through and guarded write land together — building one
 without the other creates the dead-end path the ADR warns about.
 
 **Functions side:**
+
 - Add `@bookbingo/lib-core` to `functions/package.json` and to the `references`
   in `functions/tsconfig.json` (**one file** — there is no
   `functions/tsconfig.build.json`; see §0 constraint 4). Drop the dangling
@@ -197,6 +200,7 @@ without the other creates the dead-end path the ADR warns about.
   cold book cost at most one OL fan-out each and converge on one doc.
 
 **Web side:**
+
 - `app/web/src/lib/books.ts`: add `toFreshnessInput(book: Book)` — the client's
   `Timestamp → epoch ms` adapter. This file already imports Firebase, so the
   conversion stays where Firebase types already live.
@@ -222,6 +226,7 @@ Architecture Guidance entry for Cloud Functions is the place for both.
 > does not invalidate any of it.
 
 **Tests:**
+
 - `functions/src/books/service.test.ts` (new): fresh store doc → provider never
   called; stale doc → provider called + store written; cold miss → provider
   called + create with `createdBy: 'system-enrichment'`; existing doc →
@@ -285,19 +290,19 @@ admin `BookStore` implementation in `functions/src/books/store.ts`. This keeps
 `lib/core` pure — the `lib/` ↔ Firebase boundary CLAUDE.md defends — and
 confines Firebase's `Timestamp` to the two files that already import Firebase.
 
-*Rejected:* normalizing `getBook` to convert every `Timestamp` to a real `Date`.
+_Rejected:_ normalizing `getBook` to convert every `Timestamp` to a real `Date`.
 Cleaner long-term and it would retire the dishonest `as Book` cast, but it
 widens PR 3 into a data-layer refactor touching `useBooks`, `useReadings`, and
 their tests. Worth doing on its own later.
 
 **5.2 — `createdBy` on server-created docs: `'system-enrichment'`.**
-The eager write means a `/books` doc now exists for every book anyone *clicks in
-search results*, whether or not they ever log it. Writing the caller's uid would
+The eager write means a `/books` doc now exists for every book anyone _clicks in
+search results_, whether or not they ever log it. Writing the caller's uid would
 make "first person to glance at this book" its permanent owner under
 `allow update: if request.auth.uid == resource.data.createdBy` — incidental
 write authority over a shared catalog entry they never used. The
 `'system-enrichment'` sentinel mirrors the `'system-migration'` sentinel the
-rules already recognize and makes the field honestly mean *doc provenance*.
+rules already recognize and makes the field honestly mean _doc provenance_.
 
 **5.3 — TTL: 30 days**, as `BOOK_METADATA_TTL_MS` in
 `lib/core/src/bookMetadata.ts`. Roadmap §5 says "weeks–months is fine; works are
@@ -326,7 +331,7 @@ global refresh independently of the TTL.
 `BookList.tsx:53` (the reading **edit** path) calls
 `getOrCreateBook(data.title, data.author, userId)` with **no enrichment**. For a
 book originally added from Open Library that derives a `manual:`-prefixed id — a
-*different* `bookId* — then repoints the reading at a freshly created duplicate
+_different_ `bookId\* — then repoints the reading at a freshly created duplicate
 doc, silently orphaning the enriched one.
 
 This exists today and is independent of this plan, but it gets more visible once

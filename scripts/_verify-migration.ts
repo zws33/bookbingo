@@ -22,7 +22,9 @@ const bookIds = new Set(booksSnap.docs.map((d) => d.id));
 console.log('=== Books in /books/ ===');
 for (const doc of booksSnap.docs) {
   const d = doc.data();
-  console.log(`  ${doc.id}: "${d.title}" by ${d.author} (createdBy: ${d.createdBy})`);
+  console.log(
+    `  ${doc.id}: "${d.title}" by ${d.author} (createdBy: ${d.createdBy})`,
+  );
 }
 
 console.log('\n=== Readings ===');
@@ -34,7 +36,11 @@ for (const doc of readingsSnap.docs) {
   const resolves = hasId && bookIds.has(d.bookId);
   if (!hasId) allHaveBookId = false;
   if (!resolves) allResolve = false;
-  const status = !hasId ? '[MISSING bookId]' : !resolves ? '[UNRESOLVED bookId]' : '[OK]';
+  const status = !hasId
+    ? '[MISSING bookId]'
+    : !resolves
+      ? '[UNRESOLVED bookId]'
+      : '[OK]';
   console.log(`  ${status} ${doc.ref.path} -> ${d.bookId ?? 'none'}`);
 }
 

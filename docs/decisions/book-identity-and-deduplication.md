@@ -11,7 +11,7 @@ Books live in a shared `/books/{bookId}` collection; user readings (and TBR entr
 2. Fall back to a case-insensitive `titleLower` + `authorLower` match.
 3. Otherwise create a new doc with a **random** ID.
 
-The documented intent (`docs/BOOK_DATA_MODEL.md`) was *query-based* deduplication: random doc IDs plus a `where('externalIds.openLibrary','==',olid)` lookup. This record supersedes that mechanism. It captures the canonical identity model decided while investigating issues #7 (create race) and #27 ("fixed typo still showing").
+The documented intent (`docs/BOOK_DATA_MODEL.md`) was _query-based_ deduplication: random doc IDs plus a `where('externalIds.openLibrary','==',olid)` lookup. This record supersedes that mechanism. It captures the canonical identity model decided while investigating issues #7 (create race) and #27 ("fixed typo still showing").
 
 ## Findings
 
@@ -64,30 +64,30 @@ Because identity now lives in the doc ID, `externalIds` no longer drives dedup. 
 export type BookProvider = 'openLibrary';
 
 export interface ExternalRef {
-  key: string;       // provider-native id, e.g. "/works/OL166894W"
-  enrichedAt: Date;  // when this reference was attached
+  key: string; // provider-native id, e.g. "/works/OL166894W"
+  enrichedAt: Date; // when this reference was attached
 }
 
 export type ExternalBookIds = Partial<Record<BookProvider, ExternalRef>>;
 ```
 
-This is richer than the originally-planned `Partial<Record<BookProvider, string>>` (it carries metadata *about* the reference), and the readable Work key remains queryable via `externalIds.openLibrary.key` even though the doc ID is opaque.
+This is richer than the originally-planned `Partial<Record<BookProvider, string>>` (it carries metadata _about_ the reference), and the readable Work key remains queryable via `externalIds.openLibrary.key` even though the doc ID is opaque.
 
 ### What this removes
 
-The deterministic-ID model is a net *reduction* of the data model:
+The deterministic-ID model is a net _reduction_ of the data model:
 
 - the query-based dedup path (`where('externalIds.openLibrary','==',…)`) — dedup is now `getDoc(deterministicId)`;
 - the `externalIds.openLibrary` composite index;
 - the `titleLower` / `authorLower` fields.
 
-`getOrCreateBook` collapses from three branches to one: compute the deterministic ID, then an idempotent `setDoc` (or `getDoc`-then-create). Concurrent creates target the *same* doc ID and converge — closing the #7 race by construction.
+`getOrCreateBook` collapses from three branches to one: compute the deterministic ID, then an idempotent `setDoc` (or `getDoc`-then-create). Concurrent creates target the _same_ doc ID and converge — closing the #7 race by construction.
 
 ## Resolved questions
 
-- **Manual-book identity (was the open question).** Manual books get a deterministic `manual:` hash with conservative normalization — so the #7 race is fixed *uniformly*, not just for catalog books, without the over-merge hazard of aggressive normalization. This supersedes `BOOK_DATA_MODEL.md`'s "manual entry skips deduplication" stance: manual books now dedup exact re-entries, cheaply and safely.
-- **Collapse-on-migration vs. scoring (verified safe).** Re-keying collapses legacy docs that share a derived key into one ID. This is **score-neutral by construction**: migration re-points `reading.bookId` but never adds, removes, or merges readings. Scoring (`lib/core/scoring.ts`, `statistics.ts`) is a pure function of readings × tiles and never reads `bookId`; the leaderboard's "Books" count is `readings.length`. The only surface that groups by book is `LibraryPage` (community-library display), where collapse *merges* duplicate rows — a fix, not a risk. Migration neither creates nor cures any pre-existing double-count.
-- **Born-manual-then-enriched (accepted limit).** A book created manually (`manual:` hash) and later found via search (`openLibrary:` hash) derives two different IDs; the scheme will not merge them. Accepted as a known limitation — no claim/upgrade path is planned. The scheme prevents re-creating *identical* entries; it does not retroactively link a manual entry to its catalog identity.
+- **Manual-book identity (was the open question).** Manual books get a deterministic `manual:` hash with conservative normalization — so the #7 race is fixed _uniformly_, not just for catalog books, without the over-merge hazard of aggressive normalization. This supersedes `BOOK_DATA_MODEL.md`'s "manual entry skips deduplication" stance: manual books now dedup exact re-entries, cheaply and safely.
+- **Collapse-on-migration vs. scoring (verified safe).** Re-keying collapses legacy docs that share a derived key into one ID. This is **score-neutral by construction**: migration re-points `reading.bookId` but never adds, removes, or merges readings. Scoring (`lib/core/scoring.ts`, `statistics.ts`) is a pure function of readings × tiles and never reads `bookId`; the leaderboard's "Books" count is `readings.length`. The only surface that groups by book is `LibraryPage` (community-library display), where collapse _merges_ duplicate rows — a fix, not a risk. Migration neither creates nor cures any pre-existing double-count.
+- **Born-manual-then-enriched (accepted limit).** A book created manually (`manual:` hash) and later found via search (`openLibrary:` hash) derives two different IDs; the scheme will not merge them. Accepted as a known limitation — no claim/upgrade path is planned. The scheme prevents re-creating _identical_ entries; it does not retroactively link a manual entry to its catalog identity.
 
 ## Migration approach
 
@@ -96,7 +96,7 @@ A new **re-key** script (distinct from the existing `scripts/migrate-readings.ts
 1. For each `/books/{oldId}`, compute its deterministic ID (`openLibrary:` if `externalIds.openLibrary` present, else `manual:` from title/author via the frozen pipeline). It **must import the same `deriveBookId` from `lib/core`** the app uses — no hand-duplicated normalization.
 2. Group old docs by new ID; within each collapse-set, write `/books/{newId}` merging: prefer the OL-bearing doc's `metadata`, keep the earliest `createdAt`, union `externalIds`.
 3. Re-point every reference from any old ID in the set to the new ID — **both** `users/*/readings/*.bookId` **and** `users/*/tbr/*.bookId` (the latter postdates `migrate-readings.ts` and is not covered by it).
-4. **Two-pass / reversible:** do *not* delete old docs in the same pass. Re-point, verify, and delete orphaned old docs in a later pass; the `readCount === 0` filter hides them meanwhile.
+4. **Two-pass / reversible:** do _not_ delete old docs in the same pass. Re-point, verify, and delete orphaned old docs in a later pass; the `readCount === 0` filter hides them meanwhile.
 5. **Migration-first ordering:** run before the `getOrCreateBook` rewrite ships, so legacy data is canonical before any new deterministic write lands (otherwise the gap mints fresh duplicates).
 6. Idempotent and resumable (re-running computes the same IDs; skip docs already at their correct ID). Dry-run, staging before prod.
 

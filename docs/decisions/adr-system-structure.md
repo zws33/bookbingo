@@ -31,6 +31,7 @@ Each decision file includes: Status, Context, Options Considered, Decision, Trad
 ## When to Revisit
 
 Migrate to MADR if:
+
 - The number of decision files exceeds ~15
 - Multiple contributors join and would benefit from standardized tooling and sequential IDs
 

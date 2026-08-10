@@ -74,7 +74,9 @@ export function BookSearch({ onBookSelected, onManualEntry }: BookSearchProps) {
       />
 
       {isSearching && (
-        <p className="py-2 text-center text-sm text-on-surface-variant">Searching...</p>
+        <p className="py-2 text-center text-sm text-on-surface-variant">
+          Searching...
+        </p>
       )}
 
       {!isSearching && results.length > 0 && (

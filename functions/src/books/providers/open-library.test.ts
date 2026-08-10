@@ -66,8 +66,9 @@ describe('OpenLibraryProvider', () => {
   }
 
   /** Records every request and answers search calls with SEARCH_PAYLOAD. */
-  function installSearchFetch(response: () => Response = () =>
-    jsonResponse(SEARCH_PAYLOAD)) {
+  function installSearchFetch(
+    response: () => Response = () => jsonResponse(SEARCH_PAYLOAD),
+  ) {
     global.fetch = (async (input: string | URL) => {
       requestedUrls.push(String(input));
       return response();
@@ -131,11 +132,16 @@ describe('OpenLibraryProvider', () => {
     test('does not cache a failed request', async () => {
       let shouldFail = true;
       installSearchFetch(() =>
-        shouldFail ? errorResponse('Server Error') : jsonResponse(SEARCH_PAYLOAD),
+        shouldFail
+          ? errorResponse('Server Error')
+          : jsonResponse(SEARCH_PAYLOAD),
       );
       const provider = makeProvider({ searchCacheTtlMs: 1000 });
 
-      await assert.rejects(provider.search('dune'), /OpenLibrary search failed/);
+      await assert.rejects(
+        provider.search('dune'),
+        /OpenLibrary search failed/,
+      );
 
       shouldFail = false;
       const retried = await provider.search('dune');

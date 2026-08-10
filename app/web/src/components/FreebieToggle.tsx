@@ -4,7 +4,11 @@ interface FreebieToggleProps {
   disabled?: boolean;
 }
 
-export function FreebieToggle({ isFreebie, onChange, disabled }: FreebieToggleProps) {
+export function FreebieToggle({
+  isFreebie,
+  onChange,
+  disabled,
+}: FreebieToggleProps) {
   return (
     <label className="flex items-center gap-2">
       <input

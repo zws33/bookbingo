@@ -130,13 +130,13 @@ Add it to the `indexes` array in `firestore.indexes.json`. If the file has an em
 Change the signature from:
 
 ```ts
-createReading(userId, title, author, tiles, isFreebie)
+createReading(userId, title, author, tiles, isFreebie);
 ```
 
 to:
 
 ```ts
-createReading(userId, bookId, tiles, isFreebie)
+createReading(userId, bookId, tiles, isFreebie);
 ```
 
 The function now writes `bookId` to Firestore instead of `bookTitle` and `bookAuthor`. The document shape becomes:
@@ -156,7 +156,7 @@ The function now writes `bookId` to Firestore instead of `bookTitle` and `bookAu
 Same pattern. Change the signature to accept `bookId` instead of `title`/`author`:
 
 ```ts
-updateReading(userId, readingId, bookId, tiles, isFreebie)
+updateReading(userId, readingId, bookId, tiles, isFreebie);
 ```
 
 The update writes:
@@ -228,7 +228,13 @@ Fill in the implementation. The snapshot mapping is almost identical to `useRead
 The current `handleAddBook` does:
 
 ```ts
-await createReading(userId, data.title, data.author, data.tiles, data.isFreebie);
+await createReading(
+  userId,
+  data.title,
+  data.author,
+  data.tiles,
+  data.isFreebie,
+);
 ```
 
 Change it to a two-step flow:
@@ -370,14 +376,27 @@ initialData={{
 Currently:
 
 ```ts
-await updateReading(userId, selectedReading.id, data.title, data.author, data.tiles, data.isFreebie);
+await updateReading(
+  userId,
+  selectedReading.id,
+  data.title,
+  data.author,
+  data.tiles,
+  data.isFreebie,
+);
 ```
 
 Change to the two-step pattern:
 
 ```ts
 const bookId = await getOrCreateBook(data.title, data.author, userId);
-await updateReading(userId, selectedReading.id, bookId, data.tiles, data.isFreebie);
+await updateReading(
+  userId,
+  selectedReading.id,
+  bookId,
+  data.tiles,
+  data.isFreebie,
+);
 ```
 
 Import `getOrCreateBook` from `../lib/books`.
@@ -465,7 +484,9 @@ makeSnapshot([
 Then verify:
 
 ```ts
-expect(result.current.booksById.get('doc-0')?.title).toBe('The Left Hand of Darkness');
+expect(result.current.booksById.get('doc-0')?.title).toBe(
+  'The Left Hand of Darkness',
+);
 ```
 
 **Verify:**
@@ -499,6 +520,7 @@ pnpm run lint && pnpm test && pnpm run typecheck
 You can structure this as one or two commits:
 
 - **Option A (single commit):** One commit with all the changes. Message:
+
   ```
   feat: wire app layer to enriched book model
   ```

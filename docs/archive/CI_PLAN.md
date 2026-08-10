@@ -15,10 +15,10 @@ push to `main` and on every pull request targeting `main`.
 
 ## Trigger Conditions
 
-| Event | Condition |
-|-------|-----------|
-| `push` | Branch `main`, paths not under `docs/**` |
-| `pull_request` | Targeting `main` |
+| Event          | Condition                                |
+| -------------- | ---------------------------------------- |
+| `push`         | Branch `main`, paths not under `docs/**` |
+| `pull_request` | Targeting `main`                         |
 
 Doc-only commits skip CI to avoid burning runner minutes on prose changes.
 

@@ -7,7 +7,8 @@
   "scripts": {
     "test": "pnpm -r test",
     "lint": "eslint . --max-warnings 0",
-    "format": "prettier --write \"app/**/*.ts\" \"lib/**/*.ts\"",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "build": "tsc --build tsconfig.build.json",
     "build:libs": "tsc --build lib/*/tsconfig.build.json",
     "build:apps": "tsc --build app/web/tsconfig.build.json",
@@ -27,7 +28,7 @@
     "seed:staging": "tsx scripts/seed-staging.ts --project bookbingo-staging",
     "mirror:staging": "tsx scripts/mirror-prod-to-staging.ts",
     "test:integration": "firebase emulators:exec --project demo-bookbingo 'pnpm --filter @bookbingo/web test:integration'",
-    "verify": "pnpm run lint && pnpm run build && pnpm test && pnpm run typecheck",
+    "verify": "pnpm run format:check && pnpm run lint && pnpm run build && pnpm test && pnpm run typecheck",
     "dev:local": "concurrently --kill-others --names 'emulator,web' 'pnpm run emulator:start' 'pnpm run dev:web:emulator'"
   },
   "keywords": [],
