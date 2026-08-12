@@ -294,27 +294,39 @@ browser, by Node scripts, and — per `docs/decisions/guarded-writes.md` — soo
 Cloud Functions. A `window` or `localStorage` reference typechecks cleanly today
 and crashes at runtime in two of those three environments.
 
-- [ ] Add an `eslint.config.js` override scoped to `lib/**/*.ts`:
-  - [ ] `no-restricted-imports` for `react*`, `firebase*`, `firebase-admin*`,
+- [x] Add an `eslint.config.js` override scoped to `lib/**/*.ts`:
+  - [x] `no-restricted-imports` for `react*`, `firebase*`, `firebase-admin*`,
         `firebase-functions*`, `@bookbingo/web`
-  - [ ] `no-restricted-globals` for `window`, `document`, `localStorage`,
+  - [x] `no-restricted-globals` for `window`, `document`, `localStorage`,
         `sessionStorage`, `navigator`
-- [ ] Confirm the `files` pattern is anchored at the repo root — it must **not**
+- [x] Confirm the `files` pattern is anchored at the repo root — it must **not**
       match `app/web/src/lib/**`, which is app-internal and unrelated
-- [ ] `pnpm run lint` green on the unmodified tree (the rules should pass today)
-- [ ] Add `const x = window.innerWidth;` to `lib/core/src/scoring.ts` →
+- [x] `pnpm run lint` green on the unmodified tree (the rules should pass today)
+- [x] Add `const x = window.innerWidth;` to `lib/core/src/scoring.ts` →
       `pnpm run lint` **fails**. Revert.
-- [ ] Add `import 'react';` to `lib/core/src/scoring.ts` → `pnpm run lint`
+- [x] Add `import 'react';` to `lib/core/src/scoring.ts` → `pnpm run lint`
       **fails**. Revert.
-- [ ] `pnpm run verify` green
+- [x] `pnpm run verify` green
 
-**Decision to make during implementation:** whether to use the base
-`no-restricted-imports` or `@typescript-eslint/no-restricted-imports`. The
-TS-aware rule can distinguish type-only imports via `allowTypeImports`. A
-type-only `import type { ReactNode }` in `lib/` is a weaker violation than a
-value import, but it is still a framework dependency leaking into a
-framework-agnostic package — recommend disallowing both, and revisiting only if
-it proves obstructive.
+**Validated four ways**, each reverted afterwards:
+
+| Probe                                  | Result                                            |
+| -------------------------------------- | ------------------------------------------------- |
+| Unmodified tree                        | lint green — rules do not fire on current code    |
+| `window.innerWidth` in `lib/core`      | `error … no-restricted-globals`                   |
+| `import 'react'` in `lib/core`         | `error … no-restricted-imports`                   |
+| `typeof document` in `app/web/src/lib` | lint green — the app-internal `lib/` is untouched |
+
+The fourth probe is the one worth keeping: `app/web/src/lib/` and the
+workspace-root `lib/` share a name, and an unanchored pattern would have
+quietly applied Node-only rules to thirteen React components.
+
+**Decision taken:** the base `no-restricted-imports`, not the typescript-eslint
+extension. The extension's only advantage here is `allowTypeImports`, and a
+type-only `import type { ReactNode }` in `lib/` is still a framework dependency
+leaking into a framework-agnostic package — so both should fail, which is what
+the base rule already does. Fewer moving parts, no base-rule/extension-rule
+interaction to get wrong.
 
 **Optional hardening:** set `"lib": ["ES2022"]` in the three
 `lib/*/tsconfig.build.json` files so `tsc` enforces the no-DOM rule in the emit
