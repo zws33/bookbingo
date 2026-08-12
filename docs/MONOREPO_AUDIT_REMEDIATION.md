@@ -54,10 +54,13 @@ changes are coupled.
    which come from the type library rather than from a package. The ESLint rule
    is therefore belt-and-braces on imports and the _only_ guard on globals.
 
-3. **F5 is the one task expected to fail on first run.** The three unused-code
-   flags have never gated anything outside the editor, so turning them on
-   repo-wide will surface real violations. Budget a cleanup pass; the other five
-   tasks should land green on the first attempt.
+3. ~~**F5 is the one task expected to fail on first run.**~~ **This prediction
+   was wrong.** The reasoning was that the three unused-code flags had never
+   gated anything outside the editor, so turning them on repo-wide would surface
+   real violations. It surfaced zero: `@typescript-eslint/no-unused-vars` is
+   already `error` and had been covering nearly the same ground, so the code was
+   being kept clean by the linter even though the compiler never checked. Every
+   task in this branch landed green on the first attempt.
 
 ---
 
@@ -345,24 +348,46 @@ sets ES2020 plus `noUnusedLocals`, `noUnusedParameters`, and
 none of the three flags. The result is editor-red / CI-green divergence in both
 directions, and three strictness flags that gate nothing.
 
-- [ ] Add `noUnusedLocals`, `noUnusedParameters`, and
+- [x] Add `noUnusedLocals`, `noUnusedParameters`, and
       `noFallthroughCasesInSwitch` to `compilerOptions` in the root
       `tsconfig.build.json`
-- [ ] Remove the same three flags from `app/web/tsconfig.json`
-- [ ] Drop the `target: ES2020` override in `app/web/tsconfig.json` so it
+- [x] Remove the same three flags from `app/web/tsconfig.json`
+- [x] Drop the `target: ES2020` override in `app/web/tsconfig.json` so it
       inherits ES2022 from the root chain; keep an explicit `lib` that includes
       `DOM` and `DOM.Iterable`
-- [ ] Fix the violations this surfaces — **expect a non-trivial cleanup pass**
-- [ ] `npx tsc -p tsconfig.json --showConfig` and
+- [x] Fix the violations this surfaces — ~~expect a non-trivial cleanup pass~~
+      **there were none; see below**
+- [x] `npx tsc -p tsconfig.json --showConfig` and
       `npx tsc -p app/web/tsconfig.json --showConfig` agree on `target` and the
       three flags
-- [ ] Introduce an unused local in an `app/web` component →
+- [x] Introduce an unused local in an `app/web` component →
       `pnpm run typecheck` **fails**. Revert.
-- [ ] `pnpm run verify` green
+- [x] `pnpm run verify` green
 
-**Watch for:** the flags also reach `lib/*` through the shared build config,
-which is intended. If the cleanup pass grows past roughly a dozen sites,
-consider landing the flags one at a time rather than all three together.
+**The predicted cleanup pass did not materialise — zero violations.** §0
+constraint 3 called this "the one task expected to fail on first run"; that was
+wrong, and the reason is worth recording. `@typescript-eslint/no-unused-vars` is
+already `error` in `eslint.config.js` and has been covering nearly the same
+ground as `noUnusedLocals`/`noUnusedParameters` all along. The flags were never
+enforced by the compiler, but the code was being kept clean by the linter
+anyway, so switching them on was a no-op against current sources. What changes
+is that the guarantee is now the compiler's as well, in the emit chain and in
+`typecheck`, not just a lint rule that a future config change could relax.
+
+**Both configs now report identical settings**, read back through
+`--showConfig` rather than by comparing source files:
+
+```
+tsconfig.json          target=es2022 | lib=es2022,dom,dom.iterable | all three flags true
+app/web/tsconfig.json  target=es2022 | lib=es2022,dom,dom.iterable | all three flags true
+```
+
+**`lib` is now explicit in the root config too.** It was previously implicit,
+resolving via `target: ES2022` to `lib.es2022.full`, which includes DOM. Stating
+it makes the two configs comparable by reading, and documents a real constraint:
+the root is one flat program spanning `app/`, `lib/`, and `scripts/`, so DOM
+cannot be withheld from the Node-only packages there. That is precisely why F6's
+boundary enforcement had to be an ESLint rule rather than a `lib` setting.
 
 ---
 
@@ -377,21 +402,26 @@ find . -name "*.tsbuildinfo" -not -path "*/node_modules/*" -delete
 pnpm run verify
 ```
 
-- [ ] `pnpm install --frozen-lockfile` succeeds
-- [ ] `pnpm run verify` green from the clean state above
-- [ ] `git status --short` clean afterwards — no stray build output
-- [ ] `pnpm --filter @bookbingo/web run build:prod` yields
+- [x] `pnpm install --frozen-lockfile` succeeds
+- [x] `pnpm run verify` green from the clean state above
+- [x] `git status --short` clean afterwards — no stray build output
+- [x] `npx tsc --build --dry --verbose tsconfig.build.json` lists **6** projects
+      — the five sub-projects plus the solution root. (An earlier draft of this
+      list said five; the root config counts itself. One project would mean a
+      broken graph.)
+- [x] `pnpm --filter @bookbingo/web run build:prod` yields
       `app/web/dist/index.html` plus assets
-- [ ] `pnpm --filter @bookbingo/functions run build` yields `functions/lib`
-- [ ] Cold `pnpm --filter @bookbingo/lib-core run build` succeeds (F4)
-- [ ] Boundary violations fail lint — both a DOM global and a `react` import in
+- [x] `pnpm --filter @bookbingo/functions run build` yields `functions/lib`
+- [x] Cold `pnpm --filter @bookbingo/lib-core run build` succeeds (F4)
+- [x] Boundary violations fail lint — both a DOM global and a `react` import in
       `lib/core` (F6)
-- [ ] An unused local in `app/web` fails typecheck (F5)
-- [ ] `pnpm run test:integration` passes with `.env.test` moved aside (F7)
-- [ ] Every deploy script names its `--project`; `deploy:functions:staging`
+- [x] An unused local in `app/web` fails typecheck (F5)
+- [x] `pnpm run test:integration` passes with `.env.test` moved aside (F7)
+- [x] Every deploy script names its `--project`; `deploy:functions:staging`
       exists (F2)
-- [ ] `functions/package.json` carries no `workspace:*` entry under
+- [x] `functions/package.json` carries no `workspace:*` entry under
       `dependencies` (F3)
+- [x] The functions emulator loads `enrichBook` and `submitFeedback` (F9)
 
 **CLAUDE.md review** — this branch touches build/TypeScript configuration, the
 `lib/*` build commands, and the deploy scripts, all of which are documented.
