@@ -4,6 +4,13 @@
     "module": "ESNext",
     "moduleResolution": "bundler",
     "strict": true,
+    // Unused-code and switch checks live here, not in a per-package config, so
+    // the emit chain, `pnpm run typecheck`, and the editor all apply them to
+    // the same sources. They previously sat only in app/web/tsconfig.json,
+    // where nothing but the editor ever read them.
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
     "skipLibCheck": true,
     "declaration": true,
     "declarationMap": true,

@@ -16,8 +16,41 @@ const firebaseConfig = {
   storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
   messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
   appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  // Optional — analytics is simply skipped when this is absent, and the
+  // emulator env files deliberately omit it.
   measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID,
 };
+
+// Fail loudly on an incomplete config rather than shipping a bundle that
+// looks fine and dies at runtime. Vite inlines a missing `import.meta.env.X`
+// as `undefined`, and `initializeApp` accepts that without complaint — so a
+// build with no env at all used to succeed and produce a dead app. That is
+// not hypothetical: the first CI staging deploy built cleanly with all seven
+// values empty, and only a missing service account stopped it from
+// overwriting staging.
+const missing = (
+  [
+    'apiKey',
+    'authDomain',
+    'projectId',
+    'storageBucket',
+    'messagingSenderId',
+    'appId',
+  ] as const
+).filter((key) => !firebaseConfig[key]);
+
+if (missing.length > 0) {
+  const vars = missing
+    .map(
+      (key) =>
+        `VITE_FIREBASE_${key.replace(/[A-Z]/g, (c) => `_${c}`).toUpperCase()}`,
+    )
+    .join(', ');
+  throw new Error(
+    `Firebase config is incomplete in mode "${import.meta.env.MODE}" — missing: ${vars}. ` +
+      'Local dev reads app/web/.env.<mode>; CI reads GitHub secrets. See app/web/.env.example.',
+  );
+}
 
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
