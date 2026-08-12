@@ -186,17 +186,41 @@ What keeps those writes off a real project is `VITE_USE_EMULATOR=true` in a
 gitignored `.env.test` that exists on one machine. A fresh clone cannot run the
 suite, and the safety property is opt-in rather than fail-closed.
 
-- [ ] Add `env: { VITE_USE_EMULATOR: 'true' }` to the `test` block in
-      `app/web/vitest.config.int.ts`
-- [ ] Document `.env.test` and `VITE_USE_EMULATOR` in `app/web/.env.example`
-- [ ] Move `.env.test` aside and confirm `pnpm run test:integration` still
+- [x] Add an `env` block to `app/web/vitest.config.int.ts` — **the whole
+      emulator config, not just the flag** (see below)
+- [x] Document the arrangement in `app/web/.env.example`
+- [x] Move `.env.test` aside and confirm `pnpm run test:integration` still
       passes against the emulator
-- [ ] Confirm no documents appear in the staging or prod Firestore console
-- [ ] Restore `.env.test`
-- [ ] `pnpm run verify` green
+- [x] Confirm no documents appear in the staging or prod Firestore console
+- [x] Restore `.env.test`
+- [x] `pnpm run verify` green
+
+**Wider than planned — the whole config moved, not just the flag.** Both
+`.env.test` and `.env.emulator` turned out to hold nothing but fake values
+pointed at `demo-bookbingo`, which is also the `--project` the root
+`test:integration` script passes to `firebase emulators:exec`. `demo-` ids are
+reserved for emulator use and can never resolve to a real project. Setting only
+`VITE_USE_EMULATOR` would have left the suite still needing an untracked file
+for its `projectId`; moving all seven values makes it genuinely self-contained.
+
+**Validated three ways**, each a full emulator run of the 4-test suite:
+
+| `.env.test` state                                    | Result   |
+| ---------------------------------------------------- | -------- |
+| Present, as on the original machine                  | 4 passed |
+| Deleted — simulating a fresh clone                   | 4 passed |
+| `VITE_USE_EMULATOR=false` + a different `PROJECT_ID` | 4 passed |
+
+The third case is the one that matters: `test.env` takes precedence over any
+`.env` file, so local state can no longer point this suite at a real project.
 
 **Follow-on (not this branch):** with the suite clone-portable, it becomes
 runnable in CI. That depends on F1.
+
+**Also fixed here:** `.env.example` documented two commands that do not exist
+(`pnpm --filter @bookbingo/web emulator:start` and `… emulator:seed` — both are
+root scripts, not `app/web` ones). Corrected, and `pnpm run dev:local` added
+since it starts the emulator and dev server together.
 
 ---
 
