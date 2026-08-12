@@ -42,6 +42,10 @@ Two parallel tsconfig chains, with **different jobs**. Getting these confused is
 - **`tsconfig.build.json`** — the **emit** chain. The root file is a _solution-style_ config: it declares `"files": []`, holds the shared compiler options every sub-project extends, and lists the project `references`. It compiles nothing itself; each sub-project's `tsconfig.build.json` declares its own `include` and `outDir`.
 - **`tsconfig.json`** — the **typecheck / IDE** chain. Extends `tsconfig.build.json`, then adds `paths` aliases, `jsx`, and broad `include` globs (`app/**/*`, `lib/**/*`, `docs/**/*`, `scripts/**/*`). It resolves `@bookbingo/*` straight to **source**, never to `dist`, and type-checks everything as one flat program.
 
+**Compiler options belong in the root `tsconfig.build.json`, not in a per-package config.** Both chains extend it, so an option set there reaches the emit chain, `pnpm run typecheck`, and the editor alike. `strict`, `target: ES2022`, `lib`, and the unused-code checks (`noUnusedLocals`, `noUnusedParameters`, `noFallthroughCasesInSwitch`) all live there for that reason. A flag set only in `app/web/tsconfig.json` is read by the **editor alone** — that config is never what `typecheck` runs for those files, because the root `include` already covers `app/**/*`.
+
+**`lib` is stated explicitly, and it includes DOM everywhere.** The root is one flat program spanning `app/`, `lib/`, and `scripts/`, so DOM typings cannot be withheld from the Node-only packages — `lib/core/src/scoring.ts` and `lib.dom.d.ts` are in the same program. Do not try to fix that by narrowing `lib`; it would break `app/web`. The `lib/` boundary is enforced by `no-restricted-globals` in `eslint.config.js` instead.
+
 **`references` is NOT inherited through `extends`.** This is the trap. The root `tsconfig.json` extends `tsconfig.build.json` but gets an **empty** project graph. Consequently, every build command must **name the build config explicitly**:
 
 ```sh
@@ -81,7 +85,7 @@ Tests (`*.test.ts`) are excluded from every `tsconfig.build.json`, so they are n
 
 - `pnpm run verify` — run full verification suite (format:check, lint, build, test, typecheck). Passes from a clean tree; `build` runs before `typecheck` because the `functions/` typecheck needs `lib/types/dist`
 - `pnpm test` — run unit tests across all packages
-- `pnpm run test:integration` — run integration tests (emulator lifecycle managed automatically via `firebase emulators:exec`)
+- `pnpm run test:integration` — run integration tests (emulator lifecycle managed automatically via `firebase emulators:exec`). Needs **no `.env` file**: the suite performs real writes, so its Firebase config is pinned to the emulator in `app/web/vitest.config.int.ts` (`test.env`), which takes precedence over any local `.env.test`. Do not reintroduce an env-file dependency here
 - `pnpm run lint` — lint all packages (ESLint from repo root)
 - `pnpm run format` — format the repo with Prettier (`prettier --write .`, scoped by `.prettierignore`)
 - `pnpm run format:check` — assert formatting without writing; this is the gate inside `verify`
@@ -203,9 +207,11 @@ When creating PRs, include a summary of changes but do not include a test plan s
 
 ## Architecture Guidance
 
-- The `lib/` ↔ `app/web/` separation is a first-class architectural concern — defend it. Never import React or Firebase in `lib/`.
+- The `lib/` ↔ `app/web/` separation is a first-class architectural concern — defend it. Never import React or Firebase in `lib/`, and never touch browser globals (`window`, `document`, `localStorage`) there either: `lib/` also runs in Node scripts and, per `docs/decisions/guarded-writes.md`, will run in Cloud Functions. **This is enforced**, by `no-restricted-imports` and `no-restricted-globals` in `eslint.config.js` scoped to `lib/**/*.ts`. That pattern is anchored at the repo root and deliberately does **not** match `app/web/src/lib/`, which is app-internal and unrelated despite the shared name.
 - Consider Firestore query costs, index requirements, and listener lifecycle in every data-layer decision.
 - **Firebase config** (`firebase.json`, `.firebaserc`, `firestore.rules`, `firestore.indexes.json`) all live at the repo root. Deploy and emulator commands are run from root via root `package.json` scripts.
+- **Every deploy script names its target explicitly** (`--project staging` / `--project prod`). `firebase deploy` without `--project` uses whatever `firebase use` last selected, falling back to `.firebaserc`'s `default` — which is the **prod** project. There is deliberately no unsuffixed `deploy:functions`: the pairs are `deploy:{staging,prod}`, `deploy:functions:{staging,prod}`, and `deploy:all:{staging,prod}`.
+- **`functions/` runs on Node 22** (`engines.node`), not the Node 24 the rest of the repo builds with. Cloud Functions only offers `nodejs20` and `nodejs22`; declaring `24` makes both the emulator and `firebase deploy` reject the codebase outright. Build-time and runtime versions are independent — leave CI and local tooling on 24.
 - **Firestore rules** are in `firestore.rules` (repo root). Update them when data model changes.
 - **Scoring logic** is in `lib/core/src/scoring.ts`. The scoring algorithm rewards volume and variety while penalizing imbalance. See `docs/SCORING_PLAN.md` for design rationale.
 - **Validation** is in `lib/core/src/validation.ts`. Enforce constraints here (e.g., max 3 categories per book, freebie rules).

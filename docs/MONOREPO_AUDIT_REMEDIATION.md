@@ -427,10 +427,21 @@ pnpm run verify
 `lib/*` build commands, and the deploy scripts, all of which are documented.
 Before opening the PR, check these sections for staleness:
 
-- [ ] "Commands" — the `lib/*` build invocation and any new deploy script
-- [ ] "TypeScript Build Configuration" — the reconciled compiler options
-- [ ] "Architecture Guidance" — the `lib/` boundary is now enforced by ESLint,
-      not convention alone
+- [x] "Commands" — `test:integration` now records that it needs no `.env` file
+      and that the emulator pin lives in `vitest.config.int.ts`
+- [x] "TypeScript Build Configuration" — added two rules the branch established:
+      compiler options belong in the root `tsconfig.build.json` because both
+      chains extend it, and a flag set only in `app/web/tsconfig.json` is read
+      by the editor alone; plus why `lib` includes DOM everywhere and must not
+      be narrowed to fix the `lib/` boundary
+- [x] "Architecture Guidance" — the `lib/` boundary is now **enforced**, with
+      the anchoring caveat about `app/web/src/lib/`; deploy scripts always name
+      a project and there is deliberately no unsuffixed `deploy:functions`;
+      `functions/` runs on Node 22 while everything else builds on 24
+
+No change needed to the "Output directories" table, the `references`-not-
+inherited trap, or the import conventions — this branch did not alter any of
+them.
 
 ---
 
