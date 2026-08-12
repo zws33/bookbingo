@@ -123,18 +123,36 @@ artifact and its destination are therefore chosen independently: after a
 `firebase use staging`, `pnpm run deploy:prod` builds the prod bundle, with prod
 API keys, and ships it to staging. Nothing in the output shows this.
 
-- [ ] `deploy:prod` — add `--project prod`
-- [ ] `deploy:all:prod` — add `--project prod`
-- [ ] `deploy:functions` — add `--project prod`
-- [ ] Add `deploy:functions:staging` with `--project staging`
-- [ ] Confirm `deploy:staging` and `deploy:all:staging` already name
+- [x] `deploy:prod` — add `--project prod`
+- [x] `deploy:all:prod` — add `--project prod`
+- [x] `deploy:functions` — **renamed** to `deploy:functions:prod` with
+      `--project prod` (see below)
+- [x] Add `deploy:functions:staging` with `--project staging`
+- [x] Confirm `deploy:staging` and `deploy:all:staging` already name
       `--project staging` (they do; verify no regression)
-- [ ] `pnpm run verify` green
+- [x] `pnpm run verify` green
 
-**Validation:** with `firebase use staging` active, each `:prod` script still
-reaches prod; with `firebase use prod` active, each `:staging` script still
-reaches staging. Check the project id echoed in the CLI's deploy banner rather
-than waiting for the deploy to finish.
+**Deviation from the plan — the bare `deploy:functions` was renamed, not
+patched.** Adding `--project prod` to it would have left the one script whose
+_name_ does not say where it deploys, which is the ambiguity this finding is
+about. The other two pairs already use `:staging`/`:prod` suffixes, so functions
+now match: `deploy:functions:staging` and `deploy:functions:prod`, with no
+unsuffixed name that implicitly means production. Nothing outside `package.json`
+referenced the old name, so the rename cost nothing; typing it now fails loudly
+instead of deploying somewhere.
+
+**Validation:** all six deploy scripts carry an explicit `--project`, checked
+mechanically rather than by eye:
+
+```
+--project staging  deploy:staging            --project prod  deploy:prod
+--project staging  deploy:functions:staging  --project prod  deploy:functions:prod
+--project staging  deploy:all:staging        --project prod  deploy:all:prod
+```
+
+Target selection no longer depends on the active `firebase use` alias, since
+`--project` overrides it. Confirming that end-to-end requires a real deploy and
+is left for the next one.
 
 **Note:** `emulator:start`, `seed:staging`, and `test:integration` already pass
 `--project`, and the Admin-SDK scripts route every write through
