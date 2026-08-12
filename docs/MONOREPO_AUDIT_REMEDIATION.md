@@ -102,12 +102,12 @@ manifest and Cloud Build installs from it, where `workspace:` is not an
 npm-resolvable protocol. Moving it is correct regardless of whether that
 currently breaks the deploy.
 
-- [ ] Move `"@bookbingo/lib-types": "workspace:*"` from `dependencies` to
+- [x] Move `"@bookbingo/lib-types": "workspace:*"` from `dependencies` to
       `devDependencies` in `functions/package.json`
-- [ ] `pnpm install` to update the lockfile
-- [ ] `pnpm run verify` green
-- [ ] `grep -rn "@bookbingo" functions/lib --include="*.js"` returns nothing
-- [ ] `pnpm --filter @bookbingo/functions exec tsc --noEmit` passes
+- [x] `pnpm install` to update the lockfile
+- [x] `pnpm run verify` green
+- [x] `grep -rn "@bookbingo" functions/lib --include="*.js"` returns nothing
+- [x] `pnpm --filter @bookbingo/functions exec tsc --noEmit` passes
 
 **Deferred validation** (needs the F2 staging target, and a real deploy):
 a staging functions deploy completes and its Cloud Build log shows a clean
