@@ -37,7 +37,17 @@ jobs:
   # stop the deploy.
   deploy_staging:
     needs: verify
-    if: github.event_name != 'pull_request'
+    # Off until the deploy is actually configured. The first real run of this
+    # job failed on `Input required and not supplied: firebaseServiceAccount`
+    # — the repository has no secrets or variables set at all, so none of the
+    # eight values below have ever existed. Rather than leave main permanently
+    # red, the job is opt-in: create the service account and the seven
+    # VITE_*_STAGING values, then
+    #     gh variable set ENABLE_STAGING_DEPLOY --body true
+    # and this starts running with no workflow edit.
+    if: >-
+      github.event_name != 'pull_request' &&
+      vars.ENABLE_STAGING_DEPLOY == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
