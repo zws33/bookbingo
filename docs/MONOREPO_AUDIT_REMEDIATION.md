@@ -63,14 +63,19 @@ changes are coupled.
 
 ## 1. Findings in scope
 
-| ID     | Severity | Title                                                               | Primary files                                  |
-| ------ | -------- | ------------------------------------------------------------------- | ---------------------------------------------- |
-| **F2** | High     | Production is the fallback deploy target; functions have no staging | `package.json`                                 |
-| **F3** | High     | `functions/` ships a `workspace:*` dep it only uses for types       | `functions/package.json`                       |
-| **F4** | Medium   | `lib/*` build scripts use `tsc -p` and cannot build their deps      | `lib/{core,types,util}/package.json`           |
-| **F5** | Medium   | Three compiler configurations apply to the same `app/web` sources   | `tsconfig.build.json`, `app/web/tsconfig.json` |
-| **F6** | Medium   | The `lib/` boundary is convention-only; DOM globals are in scope    | `eslint.config.js`                             |
-| **F7** | Medium   | Integration-test emulator targeting depends on an untracked file    | `app/web/vitest.config.int.ts`, `.env.example` |
+| ID     | Severity     | Title                                                                | Primary files                                  |
+| ------ | ------------ | -------------------------------------------------------------------- | ---------------------------------------------- |
+| **F9** | **Critical** | `functions` declares a Node runtime Cloud Functions does not support | `functions/package.json`                       |
+| **F2** | High         | Production is the fallback deploy target; functions have no staging  | `package.json`                                 |
+| **F3** | High         | `functions/` ships a `workspace:*` dep it only uses for types        | `functions/package.json`                       |
+| **F4** | Medium       | `lib/*` build scripts use `tsc -p` and cannot build their deps       | `lib/{core,types,util}/package.json`           |
+| **F5** | Medium       | Three compiler configurations apply to the same `app/web` sources    | `tsconfig.build.json`, `app/web/tsconfig.json` |
+| **F6** | Medium       | The `lib/` boundary is convention-only; DOM globals are in scope     | `eslint.config.js`                             |
+| **F7** | Medium       | Integration-test emulator targeting depends on an untracked file     | `app/web/vitest.config.int.ts`, `.env.example` |
+
+**F9 was not in the original audit.** It surfaced while validating F7 — the
+emulator refused to load the functions — and is recorded here because it is the
+same subject as F2 and F3: whether `functions/` can be deployed at all. See §3.
 
 ---
 
@@ -79,11 +84,13 @@ changes are coupled.
 Ordered by blast radius, smallest first, so a failure is easy to attribute:
 
 ```
-F3 → F2 → F4 → F7 → F6 → F5
+F3 → F2 → F4 → F7 → [F9] → F6 → F5
 ```
 
 - **F3, F2** first: they carry the deployment risk and are the smallest diffs.
 - **F4, F7** next: single-line changes to build and test invocation.
+- **F9** landed here, where it was found, rather than being deferred — it is a
+  one-line fix for a Critical defect in the same area F2 and F3 just touched.
 - **F6** before F5: it is additive and passes on the current tree, so it lands
   green and isolates F5's expected failures from the boundary rules.
 - **F5** last: the only task that changes what compiles.
@@ -221,6 +228,61 @@ runnable in CI. That depends on F1.
 (`pnpm --filter @bookbingo/web emulator:start` and `… emulator:seed` — both are
 root scripts, not `app/web` ones). Corrected, and `pnpm run dev:local` added
 since it starts the emulator and dev server together.
+
+---
+
+### F9 — `functions` declared an unsupported Node runtime (Critical, unplanned)
+
+**Why:** `functions/package.json` declared `engines.node: "24"`. Cloud Functions
+has no `nodejs24` runtime — firebase-tools 14.5.1 lists exactly two GA options:
+
+```
+nodejs20  GA
+nodejs22  GA          nodejs24 present? false
+```
+
+`engines.node` is what firebase-tools reads to pick the runtime, and the same
+validation runs on both the emulator and the deploy path. The emulator refused
+outright:
+
+```
+functions: Failed to load function definition from source: FirebaseError:
+Detected node engine 24 in package.json, which is not a supported version.
+Valid versions are 20, 22
+```
+
+`222cfd3` ("chore: migrate to Node 24", #49, 2026-07-02) changed this line from
+`"22"` — a valid runtime — to `"24"`. The repo-wide Node 24 migration was
+correct for the build and CI toolchain, but the functions **runtime** is chosen
+by Google, not by us, and it did not have a Node 24 option.
+
+**Consequence:** `functions/` has not been deployable since 2026-07-02, and the
+functions emulator has not run locally since then either. Whatever is serving
+`enrichBook` and `submitFeedback` in production predates that date — notably it
+cannot include `178d79f` (#61, "perf: parallelize OL lookup fan-out and cache
+search responses", 2026-07-26), which is entirely functions code.
+
+- [x] `functions/package.json` — `engines.node` → `"22"`
+- [x] Emulator loads both functions:
+      `✔ functions: Loaded functions definitions from source: enrichBook, submitFeedback`
+- [x] Both initialize:
+      `✔ functions[us-central1-enrichBook]`, `✔ functions[us-central1-submitFeedback]`
+- [x] `pnpm run verify` green
+
+**Not changed:** CI and local development stay on Node 24. Build-time and
+runtime versions are independent, `functions/tsconfig.json` targets `es2022`,
+and nothing in `functions/src` uses a Node-24-only API.
+
+**Follow-up worth doing** (not this branch): `functions/` inherits
+`@types/node@^24` from the root while running on Node 22, so a Node-24-only API
+would typecheck and then fail at runtime. Pinning `@types/node@^22` in
+`functions/` would close that gap. Low risk today; it belongs with the F8
+manifest batch.
+
+**Deploy verification is still outstanding.** The emulator proves the runtime is
+now valid, but only a real deploy proves the whole path — and that same deploy
+resolves F3's open question. Recommended first action after this branch merges:
+`pnpm run deploy:functions:staging`.
 
 ---
 
