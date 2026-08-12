@@ -169,12 +169,12 @@ meets.
 never creates `lib/types/dist`. This also contradicts the rule in `CLAUDE.md`:
 "always `tsc -b`, never `tsc -p`, and always name the build config explicitly."
 
-- [ ] `lib/types/package.json` — `build` → `tsc -b tsconfig.build.json`
-- [ ] `lib/core/package.json` — `build` → `tsc -b tsconfig.build.json`
-- [ ] `lib/util/package.json` — `build` → `tsc -b tsconfig.build.json`
-- [ ] From a cold tree, `pnpm --filter @bookbingo/lib-core run build` succeeds
+- [x] `lib/types/package.json` — `build` → `tsc -b tsconfig.build.json`
+- [x] `lib/core/package.json` — `build` → `tsc -b tsconfig.build.json`
+- [x] `lib/util/package.json` — `build` → `tsc -b tsconfig.build.json`
+- [x] From a cold tree, `pnpm --filter @bookbingo/lib-core run build` succeeds
       and creates `lib/types/dist` as a side effect
-- [ ] `pnpm run verify` green
+- [x] `pnpm run verify` green
 
 ---
 
