@@ -9,8 +9,14 @@ on:
   pull_request:
     branches:
       - main
+  workflow_dispatch:
 
 jobs:
+  # Runs the same chain contributors run locally. `verify` is
+  # format:check -> lint -> build -> test -> typecheck, in that order:
+  # build must precede typecheck because functions/ resolves
+  # @bookbingo/lib-types through node_modules to lib/types/dist, which
+  # does not exist on a fresh checkout.
   verify:
     runs-on: ubuntu-latest
     steps:
@@ -23,6 +29,50 @@ jobs:
           node-version: 24
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm run lint
-      - run: pnpm test
-      - run: pnpm run typecheck
+      - run: pnpm run verify
+
+  # Staging tracks main. Lives in this workflow rather than its own so it
+  # can depend on `verify` — `needs` cannot cross workflow boundaries, and
+  # as two sibling workflows on the same trigger a failing build did not
+  # stop the deploy.
+  deploy_staging:
+    needs: verify
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @bookbingo/web build:staging
+        env:
+          VITE_FIREBASE_API_KEY: ${{ secrets.VITE_FIREBASE_API_KEY_STAGING }}
+          VITE_FIREBASE_AUTH_DOMAIN: ${{ secrets.VITE_FIREBASE_AUTH_DOMAIN_STAGING }}
+          VITE_FIREBASE_PROJECT_ID: ${{ vars.VITE_FIREBASE_PROJECT_ID_STAGING }}
+          VITE_FIREBASE_STORAGE_BUCKET: ${{ secrets.VITE_FIREBASE_STORAGE_BUCKET_STAGING }}
+          VITE_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.VITE_FIREBASE_MESSAGING_SENDER_ID_STAGING }}
+          VITE_FIREBASE_APP_ID: ${{ secrets.VITE_FIREBASE_APP_ID_STAGING }}
+          VITE_FIREBASE_MEASUREMENT_ID: ${{ secrets.VITE_FIREBASE_MEASUREMENT_ID_STAGING }}
+      - uses: FirebaseExtended/action-hosting-deploy@v0
+        id: deploy
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_BOOKBINGO_STAGING }}
+          channelId: live
+          projectId: bookbingo-staging
+          entryPoint: .
+      - name: Display deployment URL
+        run: |
+          echo "## Deployment Successful! 🚀" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Live Site URL:" >> $GITHUB_STEP_SUMMARY
+          echo "🔗 **[https://bookbingo-staging.web.app](https://bookbingo-staging.web.app)**" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "---" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Your application has been deployed to Firebase Hosting." >> $GITHUB_STEP_SUMMARY
