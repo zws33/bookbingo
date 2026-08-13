@@ -66,22 +66,35 @@ changes are coupled.
 
 ## 1. Findings in scope
 
-| ID      | Severity     | Title                                                                | Primary files                                   |
-| ------- | ------------ | -------------------------------------------------------------------- | ----------------------------------------------- |
-| **F9**  | **Critical** | `functions` declares a Node runtime Cloud Functions does not support | `functions/package.json`                        |
-| **F10** | **High**     | A build with no Firebase config succeeds and ships a dead bundle     | `app/web/vite.config.ts`, `src/lib/firebase.ts` |
-| **F2**  | High         | Production is the fallback deploy target; functions have no staging  | `package.json`                                  |
-| **F3**  | High         | `functions/` ships a `workspace:*` dep it only uses for types        | `functions/package.json`                        |
-| **F4**  | Medium       | `lib/*` build scripts use `tsc -p` and cannot build their deps       | `lib/{core,types,util}/package.json`            |
-| **F5**  | Medium       | Three compiler configurations apply to the same `app/web` sources    | `tsconfig.build.json`, `app/web/tsconfig.json`  |
-| **F6**  | Medium       | The `lib/` boundary is convention-only; DOM globals are in scope     | `eslint.config.js`                              |
-| **F7**  | Medium       | Integration-test emulator targeting depends on an untracked file     | `app/web/vitest.config.int.ts`, `.env.example`  |
+| ID      | Severity     | Title                                                                                                     | Primary files                                       |
+| ------- | ------------ | --------------------------------------------------------------------------------------------------------- | --------------------------------------------------- |
+| **F9**  | **Critical** | `functions` declares a Node runtime Cloud Functions does not support                                      | `functions/package.json`                            |
+| **F10** | **High**     | A build with no Firebase config succeeds and ships a dead bundle                                          | `app/web/vite.config.ts`, `src/lib/firebase.ts`     |
+| **F2**  | High         | Production is the fallback deploy target; functions have no staging                                       | `package.json`                                      |
+| **F3**  | **Critical** | `workspace:*` in the deployed manifest — npm cannot parse it, blocking functions deploys since 2026-07-02 | `functions/package.json`, `functions/tsconfig.json` |
+| **F4**  | Medium       | `lib/*` build scripts use `tsc -p` and cannot build their deps                                            | `lib/{core,types,util}/package.json`                |
+| **F5**  | Medium       | Three compiler configurations apply to the same `app/web` sources                                         | `tsconfig.build.json`, `app/web/tsconfig.json`      |
+| **F6**  | Medium       | The `lib/` boundary is convention-only; DOM globals are in scope                                          | `eslint.config.js`                                  |
+| **F7**  | Medium       | Integration-test emulator targeting depends on an untracked file                                          | `app/web/vitest.config.int.ts`, `.env.example`      |
+| **F11** | Low          | `functions/` compiled its tests into the deployed upload                                                  | `firebase.json`                                     |
 
-**F9 and F10 were not in the original audit.** F9 surfaced while validating F7 —
-the emulator refused to load the functions. F10 surfaced when CI ran for the
-first time and the staging deploy failed. Both are recorded here because they
-are the same subject as F2 and F3: whether this repository can deploy at all.
-See §3.
+**F9, F10 and F11 were not in the original audit, and F3 was underrated.**
+F9 surfaced while validating F7 — the emulator refused to load the functions.
+F10 surfaced when CI ran for the first time and the staging deploy failed. F3
+was raised to Critical and F11 found when the first real deploy was attempted.
+All of them are the same subject as F2: whether this repository can deploy its
+**functions**. Hosting and rules deploys were never affected — see the scope
+table under F3 in §3 before drawing a broader conclusion from these findings.
+
+**The pattern is worth stating plainly: static review found the Medium
+findings; execution found every Critical one.** Reading configs surfaced the
+`tsc -p` bug and the three-way compiler split. "Functions have been
+undeployable for six weeks," "a build with no config succeeds," and "the
+manifest is unparseable by npm" were all invisible on the page. Each needed
+something to actually run — the emulator, CI, Cloud Build. Marking a finding
+_Conditional_ rather than clearing it is what pointed at where to spend
+execution effort; F3 shows the cost of reasoning about a runtime instead of
+invoking it.
 
 ---
 
@@ -125,6 +138,107 @@ currently breaks the deploy.
 **Deferred validation** (needs the F2 staging target, and a real deploy):
 a staging functions deploy completes and its Cloud Build log shows a clean
 install.
+
+#### Which deploys this actually affected
+
+Worth stating precisely, because it is easy to over-read. **Three different
+deploy paths exist and only one was broken:**
+
+| Path                                                | Status                                                                                                                      |
+| --------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| `deploy:{staging,prod}` — `hosting,firestore:rules` | **Always worked.** Never touches `functions/`, so it never reaches Cloud Build or reads that manifest. Run manually, often. |
+| GitHub Actions                                      | Never ran at all until Actions was enabled 2026-08-12. Separate problem (F1).                                               |
+| `deploy:functions:*` — `--only functions`           | Worked until **2026-07-02**. Broken since.                                                                                  |
+
+Both defects entered in the **same commit**, `222cfd3` (#49, 2026-07-02), which
+changed `engines.node` 22 → 24 _and_ added `@bookbingo/lib-types: workspace:*`
+to `dependencies`. Before it: valid runtime, no workspace specifier.
+
+**They were layered, and the outer one hid the inner one.** An unsupported
+runtime is rejected early — by the CLI and the Functions API, before anything is
+packaged — so no deploy between 2026-07-02 and 2026-08-12 ever reached the npm
+install step. #65 removed the runtime defect; the 2026-08-13 attempt was the
+first deploy in the repository's history to get far enough to trip the
+`workspace:` protocol.
+
+Corroborated read-only: `firebase functions:list` reports `enrichBook` and
+`submitFeedback` on **`nodejs22`** in both staging and prod — the pre-#49
+runtime, i.e. both environments are still running code deployed before
+2026-07-02.
+
+#### Outcome: the deferred validation failed. F3 reopened, then fixed properly.
+
+`pnpm run deploy:functions:staging`, run 2026-08-13, got as far as Cloud Build
+and died there:
+
+```
+npm error code EUNSUPPORTEDPROTOCOL
+npm error Unsupported URL Type "workspace:": workspace:*
+```
+
+**The fix above was the wrong half.** `EUNSUPPORTEDPROTOCOL` comes from npm's
+manifest _parser_, not its resolver — npm has never implemented the
+`workspace:` protocol. It fires before npm decides what to install, so which
+dependency section holds the specifier is irrelevant. Moving it to
+`devDependencies` changed nothing about the deploy.
+
+The reasoning error is worth naming: the original finding said the specifier
+"is not an npm-resolvable protocol," which is true, and then treated
+`devDependencies` as a place npm would not look. Resolution never happened.
+
+**Real fix** — the specifier leaves the manifest entirely:
+
+- [x] Delete `@bookbingo/lib-types` from `functions/package.json` (all sections)
+- [x] Add a `paths` alias in `functions/tsconfig.json`; the existing project
+      reference makes TypeScript redirect it to `lib/types/dist/index.d.ts`
+- [x] `pnpm install` — lockfile drops the entry, pnpm removes the symlink
+- [x] Cold build of the whole graph after `rm -rf lib/*/dist functions/lib` and
+      deleting every `.tsbuildinfo`: green, `functions/lib` emitted
+- [x] `pnpm --filter @bookbingo/functions exec tsc --noEmit` passes with
+      `functions/node_modules/@bookbingo/lib-types` gone — proving the alias,
+      not the symlink, is doing the work
+- [x] **Reproduced against npm directly.** The old manifest in a scratch dir:
+      `npm install --package-lock-only` → the byte-identical Cloud Build error.
+      The new manifest: resolves and writes a lockfile.
+- [x] Regression guard: `functions/src/deploy-manifest.test.ts` asserts no
+      `workspace:`/`catalog:` specifier in any dependency section, and that
+      `engines.node` is one Cloud Functions offers (folding in F9). Verified
+      load-bearing by reintroducing the specifier and watching it fail.
+
+Nothing is lost at runtime — the sole import is `import type`, and
+`functions/lib/books/types.js` compiles to exactly `export {};`.
+
+**Still deferred:** an actual successful deploy. Everything above is evidence
+the manifest is now npm-installable; only a deploy proves the whole path.
+
+---
+
+### F11 — `functions/` shipped its tests to production (Low, unplanned)
+
+**Found while fixing F3.** 76 KB of the 180 KB in `functions/lib` was compiled
+test code, all of it uploaded. Not a correctness bug — the tests import only
+built-ins and real dependencies, and nothing loads them — but it is dead
+production surface, including the tests for the GitHub-PAT feedback handler.
+
+**Cause:** CLAUDE.md claimed tests "are excluded from every
+`tsconfig.build.json`, so they are never compiled into build output."
+`functions/` has no `tsconfig.build.json` — its single composite config is both
+the IDE and the build config, and its `include: ["src"]` takes the tests with it.
+
+**Fix chosen — exclude at packaging, not at compile:** `**/*.test.*` added to
+`functions.ignore` in `firebase.json`.
+
+The obvious alternative, adding `functions/tsconfig.build.json` that excludes
+tests, was rejected for now: functions' single config is the _only_ thing
+type-checking those tests, because the root `tsconfig.json` `include` does not
+cover `functions/`. Splitting the config to fix a 76 KB upload would restructure
+the build graph on the exact path this branch is unbreaking. The packaging
+pattern solves the real concern — production surface — at zero build risk, and
+worst case is a no-op.
+
+- [x] `**/*.test.*` added to `functions.ignore`
+- [x] CLAUDE.md corrected on both counts
+- [ ] Confirm on the next deploy that the upload shrinks (~180 KB → ~105 KB)
 
 ---
 
@@ -485,9 +599,13 @@ pnpm run verify
 - [x] `pnpm run test:integration` passes with `.env.test` moved aside (F7)
 - [x] Every deploy script names its `--project`; `deploy:functions:staging`
       exists (F2)
-- [x] `functions/package.json` carries no `workspace:*` entry under
-      `dependencies` (F3)
+- [x] ~~`functions/package.json` carries no `workspace:*` entry under
+      `dependencies`~~ — **this criterion was too weak and passed a broken
+      deploy.** Replaced: `functions/package.json` carries no `workspace:*`
+      entry in _any_ dependency section, enforced by
+      `functions/src/deploy-manifest.test.ts` (F3)
 - [x] The functions emulator loads `enrichBook` and `submitFeedback` (F9)
+- [x] Compiled tests are excluded from the functions upload (F11)
 
 **CLAUDE.md review** — this branch touches build/TypeScript configuration, the
 `lib/*` build commands, and the deploy scripts, all of which are documented.

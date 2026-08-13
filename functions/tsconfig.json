@@ -13,7 +13,19 @@
     "lib": ["es2022"],
     "composite": true,
     "declaration": true,
-    "declarationMap": true
+    "declarationMap": true,
+    // @bookbingo/lib-types is deliberately NOT a dependency in package.json.
+    // firebase deploy uploads this directory alone and Google's buildpack
+    // installs it with npm, which cannot parse pnpm's "workspace:*" protocol
+    // (EUNSUPPORTEDPROTOCOL) — the deploy fails while reading the manifest,
+    // whichever dependency section the specifier sits in. Nothing is lost at
+    // runtime: the only import is `import type`, so it erases to nothing.
+    // This alias plus the reference below is what resolves it at build time;
+    // TypeScript redirects the mapping to ../lib/types/dist/index.d.ts, so
+    // lib/types must be built first (as `pnpm run verify` already ensures).
+    "paths": {
+      "@bookbingo/lib-types": ["../lib/types/src/index.ts"]
+    }
   },
   "include": ["src"],
   "references": [

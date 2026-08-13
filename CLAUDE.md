@@ -72,9 +72,20 @@ Each output path has exactly one writer. Do not add a second.
 
 Tests (`*.test.ts`) are excluded from every `tsconfig.build.json`, so they are never compiled into build output. They are still fully type-checked, via the root `tsconfig.json` `include`.
 
+**`functions/` is the exception**: it has no `tsconfig.build.json` to exclude them from, so `tsc -b` does emit its tests into `functions/lib`. Keeping them in `include` is deliberate — it is the only thing type-checking them, since the root `tsconfig.json` does not cover `functions/`. They are kept out of the deploy by the `**/*.test.*` pattern in `firebase.json`'s `functions.ignore`, at the packaging boundary rather than the compiler.
+
 **Note on `functions/`**: it uses `"moduleResolution": "Bundler"` (same as the root) and has only a `tsconfig.json` — no `tsconfig.build.json`. That single file is itself `composite` and carries the project `references`, so it serves as both the IDE and the build config. It is typechecked separately (`pnpm --filter @bookbingo/functions exec tsc --noEmit`, wired into `pnpm run typecheck`) because the root `tsconfig.json` `include` does not cover `functions/` — **not** because of a resolution conflict.
 
-**`functions/` typechecking requires `lib/types/dist` to exist.** It has no `paths` aliases, so `@bookbingo/lib-types` resolves through node_modules to the built declarations. On a cold tree, run a build first — `pnpm run verify` does this for you by ordering `build` before `typecheck`.
+**`functions/` typechecking requires `lib/types/dist` to exist.** `@bookbingo/lib-types` resolves through a `paths` alias in `functions/tsconfig.json`, which TypeScript redirects to the referenced project's built declarations. On a cold tree, run a build first — `pnpm run verify` does this for you by ordering `build` before `typecheck`.
+
+**`functions/package.json` must never carry a `workspace:*` dependency**, and that alias is why it doesn't need to. `firebase deploy` uploads `functions/` as a standalone directory — no workspace root, no `pnpm-lock.yaml` — and Google's buildpack installs it with **npm**, which cannot parse the `workspace:` protocol. It fails while reading the manifest, so the specifier is fatal in _any_ section, `devDependencies` included:
+
+```
+npm error code EUNSUPPORTEDPROTOCOL
+npm error Unsupported URL Type "workspace:": workspace:*
+```
+
+Build-time-only workspace packages go in `paths`, not the manifest. Type-only imports cost nothing at runtime — they erase entirely. `functions/src/deploy-manifest.test.ts` guards both this and `engines.node`.
 
 ### Import conventions
 
