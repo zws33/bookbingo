@@ -17,7 +17,6 @@
     "zod": "^4.4.2"
   },
   "devDependencies": {
-    "@bookbingo/lib-types": "workspace:*",
     "typescript": "^5.3.0"
   }
 }
