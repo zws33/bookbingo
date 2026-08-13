@@ -208,8 +208,18 @@ The reasoning error is worth naming: the original finding said the specifier
 Nothing is lost at runtime — the sole import is `import type`, and
 `functions/lib/books/types.js` compiles to exactly `export {};`.
 
-**Still deferred:** an actual successful deploy. Everything above is evidence
-the manifest is now npm-installable; only a deploy proves the whole path.
+**Closed 2026-08-13.** `pnpm run deploy:functions:staging` succeeded against
+`7b9f291`. Confirmed independently rather than taken on the deploy's word —
+`gcloud functions describe enrichBook --gen2` reports staging on revision
+`enrichbook-00004-nic`, updated `2026-08-13T15:08:28Z`.
+
+The same query pins the last successful functions deploy before this one:
+**prod is on `enrichbook-00002-bef`, updated `2026-06-11T16:04:54Z`.** That is
+three weeks earlier than the `222cfd3` (2026-07-02) bound this document
+previously inferred, and it means prod has been serving June 11 code — well
+before `178d79f` (#61, OL parallelism and search caching, 2026-07-26).
+
+**Remaining:** the prod deploy. `deploy:functions:prod`.
 
 ---
 
@@ -238,7 +248,9 @@ worst case is a no-op.
 
 - [x] `**/*.test.*` added to `functions.ignore`
 - [x] CLAUDE.md corrected on both counts
-- [ ] Confirm on the next deploy that the upload shrinks (~180 KB → ~105 KB)
+- [ ] Confirm the upload shrinks (~180 KB → ~105 KB). The 2026-08-13 staging
+      deploy succeeded but its `functions: packaged … for uploading` line was
+      not captured, so this is still unverified. Check it on the prod deploy.
 
 ---
 
