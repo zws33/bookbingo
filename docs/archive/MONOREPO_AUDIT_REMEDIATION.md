@@ -1,5 +1,23 @@
 # Monorepo Audit Remediation — High & Medium Findings
 
+> **🗄️ Archived 2026-08-14.** Every finding in §3 shipped (#65, #66, #67). Retained
+> as the narrative record of what broke and why — notably §3's account of how an
+> unsupported Node runtime masked an unparseable `workspace:` specifier for six weeks,
+> and the observation that static review found every Medium finding while only
+> execution found the Criticals.
+>
+> Its two live threads were extracted to issues before archiving; **track those, not
+> this file**:
+>
+> - **#68** — staging deploy secrets, the F10 remainder. Still unconfigured.
+> - **#69** — the §5 deferred backlog, seven items with their original reasons.
+>
+> Two statuses here are stale as written. F3's "Remaining: the prod deploy" is
+> **done** — prod runs `enrichbook-00003-gol`, updated 2026-08-13. F11's unchecked
+> upload-size check was never captured and is folded into #69.
+>
+> For current build and deploy rules see `CLAUDE.md`.
+
 **Status:** Approved for implementation. Branch `fix/monorepo-audit-remediation`.
 Derived from the repository audit run against `deef260` (2026-08-11).
 
