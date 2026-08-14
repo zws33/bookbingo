@@ -11,7 +11,7 @@ Books live in a shared `/books/{bookId}` collection; user readings (and TBR entr
 2. Fall back to a case-insensitive `titleLower` + `authorLower` match.
 3. Otherwise create a new doc with a **random** ID.
 
-The documented intent (`docs/BOOK_DATA_MODEL.md`) was _query-based_ deduplication: random doc IDs plus a `where('externalIds.openLibrary','==',olid)` lookup. This record supersedes that mechanism. It captures the canonical identity model decided while investigating issues #7 (create race) and #27 ("fixed typo still showing").
+The original documented intent was _query-based_ deduplication: random doc IDs plus a `where('externalIds.openLibrary','==',olid)` lookup. This record supersedes that mechanism. It captures the canonical identity model decided while investigating issues #7 (create race) and #27 ("fixed typo still showing").
 
 ## Findings
 
@@ -96,7 +96,7 @@ The deterministic-ID model is a net _reduction_ of the data model:
 
 ## Resolved questions
 
-- **Manual-book identity (was the open question).** Manual books get a deterministic `manual:` hash with conservative normalization — so the #7 race is fixed _uniformly_, not just for catalog books, without the over-merge hazard of aggressive normalization. This supersedes `BOOK_DATA_MODEL.md`'s "manual entry skips deduplication" stance: manual books now dedup exact re-entries, cheaply and safely.
+- **Manual-book identity (was the open question).** Manual books get a deterministic `manual:` hash with conservative normalization — so the #7 race is fixed _uniformly_, not just for catalog books, without the over-merge hazard of aggressive normalization. This supersedes the original "manual entry skips deduplication" stance: manual books now dedup exact re-entries, cheaply and safely.
 - **Collapse-on-migration vs. scoring (verified safe).** Re-keying collapses legacy docs that share a derived key into one ID. This is **score-neutral by construction**: migration re-points `reading.bookId` but never adds, removes, or merges readings. Scoring (`lib/core/scoring.ts`, `statistics.ts`) is a pure function of readings × tiles and never reads `bookId`; the leaderboard's "Books" count is `readings.length`. The only surface that groups by book is `LibraryPage` (community-library display), where collapse _merges_ duplicate rows — a fix, not a risk. Migration neither creates nor cures any pre-existing double-count.
 - **Born-manual-then-enriched (accepted limit).** A book created manually (`manual:` hash) and later found via search (`openLibrary:` hash) derives two different IDs; the scheme will not merge them. Accepted as a known limitation — no claim/upgrade path is planned. The scheme prevents re-creating _identical_ entries; it does not retroactively link a manual entry to its catalog identity.
 
@@ -119,7 +119,7 @@ A new **re-key** script (distinct from the existing `scripts/migrate-readings.ts
 
 ## Supersedes
 
-- `docs/BOOK_DATA_MODEL.md` §"Deduplication Strategy" (query-based) and the `getOrCreateBook` query logic in its Implementation Steps — replaced by the deterministic-ID model above. The `ExternalBookIds` type there is upgraded from `…string` to `…ExternalRef`.
+- The original `BOOK_DATA_MODEL.md` §"Deduplication Strategy" (query-based) and the `getOrCreateBook` query logic in its Implementation Steps — replaced by the deterministic-ID model above. The `ExternalBookIds` type there is upgraded from `…string` to `…ExternalRef`.
 - The "externalId will become the sole identifier" framing in `docs/BOOK_ENRICHMENT.md`.
 
 ## When to revisit
