@@ -17,6 +17,29 @@ function makeBook(tiles: string[]): ScoringInput {
   };
 }
 
+/**
+ * Builds books whose tile distribution matches `spec`, given as
+ * `[tilesAtThisCount, booksPerTile]` pairs, packed 3 tiles per book.
+ * e.g. `[[5, 2], [20, 1]]` → 5 tiles holding 2 books each, 20 holding 1.
+ */
+function booksWithDistribution(spec: [number, number][]): ScoringInput[] {
+  const slots: string[] = [];
+  let tileNo = 0;
+  for (const [tileCount, booksPerTile] of spec) {
+    for (let i = 0; i < tileCount; i++) {
+      const tileId = `x${tileNo++}`;
+      for (let b = 0; b < booksPerTile; b++) {
+        slots.push(tileId);
+      }
+    }
+  }
+  const books: ScoringInput[] = [];
+  for (let i = 0; i < slots.length; i += 3) {
+    books.push(makeBook(slots.slice(i, i + 3)));
+  }
+  return books;
+}
+
 test('Scoring', async (t) => {
   await t.test('calculateVarietyPoints', async (t) => {
     await t.test('should count unique tiles', () => {
@@ -138,6 +161,95 @@ test('Scoring', async (t) => {
         assert.equal(balancedScore, harmonicScore);
       },
     );
+  });
+
+  // Four reader profiles that together demonstrate what the scoring system rewards.
+  // Ported from the prose worked examples in the retired docs/SCORING_PLAN.md, whose
+  // hand-computed balance factors were all wrong — its own "key takeaway" cited
+  // figures that contradicted the claim they were offered as evidence for.
+  await t.test('worked scenarios', async (t) => {
+    const balanced10 = booksWithDistribution([
+      [5, 2],
+      [20, 1],
+    ]);
+    const unbalanced10 = booksWithDistribution([
+      [3, 5],
+      [3, 3],
+      [6, 1],
+    ]);
+    const stacker30 = booksWithDistribution([
+      [5, 12],
+      [10, 3],
+    ]);
+    const balanced30 = booksWithDistribution([
+      [30, 2],
+      [10, 3],
+    ]);
+
+    await t.test('A — balanced reader, 10 books across 25 tiles', () => {
+      const b = getScoreBreakdown(balanced10);
+      assert.equal(b.totalBooks, 10);
+      assert.equal(b.varietyPoints, 25);
+      assert.ok(Math.abs(b.volumePoints - 2.5) < 1e-10);
+      assert.ok(Math.abs(b.balanceFactor - 0.9) < 1e-4);
+      assert.ok(Math.abs(b.score - 27.25) < 1e-4);
+    });
+
+    await t.test('B — unbalanced reader, 10 books across 12 tiles', () => {
+      const b = getScoreBreakdown(unbalanced10);
+      assert.equal(b.totalBooks, 10);
+      assert.equal(b.varietyPoints, 12);
+      assert.ok(Math.abs(b.balanceFactor - 0.6944) < 1e-4);
+      assert.ok(Math.abs(b.score - 16.4097) < 1e-4);
+    });
+
+    await t.test('C — volume stacker, 30 books across 15 tiles', () => {
+      const b = getScoreBreakdown(stacker30);
+      assert.equal(b.totalBooks, 30);
+      assert.equal(b.varietyPoints, 15);
+      assert.ok(Math.abs(b.balanceFactor - 0.6667) < 1e-4);
+      assert.ok(Math.abs(b.score - 27.5663) < 1e-4);
+    });
+
+    await t.test('D — balanced reader, 30 books across 40 tiles', () => {
+      const b = getScoreBreakdown(balanced30);
+      assert.equal(b.totalBooks, 30);
+      assert.equal(b.varietyPoints, 40);
+      assert.ok(Math.abs(b.balanceFactor - 0.9643) < 1e-4);
+      assert.ok(Math.abs(b.score - 62.5) < 1e-4);
+    });
+
+    // The properties above exist to protect these three relationships. They are the
+    // actual design claims; the magnitudes are just how they happen to come out today.
+    await t.test(
+      'tripling volume by stacking barely beats reading broadly',
+      () => {
+        // 30 concentrated books edge out 10 well-spread ones — but only just, which is
+        // the intended shape of the incentive.
+        const stacker = calculateScore(stacker30);
+        const balanced = calculateScore(balanced10);
+        assert.ok(stacker > balanced);
+        assert.ok(stacker - balanced < 1);
+      },
+    );
+
+    await t.test(
+      'spreading the same 30 books more than doubles the score',
+      () => {
+        assert.ok(calculateScore(balanced30) > 2 * calculateScore(stacker30));
+      },
+    );
+
+    await t.test('the balance penalty is what separates C from D', () => {
+      // Under 'harmonic' the balance factor is fixed at 1.0, so concentration costs
+      // nothing and the stacker closes most of the gap.
+      const spread = calculateScore(balanced30, 'harmonic');
+      const stacked = calculateScore(stacker30, 'harmonic');
+      assert.ok(
+        spread - stacked <
+          calculateScore(balanced30) - calculateScore(stacker30),
+      );
+    });
   });
 
   await t.test('getScoreBreakdown', async (t) => {

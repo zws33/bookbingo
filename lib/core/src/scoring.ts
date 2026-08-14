@@ -25,6 +25,10 @@ export function calculateVarietyPoints(
 /**
  * Calculates the diminishing-return points from repeat books.
  * For each tile, contributes H(count) - 1 (the first book is counted in variety points).
+ *
+ * Harmonic rather than logarithmic decay: with log₂ the 2nd book in a tile scores a
+ * full 1.0 — identical to covering a brand-new tile — which erases the variety signal
+ * at exactly the margin where it should bite hardest. Harmonic gives it 0.5.
  */
 export function calculateVolumePoints(tileCounts: Map<string, number>): number {
   let volume = 0;
@@ -40,6 +44,12 @@ export function calculateVolumePoints(tileCounts: Map<string, number>): number {
  * Calculates the balance factor from the tile counts.
  * Returns 1 / (1 + CV²), where CV is the coefficient of variation.
  * Returns 1.0 when there are fewer than 2 tiles (balance is not meaningful).
+ *
+ * Squaring CV keeps the penalty near-flat for mild unevenness and steep for real
+ * concentration; 1/(1+CV) would tax an already-balanced reader for ordinary noise.
+ *
+ * Callers apply this to volume points only, never to variety points — covering a new
+ * tile must stay unconditionally the best move available, whatever the distribution.
  */
 export function calculateBalanceFactor(
   tileCounts: Map<string, number>,
