@@ -42,6 +42,17 @@ manual book:   bookId = hash("manual:" + normTitle + "|" + normAuthor)
 - Hashing the raw `workKey` sidesteps slash-sanitization: `/` is illegal in a Firestore doc ID, but legal as hash input, so no parsing rule needs freezing.
 - The `"|"` separator between normalized title and author prevents boundary collisions (e.g. `"Go"+"Dog"` vs `"God"+"og"`).
 
+### Why the Work OLID is the catalog key
+
+The hash input for catalog books is a **Work** identifier, never an edition identifier. This predates the deterministic-ID decision and constrains it:
+
+- **ISBN is edition-specific.** Hardcover, paperback, and ebook of one book each carry a different ISBN, so an ISBN key mints a separate record per printing — the exact duplication this scheme exists to prevent.
+- **Commercial catalog IDs identify publications**, not works, and have the same defect.
+- **Work OLIDs identify the abstract intellectual creation.** Every edition of _Crime and Punishment_ shares one Work OLID, so two members reading different printings resolve to one book.
+- Open Library's `/search.json` returns Work-level records by default, so no normalization step stands between the search result and the key.
+
+A book club cares that someone read _Crime and Punishment_, not that they read the 2004 Penguin Classics paperback. Work-level identity is that requirement expressed as a key.
+
 ### Manual normalization pipeline (frozen)
 
 Applied to title and author **independently**:
