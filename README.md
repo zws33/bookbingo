@@ -99,7 +99,7 @@ Environment config files live in `app/web/`. Copy `.env.example` to `.env.local`
 
 ## Scoring System
 
-Each book can be tagged with up to 3 categories (tiles). One designated freebie book can cover unlimited categories. The score formula is:
+Each book can be tagged with up to 3 categories (tiles). One designated freebie book can cover unlimited categories, and its tiles are scored exactly like any other book's. All books and all categories count equally — there are no difficulty tiers or bonus multipliers. The score formula is:
 
 ```
 Score = VarietyPoints + VolumePoints × BalanceFactor
@@ -111,7 +111,7 @@ Score = VarietyPoints + VolumePoints × BalanceFactor
 
 **Balance Factor** — Scales volume points based on how evenly books are distributed across tiles, using the coefficient of variation. A perfectly even distribution gives a factor of 1.0; heavy concentration reduces it. Variety points are never affected.
 
-The result: a reader who covers 25 diverse tiles with 10 books will outscore one who stacks 30 books into 5 tiles. See [docs/SCORING_PLAN.md](docs/SCORING_PLAN.md) for the full formula, trade-off rationale, and worked examples.
+The result: a reader who covers 25 diverse tiles with 10 books will outscore one who stacks 30 books into 5 tiles. The implementation and the rationale for each term live in [`lib/core/src/scoring.ts`](lib/core/src/scoring.ts); [`scoring.test.ts`](lib/core/src/scoring.test.ts) carries worked scenarios with their expected scores.
 
 ## Tech Stack
 
