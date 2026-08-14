@@ -6,23 +6,28 @@
 
 ---
 
-> **⚠️ UI layer partially superseded (2026-07-04).** The data model, Firestore schema,
-> service layer (`tbr.ts`), and `useTBR` hook described here remain accurate. The
-> **form and dialog UI has since been refactored** — the sections below describing
-> `TBRForm` and `BookSearchModal` no longer match the code:
+> **🗄️ Archived 2026-08-14.** The feature shipped. Read the code and the two records
+> below for current state — not this file.
 >
-> - **`TBRForm.tsx` was deleted** (#50). Reading-list add/edit/promote dialogs now route
->   through the shared **`BookForm`** with an `identityLocked` prop, not a bespoke TBR form.
-> - **`BookSearchModal` was deleted** (#48) and inlined as the parent-owned **`BookSearch`**
->   component (see `ReadingListPage.tsx`).
-> - **The `notes` field was dropped from the form payload** (#50). Note the split: the
->   `TBREntry` type and `tbr.ts` service still persist `notes`; only the UI form no longer
->   collects it.
+> | For                                        | Go to                                                   |
+> | ------------------------------------------ | ------------------------------------------------------- |
+> | TBR data model                             | `lib/types/src/index.ts` (`TBREntry`)                   |
+> | Service layer, promotion batch             | `app/web/src/lib/tbr.ts`, `app/web/src/hooks/useTBR.ts` |
+> | Firestore rules                            | `firestore.rules`                                       |
+> | UI                                         | `app/web/src/pages/ReadingListPage.tsx`                 |
+> | Why TBR and Reading are shaped as they are | `docs/decisions/tbr-reading-payload-unification.md`     |
+> | Where the model is going next              | `docs/FORM_AND_DIALOG_UNIFICATION.md`                   |
 >
-> The authoritative records for the current form/dialog architecture are
-> `docs/FORM_AND_DIALOG_UNIFICATION.md` and
-> `docs/decisions/tbr-reading-payload-unification.md`. Sections 6 and 7 below are retained
-> for historical context; treat `ReadingListPage.tsx` as the source of truth for the UI.
+> **What is stale here.** §6c/§6d describe UI that no longer exists: `TBRForm.tsx` was
+> deleted (#50) in favour of the shared `BookForm` with `identityLocked`, and
+> `BookSearchModal` was deleted (#48) and inlined as the parent-owned `BookSearch`.
+>
+> **What is not stale, but is targeted.** §2's `TBREntry` — `plannedTiles`, optional
+> `notes`, no `isFreebie` — still matches the code, because step 3 of the unification
+> plan has not shipped. `decisions/tbr-reading-payload-unification.md` supersedes the
+> _reasoning_ in §2 (freebie is now planned at TBR time and validated against
+> `union(readings, tbr)`; `notes` is dropped) while §2's invariant survives as the
+> reason two collections were kept: if it's a `Reading`, it happened.
 
 ---
 

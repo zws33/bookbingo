@@ -5,7 +5,7 @@
 
 ## Context
 
-`TBREntry` and `Reading` were designed as structurally different records. `TBR_PLAN.md` (2026-06-03) deliberately gave `TBREntry` a `plannedTiles` field (vs. `Reading.tiles`), added an optional `notes` field, and **omitted `isFreebie`** ("committing it during the planning phase creates a false sense of finality"). In practice the two are the same scoreable unit at two lifecycle points, and the divergence produced accidental complexity that surfaced during the manual-entry bug fix (#47):
+`TBREntry` and `Reading` were designed as structurally different records. `docs/archive/TBR_PLAN.md` (2026-06-03) deliberately gave `TBREntry` a `plannedTiles` field (vs. `Reading.tiles`), added an optional `notes` field, and **omitted `isFreebie`** ("committing it during the planning phase creates a false sense of finality"). In practice the two are the same scoreable unit at two lifecycle points, and the divergence produced accidental complexity that surfaced during the manual-entry bug fix (#47):
 
 - `ReadingListPage` needs a _separate_ `kind:'manual'` dialog + handler purely because `TBRForm` was display-only, while `MyBooksPage` handles prefilled + manual in one dialog because `BookForm` is always editable.
 - Promotion (`promoteTBREntry`) re-collects `tiles` + `isFreebie` through a `BookForm`, because the TBR entry doesn't carry them — even though the user already planned the tiles.
@@ -33,7 +33,7 @@ The trigger question — "should `tiles` and `plannedTiles` be one field?" — r
 
 **The core fork — one collection vs. two:**
 
-- **Model X — two collections, shared payload (adopted).** Keeps the existing structure and the `TBR_PLAN.md §2` invariant ("if it's a `Reading`, it happened"). Scoring stays _physically_ isolated to `/readings` — a TBR plan cannot accidentally be scored because it lives in a different collection. Projection for a future "see your projected score" feature is `getScoreBreakdown([...readings, ...tbr])` — free, no merge required. Cost: promotion remains a cross-collection batch; "two nearly-identical collections" is a smell requiring explanation (this doc).
+- **Model X — two collections, shared payload (adopted).** Keeps the existing structure and the `archive/TBR_PLAN.md §2` invariant ("if it's a `Reading`, it happened"). Scoring stays _physically_ isolated to `/readings` — a TBR plan cannot accidentally be scored because it lives in a different collection. Projection for a future "see your projected score" feature is `getScoreBreakdown([...readings, ...tbr])` — free, no merge required. Cost: promotion remains a cross-collection batch; "two nearly-identical collections" is a smell requiring explanation (this doc).
 
 - **Model Y — one collection, `status: 'planned' | 'read'` discriminator (rejected).** This is what decisions 1 and 3 _literally describe_, and it's the more honest model: promotion becomes a field flip. Rejected on **reversibility and blast radius** — it requires a collection-merge migration (rewriting `useReadings`/`useTBR`, security rules, every query), immediately after the book-identity re-key migration (#42). Critically, it buys nothing X doesn't: the strategy/preview features work under X by concatenation. Scoring correctness would move from "different collection" to "a `status` filter you must never forget, security rules included" — a weaker guardrail. Revisit only if plan/read-state features proliferate enough to justify the migration.
 
@@ -51,8 +51,8 @@ The trigger question — "should `tiles` and `plannedTiles` be one field?" — r
 
 ## Supersedes
 
-- `docs/TBR_PLAN.md §2` — **"Why no `isFreebie` field?"** (now planned + validated) and the `notes` field (removed).
-- `docs/TBR_PLAN.md §6c/§6d` — `TBRForm` and the "Mark as Read" flow are replaced by the unified form and payload-copy promotion (see the plan).
+- `docs/archive/TBR_PLAN.md §2` — **"Why no `isFreebie` field?"** (now planned + validated) and the `notes` field (removed).
+- `docs/archive/TBR_PLAN.md §6c/§6d` — `TBRForm` and the "Mark as Read" flow are replaced by the unified form and payload-copy promotion (see the plan).
 
 ## When to Revisit
 
