@@ -109,7 +109,7 @@ Score = VarietyPoints + VolumePoints × BalanceFactor
 
 **Volume Points** — Additional books in an already-covered tile still earn points, but with harmonic diminishing returns: the 2nd book earns ½ point, the 3rd earns ⅓, the 4th earns ¼, and so on.
 
-**Balance Factor** — Scales volume points based on how evenly books are distributed across tiles, using the coefficient of variation. A perfectly even distribution gives a factor of 1.0; heavy concentration reduces it. Variety points are never affected.
+**Balance Factor** — Scales volume points by how evenly books are spread across the tiles you have _already covered_, using the coefficient of variation. An even spread gives 1.0; piling extra books onto a few of your tiles reduces it. Covering only a handful of tiles is not penalized here — that cost is the variety points you never earn. Variety points are never scaled.
 
 The result: a reader who covers 25 diverse tiles with 10 books will outscore one who stacks 30 books into 5 tiles. The implementation and the rationale for each term live in [`lib/core/src/scoring.ts`](lib/core/src/scoring.ts); [`scoring.test.ts`](lib/core/src/scoring.test.ts) carries worked scenarios with their expected scores.
 
