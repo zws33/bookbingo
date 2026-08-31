@@ -40,10 +40,7 @@ const EditionsSchema = z.object({
 const DEFAULT_SEARCH_CACHE_TTL_MS = 10 * 60 * 1000;
 
 /**
- * How long an *empty* search response stays servable. Deliberately much shorter
- * than the full TTL: a `200 OK` carrying `docs: []` covers both a genuine
- * no-match and some degraded upstream states, and neither should pin a query to
- * "no results" for ten minutes while a user iterates in the search box.
+ * How long an *empty* search response stays servable.
  */
 const DEFAULT_EMPTY_SEARCH_CACHE_TTL_MS = 30 * 1000;
 
