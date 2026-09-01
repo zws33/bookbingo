@@ -24,14 +24,14 @@ Approximates the SQL sketch in `docs/product-model-brainstorm.md` as a Firestore
 
 ## Mapping to the sketch
 
-| Sketch | Firestore |
-|---|---|
-| `Challenge (id, name, tag_cap, freebie_rule)` | `/challenges/{cid}` doc |
-| `Membership (challenge_id, user_id, role)` | `/challenges/{cid}/members/{userId}` |
-| `Tags (id, challenge_id, label)` | `/challenges/{cid}/tags/{tagId}` |
+| Sketch                                                  | Firestore                                                      |
+| ------------------------------------------------------- | -------------------------------------------------------------- |
+| `Challenge (id, name, tag_cap, freebie_rule)`           | `/challenges/{cid}` doc                                        |
+| `Membership (challenge_id, user_id, role)`              | `/challenges/{cid}/members/{userId}`                           |
+| `Tags (id, challenge_id, label)`                        | `/challenges/{cid}/tags/{tagId}`                               |
 | `Reading (id, user_id, book_id, challenge_id, read_at)` | `/challenges/{cid}/readings/{rid}` + `userId`, `bookId` fields |
-| `ReadingTag (reading_id, tag_id)` | `tags: string[]` on the Reading doc |
-| `TBR`, `Books`, `Users` | unchanged from today |
+| `ReadingTag (reading_id, tag_id)`                       | `tags: string[]` on the Reading doc                            |
+| `TBR`, `Books`, `Users`                                 | unchanged from today                                           |
 
 ## Files to change
 
