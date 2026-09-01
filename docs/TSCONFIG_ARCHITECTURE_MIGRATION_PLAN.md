@@ -340,10 +340,6 @@ Concentrations: `lib/util/src/logger.test.ts` (7), `functions/src/books/**` (8 T
 - `.gitignore`: no `.tsbuild` entry exists; add the `scripts/` artifact patterns from step 5.
 - ESLint `projectService: true` resolves each file through the nearest config. `scripts/tsconfig.json` and `app/web/tsconfig.node.json` are what keep `scripts/*.ts` and `vite.config.ts` linted once the flat root include is gone.
 
-### 9. ADR
-
-Write `docs/decisions/` recording the move off the flat single-program model. Record C1–C3 as the constraints that shaped it. Do not restore the "TypeScript Build Configuration" section removed from `CLAUDE.md` in `15e45f5`; add a one-line pointer to the ADR instead.
-
 ## Validation
 
 Run on a clean tree: `rm -rf lib/*/dist functions/lib app/web/.tsbuild && find . -name '*.tsbuildinfo' -not -path '*/node_modules/*' -delete`.
@@ -355,10 +351,3 @@ Run on a clean tree: `rm -rf lib/*/dist functions/lib app/web/.tsbuild && find .
 5. Add a DOM global to a `lib/core` source file — fails `pnpm run typecheck`, not just lint. Revert.
 6. Add a type error to each of `app/web/src`, `scripts/`, `app/web/vite.config.ts` — each fails `pnpm run verify`. Revert. These three are covered only by explicit `-p` entries in the `typecheck` script (C6).
 7. `pnpm --filter @bookbingo/web run build:prod` fails on a deliberate type error in `app/web/src`. Revert.
-
-## Risks
-
-- Step 4 changes the deploy build command shape. Validation 7 is the gate.
-- `--build --noEmit` passes on a warm tree and fails on a clean one (C2). Any validation run on a dirty tree is worthless.
-- The typecheck script is a hand-maintained list. Adding a package without adding its `-p` entry loses coverage silently (C6).
-- `NodeNext` turns `esModuleInterop` on by default. Not in `base.json`; do not add it.
