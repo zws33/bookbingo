@@ -115,7 +115,7 @@ async function main(): Promise<void> {
         return effectiveUid(u);
       }
     }
-    return effectiveUid(USERS[0]);
+    return effectiveUid(USERS[0]!);
   };
 
   const bookWrites: { ref: DocumentReference; data: DocumentData }[] = [];

@@ -66,7 +66,7 @@ describe('functions/package.json is installable by npm', () => {
     // the emulator and every deploy reject the codebase for six weeks.
     assert.ok(
       ['20', '22'].includes(
-        (manifest.engines as unknown as Record<string, string>)?.node,
+        (manifest.engines as unknown as Record<string, string>)?.node ?? '',
       ),
       'engines.node must be "20" or "22" — no other runtime exists.',
     );

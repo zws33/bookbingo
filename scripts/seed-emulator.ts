@@ -251,8 +251,8 @@ async function seedUser(
 
 async function main(): Promise<void> {
   console.log('Seeding emulator...\n');
-  await seedUser(USERS[0], ALICE_READINGS);
-  await seedUser(USERS[1], BOB_READINGS);
+  await seedUser(USERS[0]!, ALICE_READINGS);
+  await seedUser(USERS[1]!, BOB_READINGS);
   console.log('\nDone. Open http://localhost:4000 to inspect the data.');
   process.exit(0);
 }

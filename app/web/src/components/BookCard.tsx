@@ -6,8 +6,8 @@ interface BookCardProps {
   bookTitle: string;
   bookAuthor: string;
   tiles: string[];
-  metadata?: BookMetadata;
-  notes?: string;
+  metadata?: BookMetadata | undefined;
+  notes?: string | undefined;
   /** When set (and not read-only / no footer), the whole card is a button. */
   onClick?: () => void;
   readOnly?: boolean;

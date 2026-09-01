@@ -1,19 +1,16 @@
 {
-  "extends": "../../tsconfig.json",
+  "extends": "@bookbingo/tsconfig/browser",
   "compilerOptions": {
-    // `target` and the unused-code flags are inherited from the root chain so
-    // this config and `pnpm run typecheck` cannot disagree about the same
-    // files. `lib` is restated to exactly the root value rather than left
-    // implicit, so the two are comparable by reading them.
-    "useDefineForClassFields": true,
-    "lib": ["ES2022", "DOM", "DOM.Iterable"],
-    "module": "ESNext",
-    "allowImportingTsExtensions": true,
-    "resolveJsonModule": true,
-    "isolatedModules": true,
     "noEmit": true,
-    "jsx": "react-jsx"
+    "jsx": "react-jsx",
+    "useDefineForClassFields": true,
+    "allowImportingTsExtensions": true,
+    "baseUrl": ".",
+    "paths": {
+      "@bookbingo/lib-core": ["../../lib/core/src/index.ts"],
+      "@bookbingo/lib-types": ["../../lib/types/src/index.ts"],
+      "@bookbingo/lib-util": ["../../lib/util/src/index.ts"]
+    }
   },
-  "include": ["src"],
-  "references": [{ "path": "./tsconfig.node.json" }]
+  "include": ["src"]
 }

@@ -6,7 +6,7 @@ interface BookRowProps {
   bookAuthor: string;
   tiles: string[];
   isFreebie: boolean;
-  metadata?: BookMetadata;
+  metadata?: BookMetadata | undefined;
   onClick?: () => void;
   readOnly?: boolean;
 }

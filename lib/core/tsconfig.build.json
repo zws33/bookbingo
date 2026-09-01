@@ -1,12 +1,7 @@
 {
-  "extends": "../../tsconfig.build.json",
-  "compilerOptions": {
-    "outDir": "dist",
-    "rootDir": "src"
-  },
+  "extends": ["@bookbingo/tsconfig/node", "@bookbingo/tsconfig/lib"],
+  "compilerOptions": { "outDir": "dist", "rootDir": "src" },
   "include": ["src/**/*"],
-  // Tests are typechecked by the root `tsconfig.json` include, not compiled
-  // into the published output.
-  "exclude": ["dist/**/*", "src/**/*.test.ts"],
+  "exclude": ["src/**/*.test.ts"],
   "references": [{ "path": "../types/tsconfig.build.json" }]
 }

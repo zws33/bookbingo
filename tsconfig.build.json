@@ -1,32 +1,9 @@
 {
-  "compilerOptions": {
-    "target": "ES2022",
-    "module": "ESNext",
-    "moduleResolution": "bundler",
-    "strict": true,
-    // Unused-code and switch checks live here, not in a per-package config, so
-    // the emit chain, `pnpm run typecheck`, and the editor all apply them to
-    // the same sources. They previously sat only in app/web/tsconfig.json,
-    // where nothing but the editor ever read them.
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
-    "noFallthroughCasesInSwitch": true,
-    "skipLibCheck": true,
-    "declaration": true,
-    "declarationMap": true,
-    "sourceMap": true,
-    "composite": true,
-    "incremental": true
-  },
-  // Solution-style config: orchestrates the project graph and holds the shared
-  // compiler options that every sub-project's tsconfig.build.json extends.
-  // It compiles nothing itself — sub-projects each declare their own `include`.
   "files": [],
   "references": [
     { "path": "./lib/types/tsconfig.build.json" },
     { "path": "./lib/core/tsconfig.build.json" },
     { "path": "./lib/util/tsconfig.build.json" },
-    { "path": "./app/web/tsconfig.build.json" },
-    { "path": "./functions" }
+    { "path": "./functions/tsconfig.build.json" }
   ]
 }

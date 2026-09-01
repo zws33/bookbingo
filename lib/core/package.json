@@ -13,5 +13,8 @@
   },
   "dependencies": {
     "@bookbingo/lib-types": "workspace:*"
+  },
+  "devDependencies": {
+    "@bookbingo/tsconfig": "workspace:*"
   }
 }

@@ -46,7 +46,7 @@ export interface SeedUser {
 /** Deterministic `/books/{id}` for a seed book — same contract as the app. */
 export function bookIdFor(book: SeedBook): string {
   return deriveBookId({
-    openLibraryKey: book.openLibraryKey,
+    openLibraryKey: book.openLibraryKey ?? null,
     title: book.title,
     author: book.author,
   });

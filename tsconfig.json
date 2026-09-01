@@ -1,21 +1,9 @@
 {
-  "extends": "./tsconfig.build.json",
-  "compilerOptions": {
-    "baseUrl": ".",
-    "noEmit": true,
-    "jsx": "react-jsx",
-    // Stated rather than left to `target`'s implicit default, which resolves to
-    // lib.es2022.full and pulls in DOM anyway. This is one flat program over
-    // app/, lib/, and scripts/, so DOM cannot be withheld from the Node-only
-    // packages here — that boundary is enforced by the lib/ rules in
-    // eslint.config.js instead.
-    "lib": ["ES2022", "DOM", "DOM.Iterable"],
-    "paths": {
-      "@bookbingo/lib-core": ["lib/core/src/index.ts"],
-      "@bookbingo/lib-types": ["lib/types/src/index.ts"],
-      "@bookbingo/lib-util": ["lib/util/src/index.ts"]
-    }
-  },
-  "include": ["app/**/*", "lib/**/*", "docs/**/*", "scripts/**/*"],
-  "exclude": ["**/node_modules", "**/dist", "**/build"]
+  "files": [],
+  "references": [
+    { "path": "./lib/types/tsconfig.build.json" },
+    { "path": "./lib/core/tsconfig.build.json" },
+    { "path": "./lib/util/tsconfig.build.json" },
+    { "path": "./functions/tsconfig.build.json" }
+  ]
 }

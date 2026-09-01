@@ -4,16 +4,17 @@ Refactors that turn the challenge-model migration (`firestore-challenge-model-pl
 
 ## The coupling today
 
-| Coupling | Where | Why it blocks the migration |
-|---|---|---|
-| Firestore path shape is written literally | 17 call sites (`useReadings`, `useAllReadings`, `useBooks`, `useTBR`, `lib/books.ts`, `lib/tbr.ts`) | Moving readings to `/challenges/{cid}/readings` means editing every one in lockstep |
-| Scoring runs in the UI over full collections | `MyBooksPage`, `UserBooksPage`, `LeaderboardPage` each call `getScoreBreakdown` directly; leaderboard pulls all users' readings via `collectionGroup` | Three independent call sites; no seam to scope by challenge or move server-side |
-| Vocabulary + cap are compile-time imports | `TileSelector` imports `TILES`, `MAX_TILES_PER_BOOK` | Challenge-scoped tags make these runtime data that must be fetched and injected |
-| No data-root context | `userId` threaded as a prop from `App.tsx` through every route | `challengeId` would need the same manual threading everywhere |
+| Coupling                                     | Where                                                                                                                                                 | Why it blocks the migration                                                         |
+| -------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| Firestore path shape is written literally    | 17 call sites (`useReadings`, `useAllReadings`, `useBooks`, `useTBR`, `lib/books.ts`, `lib/tbr.ts`)                                                   | Moving readings to `/challenges/{cid}/readings` means editing every one in lockstep |
+| Scoring runs in the UI over full collections | `MyBooksPage`, `UserBooksPage`, `LeaderboardPage` each call `getScoreBreakdown` directly; leaderboard pulls all users' readings via `collectionGroup` | Three independent call sites; no seam to scope by challenge or move server-side     |
+| Vocabulary + cap are compile-time imports    | `TileSelector` imports `TILES`, `MAX_TILES_PER_BOOK`                                                                                                  | Challenge-scoped tags make these runtime data that must be fetched and injected     |
+| No data-root context                         | `userId` threaded as a prop from `App.tsx` through every route                                                                                        | `challengeId` would need the same manual threading everywhere                       |
 
 ## Refactors, ordered by leverage
 
 ### 1. Repository seam (highest leverage)
+
 One module (`app/web/src/data/`) owns every `collection`/`doc`/`collectionGroup` path. Hooks and write functions name an intent against a **scope object**, never a path literal.
 
 ```ts
@@ -28,12 +29,15 @@ export const createReading = (s: Scope, ...) => addDoc(...);
 After this, migration Phase 4 is: change `readingsPath` and the `Scope` type. Nothing else moves.
 
 ### 2. Scope provider
+
 `ChallengeContext` supplies the active scope. Today it returns a hardcoded default (user-scope); the migration swaps its internals to read a selected `challengeId`. Removes prop-threading and gives one switch to flip. Auth already lives in `App.tsx` with no provider — add this alongside.
 
 ### 3. Single scoring call site
+
 Extract `useScoreBreakdown(readings)` and `useLeaderboard()` so scoring has **one** call site each. This is a prerequisite for any later server-side move — you cannot cleanly relocate three scattered `getScoreBreakdown` calls. Keep the computation in `lib/` (unchanged).
 
 ### 4. Inject vocabulary + cap
+
 `TileSelector` takes `tiles` and `tagCap` as props (or from `useChallengeConfig()`), not imports. Validation (`canAssignTile`) takes the cap as a parameter — already flagged in the migration plan's `lib/core/src/validation.ts` change.
 
 ## On moving logic to Cloud Functions
@@ -48,7 +52,7 @@ Reads and writes deserve opposite decisions.
 1. Repository seam (#1) — no behavior change, pure indirection.
 2. Scope provider (#2) — no behavior change.
 3. Scoring hooks (#3) + inject config (#4).
-4. *Then* run the challenge-model migration; Phase 4 becomes a `Scope`/path edit.
+4. _Then_ run the challenge-model migration; Phase 4 becomes a `Scope`/path edit.
 
 ## Risks
 

@@ -7,7 +7,7 @@ if (projectFlagIndex === -1 || !args[projectFlagIndex + 1]) {
   console.error('Error: --project <project-id> is required.');
   process.exit(1);
 }
-const PROJECT_ID = args[projectFlagIndex + 1];
+const PROJECT_ID = args[projectFlagIndex + 1]!;
 
 initializeApp({ projectId: PROJECT_ID });
 const db = getFirestore();

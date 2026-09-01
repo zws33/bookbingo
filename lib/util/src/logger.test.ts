@@ -20,8 +20,8 @@ test('log.event calls dispatch with name and params', () => {
   log.event('add_book', { book_id: '123' });
 
   assert.equal(calls.length, 1);
-  assert.equal(calls[0][0], 'add_book');
-  assert.deepEqual(calls[0][1], { book_id: '123' });
+  assert.equal(calls[0]![0], 'add_book');
+  assert.deepEqual(calls[0]![1], { book_id: '123' });
 });
 
 test('log.event calls dispatch with no params when omitted', () => {
@@ -34,8 +34,8 @@ test('log.event calls dispatch with no params when omitted', () => {
   log.event('delete_book');
 
   assert.equal(calls.length, 1);
-  assert.equal(calls[0][0], 'delete_book');
-  assert.equal(calls[0][1], undefined);
+  assert.equal(calls[0]![0], 'delete_book');
+  assert.equal(calls[0]![1], undefined);
 });
 
 test('log.error dispatches app_error event with label and message', () => {
@@ -51,8 +51,8 @@ test('log.error dispatches app_error event with label and message', () => {
   console.error = originalError;
 
   assert.equal(calls.length, 1);
-  assert.equal(calls[0][0], 'app_error');
-  assert.deepEqual(calls[0][1], {
+  assert.equal(calls[0]![0], 'app_error');
+  assert.deepEqual(calls[0]![1], {
     label: 'books',
     message: 'firestore unavailable',
   });
@@ -70,7 +70,7 @@ test('log.error dispatches app_error with string message', () => {
   log.error('auth', 'token expired');
   console.error = originalError;
 
-  assert.equal(calls[0][1]?.message, 'token expired');
+  assert.equal(calls[0]![1]?.message, 'token expired');
 });
 
 test('log.error is safe when dispatch is null', () => {

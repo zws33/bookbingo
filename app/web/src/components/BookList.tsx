@@ -16,7 +16,7 @@ interface BookListProps {
   readings: Reading[];
   booksById: Map<string, Book>;
   loading: boolean;
-  error?: Error;
+  error?: Error | undefined;
   readOnly?: boolean;
 }
 

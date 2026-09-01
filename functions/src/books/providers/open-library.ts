@@ -1,5 +1,5 @@
 import z from 'zod/v4';
-import {
+import type {
   BookEnrichmentResult,
   BookProvider,
   BookSearchResult,

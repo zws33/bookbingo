@@ -1,4 +1,4 @@
-import {
+import type {
   BookProvider,
   BookSearchResult,
   BookEnrichmentResult,

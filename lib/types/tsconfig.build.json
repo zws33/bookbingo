@@ -1,9 +1,6 @@
 {
-  "extends": "../../tsconfig.build.json",
-  "compilerOptions": {
-    "outDir": "dist",
-    "rootDir": "src"
-  },
+  "extends": ["@bookbingo/tsconfig/node", "@bookbingo/tsconfig/lib"],
+  "compilerOptions": { "outDir": "dist", "rootDir": "src" },
   "include": ["src/**/*"],
-  "exclude": ["dist/**/*", "src/**/*.test.ts"]
+  "exclude": ["src/**/*.test.ts"]
 }

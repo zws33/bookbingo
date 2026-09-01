@@ -56,7 +56,7 @@ if (projectFlagIndex === -1 || !args[projectFlagIndex + 1]) {
   );
   process.exit(1);
 }
-const PROJECT_ID = args[projectFlagIndex + 1];
+const PROJECT_ID = args[projectFlagIndex + 1]!;
 const DRY_RUN = args.includes('--dry-run');
 const CLEANUP = args.includes('--cleanup');
 
@@ -151,7 +151,7 @@ async function runRekey() {
   for (const [newId, docs] of groups) {
     // Earliest createdAt wins provenance; OL-bearing doc wins canonical fields.
     docs.sort((a, b) => millis(a.data()) - millis(b.data()));
-    const earliest = docs[0].data();
+    const earliest = docs[0]!.data();
     const olDoc = docs.find((d) => olKeyOf(d.data()) !== null)?.data();
     const canonical = olDoc ?? earliest;
 

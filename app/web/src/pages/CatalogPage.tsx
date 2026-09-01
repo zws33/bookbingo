@@ -232,7 +232,7 @@ export function CatalogPage() {
                   <Swatch
                     key={role}
                     role={role}
-                    value={colorValues[`--color-${role}`]}
+                    value={colorValues[`--color-${role}`] ?? ''}
                   />
                 ))}
               </div>
@@ -325,7 +325,7 @@ export function CatalogPage() {
           ).map((variant) => (
             <div key={variant} className="flex flex-col items-center gap-1">
               <Button variant={variant}>
-                {variant[0].toUpperCase() + variant.slice(1)}
+                {variant[0]!.toUpperCase() + variant.slice(1)}
               </Button>
               <span className="text-xs text-on-surface-variant font-mono">
                 {variant}

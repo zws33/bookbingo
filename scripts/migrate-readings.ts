@@ -26,7 +26,7 @@ if (projectFlagIndex === -1 || !args[projectFlagIndex + 1]) {
   );
   process.exit(1);
 }
-const PROJECT_ID = args[projectFlagIndex + 1];
+const PROJECT_ID = args[projectFlagIndex + 1]!;
 const DRY_RUN = args.includes('--dry-run');
 
 if (process.env.FIRESTORE_EMULATOR_HOST) {
@@ -81,7 +81,7 @@ async function findOrCreateBookId(
     .get();
 
   if (!snapshot.empty) {
-    const bookId = snapshot.docs[0].id;
+    const bookId = snapshot.docs[0]!.id;
     bookCache.set(key, bookId);
     return bookId;
   }

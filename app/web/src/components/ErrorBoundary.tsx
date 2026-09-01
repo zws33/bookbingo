@@ -1,4 +1,4 @@
-import { Component, ErrorInfo, ReactNode } from 'react';
+import { Component, type ErrorInfo, type ReactNode } from 'react';
 import { log } from '@bookbingo/lib-util';
 import { Button } from './ui/index.js';
 
@@ -11,17 +11,17 @@ interface State {
 }
 
 export class ErrorBoundary extends Component<Props, State> {
-  state: State = { error: null };
+  override state: State = { error: null };
 
   static getDerivedStateFromError(error: Error): State {
     return { error };
   }
 
-  componentDidCatch(error: Error, info: ErrorInfo): void {
+  override componentDidCatch(error: Error, info: ErrorInfo): void {
     log.error('ErrorBoundary', error, { componentStack: info.componentStack });
   }
 
-  render() {
+  override render() {
     if (this.state.error) {
       return (
         <div className="min-h-screen flex items-center justify-center bg-surface">

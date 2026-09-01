@@ -1,4 +1,4 @@
-import { useState, SubmitEvent } from 'react';
+import { useState, type SubmitEvent } from 'react';
 import { TileSelector } from './TileSelector';
 import { FreebieToggle } from './FreebieToggle';
 import { Input, Label, Button } from './ui/index';
@@ -12,7 +12,7 @@ export interface BookFormData {
 
 interface BookFormProps {
   identityLocked: boolean;
-  initialData?: BookFormData;
+  initialData?: BookFormData | undefined;
   onSubmit: (data: BookFormData) => void;
   onCancel: () => void;
   isSubmitting: boolean;

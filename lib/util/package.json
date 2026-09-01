@@ -10,5 +10,8 @@
   "scripts": {
     "test": "node --import tsx --test \"src/**/*.test.ts\"",
     "build": "tsc -b tsconfig.build.json"
+  },
+  "devDependencies": {
+    "@bookbingo/tsconfig": "workspace:*"
   }
 }

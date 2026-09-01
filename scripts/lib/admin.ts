@@ -96,7 +96,7 @@ export async function wipeCollections(
  */
 export async function resolveClaimUid(
   auth: Auth,
-  opts: { email?: string; uid?: string },
+  opts: { email?: string | undefined; uid?: string | undefined },
 ): Promise<string | null> {
   if (opts.uid) return opts.uid;
   if (!opts.email) return null;

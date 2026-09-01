@@ -101,7 +101,7 @@ async function main(): Promise<void> {
   const claimSource = claimUid
     ? users.reduce(
         (a, b) => (b.readings.length > a.readings.length ? b : a),
-        users[0],
+        users[0]!,
       )
     : null;
   if (claimSource) {

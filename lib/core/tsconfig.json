@@ -1,9 +1,9 @@
 {
-  "extends": "../../tsconfig.json",
+  "extends": "@bookbingo/tsconfig/node",
   "compilerOptions": {
-    "rootDir": "src",
-    "outDir": "dist"
+    "noEmit": true,
+    "baseUrl": ".",
+    "paths": { "@bookbingo/lib-types": ["../types/src/index.ts"] }
   },
-  "include": ["src/**/*"],
-  "exclude": ["dist"]
+  "include": ["src/**/*"]
 }

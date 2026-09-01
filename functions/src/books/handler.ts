@@ -1,6 +1,6 @@
 import { HttpsError, type CallableRequest } from 'firebase-functions/v2/https';
 import { BookEnrichmentService } from './service.js';
-import { BookSearchResult, BookEnrichmentResult } from './types.js';
+import type { BookSearchResult, BookEnrichmentResult } from './types.js';
 import { OpenLibraryProvider } from './providers/open-library.js';
 
 const provider = new OpenLibraryProvider();

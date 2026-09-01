@@ -1,0 +1,16 @@
+{
+  "extends": ["../lib/tsconfig/node.json", "../lib/tsconfig/lib.json"],
+  "compilerOptions": {
+    "outDir": "lib",
+    "rootDir": "src",
+    "noImplicitReturns": true,
+    "baseUrl": ".",
+    "paths": { "@bookbingo/lib-types": ["../lib/types/src/index.ts"] }
+  },
+  "include": ["src"],
+  "exclude": ["src/**/*.test.ts"],
+  "references": [
+    { "path": "../lib/types/tsconfig.build.json" },
+    { "path": "../lib/util/tsconfig.build.json" }
+  ]
+}

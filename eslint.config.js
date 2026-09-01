@@ -12,7 +12,6 @@ export default tseslint.config(
     ignores: [
       '**/coverage/**',
       '**/dist/**',
-      '**/.tsbuild/**',
       'functions/lib/**',
       '.gemini/**',
       '**/*.d.ts',
@@ -31,7 +30,18 @@ export default tseslint.config(
     files: ['**/*.ts', '**/*.tsx'],
     languageOptions: {
       parserOptions: {
-        projectService: true,
+        // `projectService` discovers only files literally named tsconfig.json
+        // by walking up from each linted file. app/web/tsconfig.node.json
+        // covers vite.config.ts and vitest.config.int.ts for `tsc`, but isn't
+        // auto-discovered under that name — list them explicitly so lint
+        // doesn't silently drop coverage for the two.
+        projectService: {
+          allowDefaultProject: [
+            'app/web/vite.config.ts',
+            'app/web/vitest.config.int.ts',
+          ],
+        },
+        tsconfigRootDir: import.meta.dirname,
       },
     },
     rules: {
@@ -61,9 +71,9 @@ export default tseslint.config(
     //
     // pnpm's isolated node_modules already makes most of these imports fail to
     // resolve; the rule states the intent and gives a better error. The globals
-    // are the half nothing else catches — they come from the DOM type library
-    // rather than a package, and the root typecheck program puts lib/ sources
-    // and lib.dom.d.ts together, so `document.title` type-checks clean.
+    // are defence in depth: lib/**'s tsconfig extends @bookbingo/tsconfig/node,
+    // which excludes DOM types, so `document.title` already fails to compile —
+    // this rule catches the same misuse for editors/tools that skip typecheck.
     files: ['lib/**/*.ts'],
     rules: {
       'no-restricted-imports': [

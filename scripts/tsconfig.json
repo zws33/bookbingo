@@ -1,0 +1,14 @@
+{
+  "extends": "../lib/tsconfig/node.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "baseUrl": ".",
+    "paths": {
+      "@bookbingo/lib-core": ["../lib/core/src/index.ts"],
+      "@bookbingo/lib-types": ["../lib/types/src/index.ts"],
+      "@bookbingo/lib-util": ["../lib/util/src/index.ts"]
+    }
+  },
+  "include": ["**/*.ts"],
+  "exclude": ["**/*.d.ts"]
+}

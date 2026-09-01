@@ -9,8 +9,8 @@
     "dev:staging": "vite --mode staging",
     "dev:prod": "vite --mode prod",
     "build": "pnpm run build:prod",
-    "build:staging": "tsc -b tsconfig.build.json && vite build --mode staging",
-    "build:prod": "tsc -b tsconfig.build.json && vite build --mode prod",
+    "build:staging": "tsc --noEmit -p tsconfig.json && vite build --mode staging",
+    "build:prod": "tsc --noEmit -p tsconfig.json && vite build --mode prod",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -34,6 +34,7 @@
     "tailwind-merge": "^3.5.0"
   },
   "devDependencies": {
+    "@bookbingo/tsconfig": "workspace:*",
     "@tailwindcss/vite": "^4.2.2",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",

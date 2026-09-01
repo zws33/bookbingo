@@ -1,9 +1,7 @@
 {
-  "extends": "../../tsconfig.json",
+  "extends": "@bookbingo/tsconfig/node",
   "compilerOptions": {
-    "rootDir": "src",
-    "outDir": "dist"
+    "noEmit": true
   },
-  "include": ["src/**/*"],
-  "exclude": ["dist"]
+  "include": ["src/**/*"]
 }

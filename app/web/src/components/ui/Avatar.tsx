@@ -2,7 +2,7 @@ import { cn } from '../../lib/cn.js';
 
 interface AvatarProps {
   name: string;
-  photoURL?: string;
+  photoURL?: string | undefined;
   size?: 'sm' | 'md';
   className?: string;
 }

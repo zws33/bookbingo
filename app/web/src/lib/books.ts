@@ -11,7 +11,7 @@ import {
 import { db } from './firebase';
 import { log } from '@bookbingo/lib-util';
 import { deriveBookId } from '@bookbingo/lib-core';
-import { Book, type BookMetadata } from '@bookbingo/lib-types';
+import type { Book, BookMetadata } from '@bookbingo/lib-types';
 
 interface BookEnrichment {
   /** Open Library Work key, e.g. "/works/OL166894W". */
@@ -34,7 +34,7 @@ export async function getOrCreateBook(
   enrichment?: BookEnrichment,
 ): Promise<string> {
   const bookId = deriveBookId({
-    openLibraryKey: enrichment?.externalId,
+    openLibraryKey: enrichment?.externalId ?? null,
     title,
     author,
   });

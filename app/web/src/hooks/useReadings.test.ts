@@ -65,8 +65,8 @@ describe('useReadings', () => {
     const { result } = renderHook(() => useReadings('user-1'));
     expect(result.current.loading).toBe(false);
     expect(result.current.readings).toHaveLength(1);
-    expect(result.current.readings[0].bookId).toBe('book-1');
-    expect(result.current.readings[0].id).toBe('doc-0');
+    expect(result.current.readings[0]!.bookId).toBe('book-1');
+    expect(result.current.readings[0]!.id).toBe('doc-0');
   });
 
   it('returns error when Firestore listener errors', () => {

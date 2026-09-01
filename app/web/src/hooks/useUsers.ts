@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { useCollection } from 'react-firebase-hooks/firestore';
 import { collection } from 'firebase/firestore';
 import { db } from '../lib/firebase';
-import { UserProfile } from '../types';
+import type { UserProfile } from '../types';
 
 export function useUsers() {
   const [snapshot, loading, error] = useCollection(collection(db, 'users'));

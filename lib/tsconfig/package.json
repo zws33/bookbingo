@@ -1,0 +1,12 @@
+{
+  "name": "@bookbingo/tsconfig",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./base": "./base.json",
+    "./node": "./node.json",
+    "./browser": "./browser.json",
+    "./lib": "./lib.json"
+  }
+}

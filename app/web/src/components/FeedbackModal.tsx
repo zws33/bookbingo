@@ -1,4 +1,4 @@
-import { useState, useCallback, SubmitEvent } from 'react';
+import { useState, useCallback, type SubmitEvent } from 'react';
 import { httpsCallable } from 'firebase/functions';
 import { functions } from '../lib/firebase';
 import { useToast } from '../lib/ToastContext';
