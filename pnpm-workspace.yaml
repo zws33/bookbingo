@@ -3,6 +3,12 @@ packages:
   - lib/*
   - functions
 
+allowBuilds:
+  '@firebase/util': set this to true or false
+  esbuild: set this to true or false
+  protobufjs: set this to true or false
+  re2: set this to true or false
+
 # These dependencies ship build (postinstall) scripts we deliberately skip.
 # Listing them here suppresses pnpm's ERR_PNPM_IGNORED_BUILDS prompt.
 # Uses pnpm-10 syntax (CI and local both run pnpm 10); `allowBuilds` is pnpm 11 only.
