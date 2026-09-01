@@ -11,23 +11,6 @@ Book reading bingo card tracker — a hobby project for a book club competition 
 - **Package manager**: pnpm workspaces — never use `npm` or `yarn`
 - **Tooling**: ESLint, Prettier, tsx
 
-## Project Structure
-
-```
-lib/types/src/         # Shared TypeScript types (Tile, Book, Reading, TBREntry, etc.)
-lib/core/src/          # Business logic (scoring, validation, statistics, tiles, constants, bookIdentity)
-lib/util/src/          # Cross-platform utilities (logger)
-app/web/src/           # React web application (Vite + Firebase)
-app/web/src/testing/   # Test harness: test-utils, fixtures, setup, CONVENTIONS.md
-functions/src/         # Firebase Cloud Functions (Node.js, ESM)
-scripts/               # Root-level management scripts (seeding, mirroring, migrations)
-scripts/lib/           # Shared script helpers (admin SDK setup, write guards, datasets)
-emulator-data/         # Shared emulator data (imported/exported)
-docs/                  # Project documentation and planning
-docs/decisions/        # Architectural decision records (start at index.md)
-docs/archive/          # Obsolete or completed project records
-```
-
 ## Code Style
 
 - ESM only. No CommonJS (`require`, `module.exports`).
