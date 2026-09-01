@@ -2,57 +2,363 @@
 
 ## Objective
 
-Replace the single flat root tsconfig (one program spanning `app/`, `lib/`, `scripts/`) with per-package project references backed by a shared `@bookbingo/tsconfig` axis package, so each package typechecks only against its real runtime environment. Fixes four verified gaps in the current setup:
+Replace the flat root tsconfig (one program over `app/`, `lib/`, `scripts/`) with per-package configs extending a shared `@bookbingo/tsconfig` axis package. Each package typechecks against its real runtime environment.
 
-- `functions/tsconfig.json` and `app/web/tsconfig.node.json` hand-duplicate flags (`strict`, `declaration`, `composite`, …) that the rest of the repo centralizes.
-- No compiler-level boundary between Node and browser code — `lib/**` can see DOM types today; only ESLint's `no-restricted-globals` catches misuse.
-- `moduleResolution: bundler` is applied even to code that runs un-bundled on Node (`lib/*` at runtime, all of `functions/`), masking real Node-ESM resolution bugs that `NodeNext` would catch.
-- `functions/tsconfig.json` is a single config used for both typecheck and emit, so `tsc -b` compiles `src/**/*.test.ts` straight into `functions/lib/` on every build — wasted work, and the one package that doesn't follow the typecheck/build split every other package uses. (`firebase.json`'s `ignore: ["**/*.test.*"]` already keeps these out of the actual deploy bundle, so this is a build-hygiene gap, not a deploy-time one.)
+Fixes:
 
-## Design
+1. `functions/tsconfig.json` and `app/web/tsconfig.node.json` hand-duplicate flags the rest of the repo centralizes.
+2. No compiler-level Node/browser boundary — `lib/**` sees DOM types; only ESLint catches misuse.
+3. `moduleResolution: bundler` applied to un-bundled Node code (`lib/*`, all of `functions/`), masking Node-ESM resolution bugs.
+4. `functions/` uses one config for typecheck and emit, compiling `src/**/*.test.ts` into `functions/lib/` on every build.
 
-`lib/tsconfig` package, axes composed by array-`extends`:
+## Constraints
 
-| File | Contents |
-|---|---|
-| `base.json` | `strict`, `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`, `noImplicitOverride`, `noFallthroughCasesInSwitch`, `noUnusedLocals`, `noUnusedParameters`, `useUnknownInCatchVariables`, `isolatedModules`, `verbatimModuleSyntax`, `skipLibCheck`, `resolveJsonModule`, `sourceMap`, `moduleDetection: force`, `incremental` |
-| `node.json` (extends base) | `target: ES2022`, `module: NodeNext`, `moduleResolution: NodeNext`, `lib: ["ES2022"]`, `types: ["node"]` |
-| `browser.json` (extends base) | `target: ES2022`, `module: ESNext`, `moduleResolution: bundler`, `lib: ["ES2022", "DOM", "DOM.Iterable"]` |
-| `lib.json` (extends base) | `composite: true`, `declaration: true`, `declarationMap: true` — role axis for anything other packages import |
+Verified against TypeScript 5.9.3 in this repo. Violating any of these produces the listed error.
 
-No `react.json` — app/web is the only JSX consumer; `jsx`/`useDefineForClassFields` go directly in its own `tsconfig.json`, consistent with "package-specific settings live in the package."
+| #   | Rule                                                                                                                                                                                                                  | Violation                        |
+| --- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------- |
+| C1  | A `references` target must be `composite: true` and must emit. Never reference a `noEmit` config.                                                                                                                     | TS6306, TS6310                   |
+| C2  | Never run `tsc --build --noEmit`. It fails on a clean tree because `--noEmit` propagates to the whole graph, so dependencies cannot emit the declarations dependents need. Passes on a warm tree, so it masks itself. | TS6310                           |
+| C3  | A `composite` project cannot resolve `paths` into a sibling package's `src/`. Every typecheck config is non-composite.                                                                                                | TS6307, TS6059                   |
+| C4  | `references` is not inherited through `extends`. Every config declares its own.                                                                                                                                       | silent coverage loss             |
+| C5  | `functions/` extends by **relative path** and must not gain a `workspace:*` dependency. `firebase deploy` installs it with npm, which cannot parse that protocol.                                                     | `EUNSUPPORTEDPROTOCOL` at deploy |
+| C6  | `-p` does not follow `references`. Each standalone check covers exactly its own `include`.                                                                                                                            | silent coverage loss             |
 
-`target` stays `ES2022` (not bumped to ES2024) — this migration changes program *shape*, not runtime target; keep that a separate decision.
+Two config roles, applied uniformly:
 
-Per package, two files as today (`tsconfig.json` for typecheck, `tsconfig.build.json` for emit — still needed to exclude `*.test.ts` from `dist`), but each is now self-contained: own `include`, own `references` to only the workspace packages it actually imports, extending `@bookbingo/tsconfig/*` instead of the root.
+- `tsconfig.json` — typecheck. Non-composite, `noEmit`, `paths` → sibling **source**, includes tests, no `references`. Run via `tsc --noEmit -p`. Clean-tree safe.
+- `tsconfig.build.json` — emit. Composite, `references` → other `tsconfig.build.json`, excludes tests. Run via `tsc --build`.
 
-`app/web` drops `tsconfig.build.json` and `.tsbuild` entirely — it's `noEmit`, typechecked standalone, excluded from the `tsc -b` graph (matches the reference pattern; Vite does the real build, nothing consumes the throwaway emit today anyway). The root `paths` alias (`@bookbingo/lib-core` → source) moves out of the root and into `app/web/tsconfig.json`, scoped to only the three lib packages it imports — keeps Vite's dev-time source resolution (via `vite-tsconfig-paths`) working without a repo-wide hand-maintained map.
+`target` stays `ES2022`. Bumping it is a separate decision.
 
-`functions/` gains the two-file split every other package already has: `tsconfig.json` (typecheck) and `tsconfig.build.json` (emit, `exclude: ["src/**/*.test.ts"]` — matches the pattern in `lib/*/tsconfig.build.json`), closing the gap where a single config compiles tests into `functions/lib/` on every build. Both extend `../lib/tsconfig/node.json` by **relative path** (not a package specifier) — this resolves at `tsc` invocation time inside the monorepo and needs no `devDependency` entry, so it doesn't reintroduce the `workspace:*` problem that blocks `npm install` at deploy time. Switches to `NodeNext` resolution. `functions/package.json`'s `build` script changes to `tsc -b tsconfig.build.json`. Both keep `functions`'s own `outDir`, `rootDir`, the `@bookbingo/lib-types` → source `paths` alias, and `composite: true`.
+## Files
 
-Root `tsconfig.build.json` and `tsconfig.json` both become references-only, no `compilerOptions`, matching bacons-law's root shape — one for the build graph (`lib/types`, `lib/core`, `lib/util`, `functions`), one for the typecheck graph (same four **plus `functions`**, now that per-package references remove the flat-include limitation that forced `functions` into a separate `pnpm --filter` typecheck script). Now that `functions` has separate typecheck/build configs, the build graph references `./functions/tsconfig.build.json` explicitly and the typecheck graph references `./functions/tsconfig.json` — previously `./functions` resolved to the single shared file.
+| Path                                                                  | Action                                  |
+| --------------------------------------------------------------------- | --------------------------------------- |
+| `lib/tsconfig/{package.json,base,node,browser,lib}.json`              | create                                  |
+| `lib/{types,core,util}/tsconfig.json` + `tsconfig.build.json`         | rewrite                                 |
+| `functions/tsconfig.json`                                             | rewrite                                 |
+| `functions/tsconfig.build.json`                                       | create                                  |
+| `app/web/tsconfig.json`, `tsconfig.node.json`                         | rewrite                                 |
+| `app/web/tsconfig.build.json`                                         | delete                                  |
+| `scripts/tsconfig.json`                                               | create                                  |
+| `tsconfig.json`, `tsconfig.build.json`                                | rewrite to references-only              |
+| `{lib/types,lib/core,lib/util,app/web}/package.json`                  | add `@bookbingo/tsconfig` devDependency |
+| root `package.json`, `functions/package.json`, `app/web/package.json` | update scripts                          |
+| `eslint.config.js`, `app/web/vite.config.ts`, `.gitignore`            | drop `.tsbuild`; fix stale comment      |
 
-## Ordered steps
+## Steps
 
-0. Branch the existing uncommitted WIP off `main` (`git checkout -b feat/tsconfig-architecture`) before any further edits — build/TS config changes need a branch + PR per the git workflow, independent of anything else being revisited.
-1. Finish `lib/tsconfig`: write `base.json`/`node.json`/`browser.json`/`lib.json` per the table above (supersedes the WIP scaffold), `pnpm install` to link it.
-2. Migrate `lib/types`, `lib/core`, `lib/util` to extend `@bookbingo/tsconfig/node` + `/lib`. Validate: `pnpm run build && pnpm test`.
-3. Migrate `functions/`: split into `tsconfig.json` (typecheck) and `tsconfig.build.json` (emit, `exclude: ["src/**/*.test.ts"]`), both via the relative-path `extends` + `NodeNext`; update `functions/package.json`'s `build` script to `tsc -b tsconfig.build.json`. Validate: `pnpm --filter @bookbingo/functions run build`, confirm `find functions/lib -name '*.test.js'` returns nothing, and run its own test suite.
-4. Migrate `app/web`: `browser.json`, drop `tsconfig.build.json`/`.tsbuild`, move `paths` locally, change `build:staging`/`build:prod` from `tsc -b tsconfig.build.json && vite build` to `tsc --noEmit -p tsconfig.json && vite build`. Validate: `pnpm --filter @bookbingo/web run build:prod`, `pnpm --filter @bookbingo/web run dev` (confirm live source edits to `lib/core` still hot-reload).
-5. Collapse root `tsconfig.build.json`/`tsconfig.json` to references-only, pointing the build graph's `functions` entry at `./functions/tsconfig.build.json` and the typecheck graph's at `./functions/tsconfig.json`; fold `functions` into the unified `typecheck` script, dropping the separate `pnpm --filter @bookbingo/functions exec tsc --noEmit`; retire or repoint `build:apps`.
-6. Update `.gitignore`, `eslint.config.js` `ignores`, and the Vitest `exclude` to drop `app/web/.tsbuild`.
-7. Full clean-tree verification (rm all `dist`/`.tsbuild`/`lib` build output + `*.tsbuildinfo`, then `pnpm run verify`).
-8. Write an ADR at `docs/decisions/` recording the switch away from the flat single-program model. Update `CLAUDE.md`'s "TypeScript Build Configuration" section to describe the new architecture — it currently documents the old one as deliberate.
+### 1. Axis package
+
+`lib/tsconfig/package.json`:
+
+```json
+{
+  "name": "@bookbingo/tsconfig",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./base": "./base.json",
+    "./node": "./node.json",
+    "./browser": "./browser.json",
+    "./lib": "./lib.json"
+  }
+}
+```
+
+`base.json`:
+
+```json
+{
+  "compilerOptions": {
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "noImplicitOverride": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "useUnknownInCatchVariables": true,
+    "isolatedModules": true,
+    "verbatimModuleSyntax": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "sourceMap": true,
+    "moduleDetection": "force",
+    "incremental": true
+  }
+}
+```
+
+`node.json`:
+
+```json
+{
+  "extends": "./base.json",
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "lib": ["ES2022"],
+    "types": ["node"]
+  }
+}
+```
+
+`browser.json`:
+
+```json
+{
+  "extends": "./base.json",
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "types": []
+  }
+}
+```
+
+`lib.json`:
+
+```json
+{
+  "extends": "./base.json",
+  "compilerOptions": {
+    "composite": true,
+    "declaration": true,
+    "declarationMap": true
+  }
+}
+```
+
+No `react.json` — `jsx` and `useDefineForClassFields` go in `app/web/tsconfig.json`.
+
+Add `"@bookbingo/tsconfig": "workspace:*"` to `devDependencies` of `lib/types`, `lib/core`, `lib/util`, `app/web`. Not `functions` (C5). Run `pnpm install`.
+
+Validate: `pnpm install` links it; `npx tsc --showConfig -p lib/core/tsconfig.json` resolves after step 2.
+
+### 2. `lib/{types,core,util}`
+
+Typecheck config — `lib/core/tsconfig.json` (the only one needing `paths`; `types` and `util` import nothing cross-package):
+
+```json
+{
+  "extends": "@bookbingo/tsconfig/node",
+  "compilerOptions": {
+    "noEmit": true,
+    "baseUrl": ".",
+    "paths": { "@bookbingo/lib-types": ["../types/src/index.ts"] }
+  },
+  "include": ["src/**/*"]
+}
+```
+
+`lib/types/tsconfig.json` and `lib/util/tsconfig.json`: same without `baseUrl`/`paths`.
+
+Build config — `lib/core/tsconfig.build.json`:
+
+```json
+{
+  "extends": ["@bookbingo/tsconfig/node", "@bookbingo/tsconfig/lib"],
+  "compilerOptions": { "outDir": "dist", "rootDir": "src" },
+  "include": ["src/**/*"],
+  "exclude": ["src/**/*.test.ts"],
+  "references": [{ "path": "../types/tsconfig.build.json" }]
+}
+```
+
+`lib/types` and `lib/util`: same without `references`. Build configs resolve `@bookbingo/lib-types` through the node_modules workspace link to `dist` — do not add `paths` here (C3).
+
+Validate: `npx tsc --build lib/types/tsconfig.build.json lib/core/tsconfig.build.json lib/util/tsconfig.build.json` — clean. `pnpm test` passes.
+
+### 3. `functions/`
+
+`functions/tsconfig.json`:
+
+```json
+{
+  "extends": "../lib/tsconfig/node.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "noImplicitReturns": true,
+    "baseUrl": ".",
+    "paths": { "@bookbingo/lib-types": ["../lib/types/src/index.ts"] }
+  },
+  "include": ["src"]
+}
+```
+
+`functions/tsconfig.build.json`:
+
+```json
+{
+  "extends": ["../lib/tsconfig/node.json", "../lib/tsconfig/lib.json"],
+  "compilerOptions": {
+    "outDir": "lib",
+    "rootDir": "src",
+    "noImplicitReturns": true,
+    "baseUrl": ".",
+    "paths": { "@bookbingo/lib-types": ["../lib/types/src/index.ts"] }
+  },
+  "include": ["src"],
+  "exclude": ["src/**/*.test.ts"],
+  "references": [
+    { "path": "../lib/types/tsconfig.build.json" },
+    { "path": "../lib/util/tsconfig.build.json" }
+  ]
+}
+```
+
+`functions/package.json`: `"build": "tsc -b tsconfig.build.json"`.
+
+Validate: `rm -rf functions/lib && pnpm --filter @bookbingo/functions run build`, then `find functions/lib -name '*.test.js'` returns nothing.
+
+### 4. `app/web`
+
+`app/web/tsconfig.json`:
+
+```json
+{
+  "extends": "@bookbingo/tsconfig/browser",
+  "compilerOptions": {
+    "noEmit": true,
+    "jsx": "react-jsx",
+    "useDefineForClassFields": true,
+    "allowImportingTsExtensions": true,
+    "baseUrl": ".",
+    "paths": {
+      "@bookbingo/lib-core": ["../../lib/core/src/index.ts"],
+      "@bookbingo/lib-types": ["../../lib/types/src/index.ts"],
+      "@bookbingo/lib-util": ["../../lib/util/src/index.ts"]
+    }
+  },
+  "include": ["src"]
+}
+```
+
+Drop the `references` entry to `tsconfig.node.json` — it is checked standalone (C1, C6). `types: []` from the browser axis is safe: every test imports `describe`/`it`/`expect` from `vitest` explicitly.
+
+`app/web/tsconfig.node.json`:
+
+```json
+{
+  "extends": "@bookbingo/tsconfig/node",
+  "compilerOptions": { "noEmit": true },
+  "include": ["vite.config.ts"]
+}
+```
+
+Delete `app/web/tsconfig.build.json` and `app/web/.tsbuild/`. Change `build:staging` / `build:prod` to `tsc --noEmit -p tsconfig.json && vite build --mode <mode>`.
+
+Validate: `pnpm --filter @bookbingo/web run build:prod`; `pnpm --filter @bookbingo/web run dev` and confirm a live edit to `lib/core/src` hot-reloads.
+
+### 5. `scripts/`
+
+`scripts/tsconfig.json`:
+
+```json
+{
+  "extends": "../lib/tsconfig/node.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "baseUrl": ".",
+    "paths": {
+      "@bookbingo/lib-core": ["../lib/core/src/index.ts"],
+      "@bookbingo/lib-types": ["../lib/types/src/index.ts"],
+      "@bookbingo/lib-util": ["../lib/util/src/index.ts"]
+    }
+  },
+  "include": ["**/*.ts"],
+  "exclude": ["**/*.d.ts"]
+}
+```
+
+Not a workspace package and not in any reference graph (C1, C3). Delete the untracked `scripts/*.{js,d.ts,map}` build artifacts left by an earlier composite build and add `scripts/*.js`, `scripts/*.d.ts`, `scripts/*.map` to `.gitignore`.
+
+Validate: `npx tsc --noEmit -p scripts/tsconfig.json`.
+
+### 6. Root configs and scripts
+
+`tsconfig.build.json`:
+
+```json
+{
+  "files": [],
+  "references": [
+    { "path": "./lib/types/tsconfig.build.json" },
+    { "path": "./lib/core/tsconfig.build.json" },
+    { "path": "./lib/util/tsconfig.build.json" },
+    { "path": "./functions/tsconfig.build.json" }
+  ]
+}
+```
+
+`tsconfig.json`: identical content. It exists for editor and `tsc -b --dry` project discovery only; no script reads it. It must not reference typecheck configs (C1).
+
+Root `package.json`:
+
+```json
+"build": "tsc --build tsconfig.build.json",
+"typecheck": "tsc --noEmit -p lib/types/tsconfig.json && tsc --noEmit -p lib/core/tsconfig.json && tsc --noEmit -p lib/util/tsconfig.json && tsc --noEmit -p functions/tsconfig.json && tsc --noEmit -p scripts/tsconfig.json && tsc --noEmit -p app/web/tsconfig.json && tsc --noEmit -p app/web/tsconfig.node.json"
+```
+
+Delete `build:apps` (`app/web` no longer has a build config). Keep `build:libs` as-is — `lib/*/tsconfig.build.json` does not match `lib/tsconfig/`. `verify` is unchanged.
+
+`typecheck` no longer depends on `build` having run.
+
+### 7. Fix the 57 source errors
+
+The new `base.json` flags are not enabled anywhere today. Expected inventory below — treat anything outside it as a regression from this migration.
+
+| Package                                   | Errors |
+| ----------------------------------------- | ------ |
+| `lib/types`, `app/web/tsconfig.node.json` | 0      |
+| `lib/core`                                | 0      |
+| `lib/util`                                | 7      |
+| `functions`                               | 9      |
+| `scripts`                                 | 13     |
+| `app/web`                                 | 28     |
+
+| Code             | Count | Cause                                                    | Fix                                                                                     |
+| ---------------- | ----- | -------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| TS1484           | 20    | `verbatimModuleSyntax`                                   | `import type`                                                                           |
+| TS2375 / TS2379  | 15    | `exactOptionalPropertyTypes`                             | widen target property to `\| undefined`, or omit the key instead of passing `undefined` |
+| TS2532 / TS18048 | 14    | `noUncheckedIndexedAccess`                               | guard or non-null after index access                                                    |
+| TS2345 / TS2322  | 5     | `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes` | narrow before passing                                                                   |
+| TS4114           | 3     | `noImplicitOverride`                                     | add `override` (all in `ErrorBoundary.tsx`)                                             |
+
+Concentrations: `lib/util/src/logger.test.ts` (7), `functions/src/books/**` (8 TS1484), `scripts/*` `firebase-admin` `AppOptions` `{ projectId: process.env.X }` (4 TS2379), `app/web/src/components/ErrorBoundary.tsx` (3 TS4114 + 2 TS1484), `app/web` page components (8 TS2375).
+
+### 8. Tooling cleanup
+
+- `eslint.config.js`: drop `'**/.tsbuild/**'` from `ignores`. Rewrite the stale sentence in the `lib/**/*.ts` block comment claiming "the root typecheck program puts lib/ sources and lib.dom.d.ts together" — after this change `lib/` no longer sees DOM types, so `no-restricted-globals` is defence in depth, not the only check.
+- `app/web/vite.config.ts`: drop `'**/.tsbuild/**'` from `test.exclude`.
+- `.gitignore`: no `.tsbuild` entry exists; add the `scripts/` artifact patterns from step 5.
+- ESLint `projectService: true` resolves each file through the nearest config. `scripts/tsconfig.json` and `app/web/tsconfig.node.json` are what keep `scripts/*.ts` and `vite.config.ts` linted once the flat root include is gone.
+
+### 9. ADR
+
+Write `docs/decisions/` recording the move off the flat single-program model. Record C1–C3 as the constraints that shaped it. Do not restore the "TypeScript Build Configuration" section removed from `CLAUDE.md` in `15e45f5`; add a one-line pointer to the ADR instead.
 
 ## Validation
 
-- `npx tsc --build --dry --verbose` on both root configs after step 5 — confirms the project count matches expectations (not collapsed to 1, not missing a package).
-- `pnpm run verify` clean-tree pass (per existing repo convention).
-- Manual: edit a `lib/core` file, confirm the change is visible in `pnpm run dev:web` without a manual `pnpm run build:libs`.
-- Manual: introduce a deliberate DOM global reference in a `lib/core` file — confirm it now fails **typecheck**, not just lint.
+Run on a clean tree: `rm -rf lib/*/dist functions/lib app/web/.tsbuild && find . -name '*.tsbuildinfo' -not -path '*/node_modules/*' -delete`.
+
+1. `pnpm run typecheck` — passes with no prior `build`. Any `TS63xx` means a reference-graph error (C1–C3), not a source error.
+2. `pnpm run build` — clean; `find functions/lib -name '*.test.js'` returns nothing.
+3. `pnpm run verify` — clean.
+4. `npx tsc --build --dry --verbose tsconfig.build.json` — lists exactly 4 projects.
+5. Add a DOM global to a `lib/core` source file — fails `pnpm run typecheck`, not just lint. Revert.
+6. Add a type error to each of `app/web/src`, `scripts/`, `app/web/vite.config.ts` — each fails `pnpm run verify`. Revert. These three are covered only by explicit `-p` entries in the `typecheck` script (C6).
+7. `pnpm --filter @bookbingo/web run build:prod` fails on a deliberate type error in `app/web/src`. Revert.
 
 ## Risks
 
-- Step 4 is the highest-risk step: dropping `tsconfig.build.json` changes the deploy build command shape; verify `build:staging`/`build:prod` still fail on real type errors (test with a deliberately broken type) before merging.
-- `verbatimModuleSyntax` + `esModuleInterop` together can produce import-style errors on packages with unusual default-export shapes (`firebase-admin`, some CJS interop) — check `scripts/` and `functions/` against this after step 1.
-- Reference-graph edits are error-prone by hand; recheck every package's `references` list points at the *typecheck* config (`tsconfig.json`) not the emit config, for source-level (not stale-`dist`) type resolution.
+- Step 4 changes the deploy build command shape. Validation 7 is the gate.
+- `--build --noEmit` passes on a warm tree and fails on a clean one (C2). Any validation run on a dirty tree is worthless.
+- The typecheck script is a hand-maintained list. Adding a package without adding its `-p` entry loses coverage silently (C6).
+- `NodeNext` turns `esModuleInterop` on by default. Not in `base.json`; do not add it.
