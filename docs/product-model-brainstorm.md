@@ -40,7 +40,7 @@ A user tracks which books they've read and which tags they associate with each. 
 
 ## Working model (SQL sketch)
 
-```
+```text
 Challenge  (id, name, created_by, tag_cap, freebie_rule, …config)   -- the container
 Users      (id, profile…)
 Books      (id, …work data…)                                        -- knows nothing about usage

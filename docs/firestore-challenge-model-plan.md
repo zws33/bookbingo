@@ -12,7 +12,7 @@ Approximates the SQL sketch in `docs/product-model-brainstorm.md` as a Firestore
 
 ## Target layout
 
-```
+```text
 /challenges/{cid}                     { name, createdBy, tagCap, freebieRule, createdAt }
 /challenges/{cid}/tags/{tagId}        { label }
 /challenges/{cid}/members/{userId}    { role, joinedAt }
