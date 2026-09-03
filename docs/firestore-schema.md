@@ -11,7 +11,7 @@ a redundant `id` field in application code.
 
 ## Collection map
 
-```
+```text
 /books/{bookId}                        shared book catalog (one doc per unique book)
 /users/{userId}                        user profile
 /users/{userId}/readings/{readingId}   a user's completed readings (subcollection)

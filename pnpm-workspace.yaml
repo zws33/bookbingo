@@ -3,4 +3,8 @@ packages:
   - lib/*
   - functions
 
-onlyBuiltDependencies: []
+allowBuilds:
+  '@firebase/util': false
+  esbuild: false
+  protobufjs: false
+  re2: false
