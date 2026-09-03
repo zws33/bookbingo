@@ -1,14 +1,20 @@
 import type { Reading } from '@bookbingo/lib-types';
 import {
+  addDoc,
   collection,
   collectionGroup,
+  deleteDoc,
+  doc,
   getDocs,
   onSnapshot,
   orderBy,
   query,
   QueryDocumentSnapshot,
   QuerySnapshot,
+  serverTimestamp,
+  updateDoc,
 } from 'firebase/firestore';
+import { log } from '@bookbingo/lib-util';
 import { db } from '../lib/firebase';
 
 export interface ReadingRepository {
@@ -22,6 +28,20 @@ export interface ReadingRepository {
     onData: (readingsByUser: Map<string, Reading[]>) => void,
     onError: (error: Error) => void,
   ): () => void;
+  createReading(
+    userId: string,
+    bookId: string,
+    tiles: string[],
+    isFreebie: boolean,
+  ): Promise<string>;
+  updateReading(
+    userId: string,
+    readingId: string,
+    bookId: string,
+    tiles: string[],
+    isFreebie: boolean,
+  ): Promise<void>;
+  deleteReading(userId: string, readingId: string): Promise<void>;
 }
 
 /** One-shot fetch. For non-reactive callers (scoring, exports, integration tests). */
@@ -59,6 +79,70 @@ export function subscribeToAllReadings(
     (snap) => onData(readingsByUser(snap)),
     onError,
   );
+}
+
+export async function createReading(
+  userId: string,
+  bookId: string,
+  tiles: string[],
+  isFreebie: boolean,
+): Promise<string> {
+  log.debug('readings', 'createReading', { bookId, tiles, isFreebie });
+  try {
+    const docRef = await addDoc(collection(db, 'users', userId, 'readings'), {
+      bookId,
+      tiles,
+      isFreebie,
+      readAt: serverTimestamp(),
+      createdAt: serverTimestamp(),
+    });
+    log.event('add_reading', { reading_id: docRef.id, book_id: bookId });
+    return docRef.id;
+  } catch (error) {
+    log.error('readings', error);
+    throw error;
+  }
+}
+
+export async function updateReading(
+  userId: string,
+  readingId: string,
+  bookId: string,
+  tiles: string[],
+  isFreebie: boolean,
+): Promise<void> {
+  log.debug('readings', 'updateReading', {
+    readingId,
+    bookId,
+    tiles,
+    isFreebie,
+  });
+  try {
+    await updateDoc(doc(db, 'users', userId, 'readings', readingId), {
+      bookId,
+      tiles,
+      isFreebie,
+      updatedAt: serverTimestamp(),
+    });
+    log.event('update_reading', { reading_id: readingId, book_id: bookId });
+  } catch (error) {
+    log.error('readings', error);
+    throw error;
+  }
+}
+
+export async function deleteReading(
+  userId: string,
+  readingId: string,
+): Promise<void> {
+  log.debug('readings', 'deleteReading', { readingId });
+  try {
+    await deleteDoc(doc(db, 'users', userId, 'readings', readingId));
+    log.event('delete_reading', { reading_id: readingId });
+  } catch (error) {
+    log.error('readings', error);
+    throw error;
+  }
 }
 
 function readingsQuery(userId: string) {

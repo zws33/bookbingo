@@ -1,22 +1,44 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import type { Book } from '@bookbingo/lib-types';
+import type { Book, BookMetadata } from '@bookbingo/lib-types';
+import { deriveBookId } from '@bookbingo/lib-core';
 
-// Prevent real Firebase SDK initialization; subscribeToBooks only passes
-// `db` through to collection(), which we mock below.
+// Prevent real Firebase SDK initialization; the repository only passes `db`
+// through to collection()/doc(), which we mock below.
 vi.mock('../lib/firebase', () => ({ db: {} }));
 
 // Stub firebase/firestore so onSnapshot returns whatever snapshot each test
 // supplies instead of validating its args against a real Firestore instance.
+// SERVER_TS stands in for the serverTimestamp() sentinel so writes can be
+// asserted by value.
+const SERVER_TS = { __sentinel: 'serverTimestamp' };
+
 vi.mock('firebase/firestore', () => ({
   collection: vi.fn((_db, ...path: string[]) => ({ path: path.join('/') })),
+  doc: vi.fn((_db, ...path: string[]) => ({ path: path.join('/') })),
+  getDoc: vi.fn(),
+  setDoc: vi.fn(),
+  serverTimestamp: vi.fn(() => SERVER_TS),
   onSnapshot: vi.fn(),
   QueryDocumentSnapshot: class {},
 }));
 
-import { collection, onSnapshot } from 'firebase/firestore';
-import { subscribeToBooks } from './books';
+import {
+  collection,
+  doc,
+  getDoc,
+  onSnapshot,
+  setDoc,
+} from 'firebase/firestore';
+import { getOrCreateBook, subscribeToBooks } from './books';
 
 const mockOnSnapshot = vi.mocked(onSnapshot);
+const mockGetDoc = vi.mocked(getDoc);
+const mockSetDoc = vi.mocked(setDoc);
+
+/** getDoc result stand-in: only exists() is read by getOrCreateBook. */
+function snapshotExists(exists: boolean) {
+  return { exists: () => exists } as never;
+}
 
 /** Minimal Firestore Timestamp stand-in: only toDate() is used by toBook. */
 function ts(date: Date) {
@@ -179,5 +201,82 @@ describe('subscribeToBooks', () => {
     raise(err);
 
     expect(onError).toHaveBeenCalledWith(err);
+  });
+});
+
+describe('getOrCreateBook', () => {
+  const TITLE = 'The Left Hand of Darkness';
+  const AUTHOR = 'Ursula K. Le Guin';
+
+  it('reuses an existing document without writing', async () => {
+    mockGetDoc.mockResolvedValue(snapshotExists(true));
+
+    const bookId = await getOrCreateBook(TITLE, AUTHOR, 'user-1');
+
+    expect(bookId).toBe(deriveBookId({ title: TITLE, author: AUTHOR }));
+    expect(doc).toHaveBeenCalledWith({}, 'books', bookId);
+    // Reusing as-is preserves the original createdBy/createdAt provenance.
+    expect(mockSetDoc).not.toHaveBeenCalled();
+  });
+
+  it('creates the document with trimmed fields and merges', async () => {
+    mockGetDoc.mockResolvedValue(snapshotExists(false));
+
+    const bookId = await getOrCreateBook(
+      '  Dune  ',
+      ' Frank Herbert ',
+      'user-1',
+    );
+
+    expect(mockSetDoc).toHaveBeenCalledWith(
+      { path: `books/${bookId}` },
+      {
+        title: 'Dune',
+        author: 'Frank Herbert',
+        createdBy: 'user-1',
+        createdAt: SERVER_TS,
+      },
+      { merge: true },
+    );
+  });
+
+  it('writes externalIds and metadata when enrichment is supplied', async () => {
+    mockGetDoc.mockResolvedValue(snapshotExists(false));
+    const metadata: BookMetadata = {
+      pageCount: 304,
+      publishedDate: '1969',
+      categories: ['Science Fiction'],
+      language: 'eng',
+      isbn: null,
+      thumbnailUrl: null,
+    };
+
+    const bookId = await getOrCreateBook(TITLE, AUTHOR, 'user-1', {
+      externalId: '/works/OL455403W',
+      metadata,
+    });
+
+    // The Open Library key, not title/author, derives the id when present.
+    expect(bookId).toBe(
+      deriveBookId({
+        openLibraryKey: '/works/OL455403W',
+        title: TITLE,
+        author: AUTHOR,
+      }),
+    );
+    expect(mockSetDoc).toHaveBeenCalledWith(
+      { path: `books/${bookId}` },
+      {
+        title: TITLE,
+        author: AUTHOR,
+        externalIds: {
+          openLibrary: { key: '/works/OL455403W', enrichedAt: SERVER_TS },
+        },
+        metadata,
+        createdBy: 'user-1',
+        createdAt: SERVER_TS,
+      },
+      { merge: true },
+    );
   });
 });

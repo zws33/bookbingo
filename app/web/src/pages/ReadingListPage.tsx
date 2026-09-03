@@ -3,7 +3,7 @@ import type { Book, TBREntry } from '@bookbingo/lib-types';
 import { useTBR } from '../hooks/useTBR';
 import { useBooks } from '../hooks/useBooks';
 import { useToast } from '../lib/ToastContext';
-import { getOrCreateBook } from '../lib/books';
+import { getOrCreateBook } from '../data/books';
 import {
   createTBREntry,
   updateTBREntry,

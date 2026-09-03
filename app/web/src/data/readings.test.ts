@@ -1,40 +1,58 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-// Prevent real Firebase SDK initialization; getReadingsByUser only passes
-// `db` through to collection(), which we mock below.
+// Prevent real Firebase SDK initialization; the repository only passes `db`
+// through to collection()/doc(), which we mock below.
 vi.mock('../lib/firebase', () => ({ db: {} }));
 
 // Stub firebase/firestore so the query builders don't validate their args and
-// getDocs returns whatever snapshot each test supplies.
+// getDocs returns whatever snapshot each test supplies. SERVER_TS stands in
+// for the serverTimestamp() sentinel so writes can be asserted by value.
+const SERVER_TS = { __sentinel: 'serverTimestamp' };
+
 vi.mock('firebase/firestore', () => ({
   collection: vi.fn((_db, ...path: string[]) => ({ path: path.join('/') })),
   collectionGroup: vi.fn((_db, group: string) => ({
     path: `collectionGroup(${group})`,
   })),
+  doc: vi.fn((_db, ...path: string[]) => ({ path: path.join('/') })),
   query: vi.fn((ref, ...constraints) => ({ ref, constraints })),
   orderBy: vi.fn((field, direction) => ({ field, direction })),
   getDocs: vi.fn(),
+  addDoc: vi.fn(),
+  updateDoc: vi.fn(),
+  deleteDoc: vi.fn(),
+  serverTimestamp: vi.fn(() => SERVER_TS),
   onSnapshot: vi.fn(),
   QueryDocumentSnapshot: class {},
 }));
 
 import type { Reading } from '@bookbingo/lib-types';
 import {
+  addDoc,
   collection,
   collectionGroup,
+  deleteDoc,
+  doc,
   getDocs,
   onSnapshot,
   orderBy,
   query,
+  updateDoc,
 } from 'firebase/firestore';
 import {
+  createReading,
+  deleteReading,
   getReadingsByUser,
   subscribeToReadings,
   subscribeToAllReadings,
+  updateReading,
 } from './readings';
 
 const mockGetDocs = vi.mocked(getDocs);
 const mockOnSnapshot = vi.mocked(onSnapshot);
+const mockAddDoc = vi.mocked(addDoc);
+const mockUpdateDoc = vi.mocked(updateDoc);
+const mockDeleteDoc = vi.mocked(deleteDoc);
 
 /** Minimal Firestore Timestamp stand-in: only toDate() is used by toReading. */
 function ts(date: Date) {
@@ -456,5 +474,75 @@ describe('subscribeToAllReadings', () => {
     raise(err);
 
     expect(onError).toHaveBeenCalledWith(err);
+  });
+});
+
+describe('reading writes', () => {
+  it("createReading adds to the user's readings collection and returns the id", async () => {
+    mockAddDoc.mockResolvedValue({ id: 'reading-1' } as never);
+
+    const id = await createReading('user-1', 'book-1', ['sci-fi'], false);
+
+    expect(id).toBe('reading-1');
+    expect(collection).toHaveBeenCalledWith({}, 'users', 'user-1', 'readings');
+    expect(mockAddDoc).toHaveBeenCalledWith(
+      { path: 'users/user-1/readings' },
+      {
+        bookId: 'book-1',
+        tiles: ['sci-fi'],
+        isFreebie: false,
+        readAt: SERVER_TS,
+        createdAt: SERVER_TS,
+      },
+    );
+  });
+
+  it('updateReading targets the reading document and stamps updatedAt', async () => {
+    mockUpdateDoc.mockResolvedValue(undefined);
+
+    await updateReading('user-1', 'reading-1', 'book-2', ['mystery'], true);
+
+    expect(doc).toHaveBeenCalledWith(
+      {},
+      'users',
+      'user-1',
+      'readings',
+      'reading-1',
+    );
+    expect(mockUpdateDoc).toHaveBeenCalledWith(
+      { path: 'users/user-1/readings/reading-1' },
+      {
+        bookId: 'book-2',
+        tiles: ['mystery'],
+        isFreebie: true,
+        updatedAt: SERVER_TS,
+      },
+    );
+  });
+
+  it('deleteReading targets the reading document', async () => {
+    mockDeleteDoc.mockResolvedValue(undefined);
+
+    await deleteReading('user-1', 'reading-1');
+
+    expect(mockDeleteDoc).toHaveBeenCalledWith({
+      path: 'users/user-1/readings/reading-1',
+    });
+  });
+
+  it('rethrows write failures after logging them', async () => {
+    // log.error writes to console; silence it so the failure path is quiet.
+    const consoleError = vi
+      .spyOn(console, 'error')
+      .mockImplementation(() => {});
+    const failure = new Error('permission-denied');
+    mockAddDoc.mockRejectedValue(failure);
+
+    await expect(createReading('user-1', 'book-1', [], false)).rejects.toThrow(
+      failure,
+    );
+
+    expect(consoleError).toHaveBeenCalled();
+    consoleError.mockRestore();
   });
 });

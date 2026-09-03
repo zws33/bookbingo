@@ -1,11 +1,11 @@
 # Hooks Refactor: Data Access in the Repository Layer
 
-**Status: complete.** Every Firestore read in `app/web/src/hooks/` now goes through a module in `app/web/src/data/`.
+**Status: complete.** Every Firestore read in `app/web/src/hooks/` now goes through a module in `app/web/src/data/`. Book and reading **writes** followed (`books-data-consolidation-plan.md`); `lib/tbr.ts` and `lib/users.ts` are the only Firestore access left outside `data/`.
 
 ## Rules
 
-1. Hooks import from `../data/*` only — never `firebase/firestore`, `../lib/firebase`, or `react-firebase-hooks/firestore`.
-2. A repository exports `subscribeToX(…, onData, onError) => unsubscribe` and a `XRepository` interface describing it.
+1. Hooks and components import from `../data/*` only — never `firebase/firestore`, `../lib/firebase`, or `react-firebase-hooks/firestore`.
+2. A repository exports `subscribeToX(…, onData, onError) => unsubscribe` and a `XRepository` interface describing it. Writes live in the same module as the reads for their collection and are listed in the same interface.
 3. Mapping Firestore documents to domain types lives in the repository (`toBook`, `toReading`, `toTBREntry`, `toUserProfile`), not the hook.
 4. Mappers tolerate a pending `serverTimestamp()` (null until the write lands) by falling back to `new Date()`.
 5. Hooks own `loading` / `error` / data state, clear `error` on a good snapshot, and log through `log.debug` / `log.error` under their own name.
@@ -23,6 +23,13 @@
 | `useUsers`       | `data/users.ts` → `subscribeToUsers`             | `/users`                                         |
 | `useUserProfile` | `data/userProfile.ts` → `subscribeToUserProfile` | `/users/{id}`                                    |
 
+Writes are grouped by the collection they touch, not by the feature that calls them:
+
+| Write                                               | Repository         | Target                       |
+| --------------------------------------------------- | ------------------ | ---------------------------- |
+| `getOrCreateBook`                                   | `data/books.ts`    | `/books/{deriveBookId(...)}` |
+| `createReading` / `updateReading` / `deleteReading` | `data/readings.ts` | `/users/{id}/readings`       |
+
 `subscribeToAllReadings` shares `data/readings.ts` with the per-user query rather than getting its own module, so both reuse `toReading`.
 
 `toUserProfile` lives in `data/users.ts` and is reused by `data/userProfile.ts`. It takes a `DocumentSnapshot`, not a `QueryDocumentSnapshot`, so the single-document read can pass its snapshot through.
@@ -35,6 +42,8 @@
 ## Out of scope
 
 `App.tsx` still uses `react-firebase-hooks/auth` for `useAuthState`. This plan covered Firestore reads only; the auth seam is untouched.
+
+`lib/tbr.ts` (including `promoteTBREntry`, which writes a reading doc via `writeBatch`) and `lib/users.ts` still call Firestore directly. Until they move, the `no-restricted-imports` rule blocking `firebase/firestore` outside `data/` cannot be enabled.
 
 ## Reference commits
 
