@@ -1,18 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { renderHook } from '@testing-library/react';
+import { renderHook, act } from '@testing-library/react';
+import type { Reading } from '@bookbingo/lib-types';
 import { useReadings } from './useReadings';
 
-// Prevent real Firebase SDK initialization
-vi.mock('../lib/firebase', () => ({ db: {} }));
-
-// Stub firebase/firestore so collection() doesn't validate the db argument
-vi.mock('firebase/firestore', () => ({
-  collection: vi.fn(() => 'mock-collection-ref'),
-}));
-
-// Mock the react-firebase-hooks collection listener
-vi.mock('react-firebase-hooks/firestore', () => ({
-  useCollection: vi.fn(),
+// The hook depends only on the repository seam; Firebase never enters the test.
+vi.mock('../data/readings', () => ({
+  subscribeToReadings: vi.fn(),
 }));
 
 // Mock logger to prevent initialization errors in test environment
@@ -24,67 +17,119 @@ vi.mock('@bookbingo/lib-util', () => ({
   },
 }));
 
-import { useCollection } from 'react-firebase-hooks/firestore';
+import { subscribeToReadings } from '../data/readings';
 
-const mockUseCollection = vi.mocked(useCollection);
+const mockSubscribe = vi.mocked(subscribeToReadings);
 
-// Helper: build a minimal QuerySnapshot-like object from plain data objects
-function makeSnapshot(docs: Record<string, unknown>[]) {
+/** Callbacks handed to subscribeToReadings by the most recent call. */
+type Handlers = {
+  onData: (readings: Reading[]) => void;
+  onError: (error: Error) => void;
+};
+
+function captureHandlers(): {
+  handlers: Handlers;
+  unsubscribe: ReturnType<typeof vi.fn>;
+} {
+  const unsubscribe = vi.fn();
+  const handlers = {} as Handlers;
+  mockSubscribe.mockImplementation((_userId, onData, onError) => {
+    handlers.onData = onData;
+    handlers.onError = onError;
+    return unsubscribe;
+  });
+  return { handlers, unsubscribe };
+}
+
+function makeReading(overrides: Partial<Reading> = {}): Reading {
   return {
-    docs: docs.map((data, i) => ({
-      id: `doc-${i}`,
-      data: () => data,
-    })),
+    id: 'doc-0',
+    bookId: 'book-1',
+    tiles: ['sci-fi'],
+    isFreebie: false,
+    readAt: new Date('2026-01-01'),
+    createdAt: new Date('2026-01-01'),
+    ...overrides,
   };
 }
 
 beforeEach(() => {
-  mockUseCollection.mockReset();
+  mockSubscribe.mockReset();
 });
 
 describe('useReadings', () => {
-  it('returns loading state while Firestore is loading', () => {
-    mockUseCollection.mockReturnValue([undefined, true, undefined]);
+  it('starts in loading state before the first snapshot', () => {
+    captureHandlers();
     const { result } = renderHook(() => useReadings('user-1'));
     expect(result.current.loading).toBe(true);
     expect(result.current.readings).toEqual([]);
     expect(result.current.error).toBeUndefined();
   });
 
-  it('maps Firestore snapshot docs to Reading[]', () => {
-    const snapshot = makeSnapshot([
-      {
-        bookId: 'book-1',
-        tiles: ['sci-fi'],
-        isFreebie: false,
-        readAt: new Date('2026-01-01'),
-        createdAt: new Date('2026-01-01'),
-      },
-    ]);
-    mockUseCollection.mockReturnValue([snapshot as never, false, undefined]);
+  it('exposes readings emitted by the subscription', () => {
+    const { handlers } = captureHandlers();
     const { result } = renderHook(() => useReadings('user-1'));
+
+    const reading = makeReading({ id: 'doc-0', bookId: 'book-1' });
+    act(() => handlers.onData([reading]));
+
     expect(result.current.loading).toBe(false);
-    expect(result.current.readings).toHaveLength(1);
-    expect(result.current.readings[0]!.bookId).toBe('book-1');
-    expect(result.current.readings[0]!.id).toBe('doc-0');
+    expect(result.current.readings).toEqual([reading]);
+    expect(result.current.error).toBeUndefined();
   });
 
-  it('returns error when Firestore listener errors', () => {
+  it('surfaces subscription errors and stops loading', () => {
+    const { handlers } = captureHandlers();
+    const { result } = renderHook(() => useReadings('user-1'));
+
     const err = Object.assign(new Error('Permission denied'), {
       code: 'permission-denied' as const,
     });
-    mockUseCollection.mockReturnValue([undefined, false, err]);
-    const { result } = renderHook(() => useReadings('user-1'));
+    act(() => handlers.onError(err));
+
     expect(result.current.error).toBe(err);
     expect(result.current.readings).toEqual([]);
     expect(result.current.loading).toBe(false);
   });
 
-  it('returns empty array and skips query when userId is empty', () => {
-    mockUseCollection.mockReturnValue([undefined, false, undefined]);
+  it('clears a prior error once a later snapshot arrives', () => {
+    const { handlers } = captureHandlers();
+    const { result } = renderHook(() => useReadings('user-1'));
+
+    act(() => handlers.onError(new Error('transient')));
+    act(() => handlers.onData([makeReading()]));
+
+    expect(result.current.error).toBeUndefined();
+    expect(result.current.readings).toHaveLength(1);
+  });
+
+  it('does not subscribe and stays empty when userId is blank', () => {
+    captureHandlers();
     const { result } = renderHook(() => useReadings(''));
-    // useCollection is called with undefined query when userId is empty
-    expect(mockUseCollection).toHaveBeenCalledWith(undefined);
+    expect(mockSubscribe).not.toHaveBeenCalled();
     expect(result.current.readings).toEqual([]);
+    expect(result.current.loading).toBe(false);
+  });
+
+  it('unsubscribes on unmount', () => {
+    const { unsubscribe } = captureHandlers();
+    const { unmount } = renderHook(() => useReadings('user-1'));
+    unmount();
+    expect(unsubscribe).toHaveBeenCalledOnce();
+  });
+
+  it('resubscribes when userId changes', () => {
+    const { unsubscribe } = captureHandlers();
+    const { rerender } = renderHook(({ id }) => useReadings(id), {
+      initialProps: { id: 'user-1' },
+    });
+    rerender({ id: 'user-2' });
+    expect(unsubscribe).toHaveBeenCalledOnce();
+    expect(mockSubscribe).toHaveBeenCalledTimes(2);
+    expect(mockSubscribe).toHaveBeenLastCalledWith(
+      'user-2',
+      expect.any(Function),
+      expect.any(Function),
+    );
   });
 });

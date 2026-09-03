@@ -1,40 +1,39 @@
-import { useEffect, useMemo } from 'react';
-import { useCollection } from 'react-firebase-hooks/firestore';
-import { collection } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { useEffect, useState } from 'react';
 import { log } from '@bookbingo/lib-util';
 import type { Reading } from '@bookbingo/lib-types';
+import { subscribeToReadings } from '../data/readings';
 
 export function useReadings(userId: string) {
-  const query = userId
-    ? collection(db, 'users', userId, 'readings')
-    : undefined;
-  const [snapshot, loading, error] = useCollection(query);
+  const [readings, setReadings] = useState<Reading[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error>();
 
   useEffect(() => {
-    if (error) log.error('useReadings', error);
-  }, [error]);
-
-  useEffect(() => {
-    if (snapshot) {
-      log.debug('useReadings', 'snapshot received', {
-        count: snapshot.docs.length,
-      });
+    if (!userId) {
+      setReadings([]);
+      setLoading(false);
+      setError(undefined);
+      return;
     }
-  }, [snapshot]);
 
-  const readings: Reading[] = useMemo(() => {
-    if (!snapshot) return [];
-    return snapshot.docs.map((doc) => {
-      const data = doc.data();
-      return {
-        ...data,
-        // Fallback to empty string for legacy data missing bookId
-        bookId: data.bookId || '',
-        id: doc.id,
-      } as Reading;
-    });
-  }, [snapshot]);
+    setLoading(true);
+    const unsubscribe = subscribeToReadings(
+      userId,
+      (next) => {
+        log.debug('useReadings', 'snapshot received', { count: next.length });
+        setReadings(next);
+        setError(undefined);
+        setLoading(false);
+      },
+      (err) => {
+        log.error('useReadings', err);
+        setError(err);
+        setLoading(false);
+      },
+    );
+
+    return unsubscribe;
+  }, [userId]);
 
   return { readings, loading, error };
 }
