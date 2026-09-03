@@ -1,21 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { renderHook } from '@testing-library/react';
+import { renderHook, act } from '@testing-library/react';
+import type { Book } from '@bookbingo/lib-types';
 import { useBooks } from './useBooks';
 
-// Prevent real Firebase SDK initialization
-vi.mock('../lib/firebase', () => ({ db: {} }));
-
-// Stub firebase/firestore
-vi.mock('firebase/firestore', () => ({
-  collection: vi.fn(() => 'mock-collection-ref'),
+// The hook depends only on the repository seam; Firebase never enters the test.
+vi.mock('../data/books', () => ({
+  subscribeToBooks: vi.fn(),
 }));
 
-// Mock the react-firebase-hooks collection listener
-vi.mock('react-firebase-hooks/firestore', () => ({
-  useCollection: vi.fn(),
-}));
-
-// Mock logger
+// Mock logger to prevent initialization errors in test environment
 vi.mock('@bookbingo/lib-util', () => ({
   log: {
     debug: vi.fn(),
@@ -24,68 +17,96 @@ vi.mock('@bookbingo/lib-util', () => ({
   },
 }));
 
-import { useCollection } from 'react-firebase-hooks/firestore';
+import { subscribeToBooks } from '../data/books';
 
-const mockUseCollection = vi.mocked(useCollection);
+const mockSubscribe = vi.mocked(subscribeToBooks);
 
-// Helper: build a minimal QuerySnapshot-like object from plain data objects
-function makeSnapshot(docs: Record<string, unknown>[]) {
+/** Callbacks handed to subscribeToBooks by the most recent call. */
+type Handlers = {
+  onData: (books: Book[]) => void;
+  onError: (error: Error) => void;
+};
+
+function captureHandlers(): {
+  handlers: Handlers;
+  unsubscribe: ReturnType<typeof vi.fn>;
+} {
+  const unsubscribe = vi.fn();
+  const handlers = {} as Handlers;
+  mockSubscribe.mockImplementation((onData, onError) => {
+    handlers.onData = onData;
+    handlers.onError = onError;
+    return unsubscribe;
+  });
+  return { handlers, unsubscribe };
+}
+
+function makeBook(overrides: Partial<Book> = {}): Book {
   return {
-    docs: docs.map((data, i) => ({
-      id: `doc-${i}`,
-      data: () => data,
-    })),
+    id: 'book-0',
+    title: 'The Left Hand of Darkness',
+    author: 'Ursula K. Le Guin',
+    createdBy: 'user-1',
+    createdAt: new Date('2026-01-01'),
+    ...overrides,
   };
 }
 
 beforeEach(() => {
-  mockUseCollection.mockReset();
+  mockSubscribe.mockReset();
 });
 
 describe('useBooks', () => {
-  it('returns loading state while Firestore is loading', () => {
-    mockUseCollection.mockReturnValue([undefined, true, undefined]);
+  it('starts in loading state before the first snapshot', () => {
+    captureHandlers();
     const { result } = renderHook(() => useBooks());
     expect(result.current.loading).toBe(true);
     expect(result.current.booksById.size).toBe(0);
     expect(result.current.error).toBeUndefined();
   });
 
-  it('maps Firestore snapshot docs to booksById Map', () => {
-    const snapshot = makeSnapshot([
-      {
-        title: 'The Left Hand of Darkness',
-        author: 'Ursula K. Le Guin',
-        externalIds: {
-          openLibrary: {
-            key: '/works/OL455403W',
-            enrichedAt: new Date('2026-01-01'),
-          },
-        },
-        createdBy: 'user-1',
-        createdAt: new Date('2026-01-01'),
-      },
-    ]);
-    mockUseCollection.mockReturnValue([snapshot as never, false, undefined]);
+  it('exposes books emitted by the subscription as a Map keyed by id', () => {
+    const { handlers } = captureHandlers();
     const { result } = renderHook(() => useBooks());
+
+    const book = makeBook({ id: 'book-1', title: 'Left Hand of Darkness' });
+    act(() => handlers.onData([book]));
+
     expect(result.current.loading).toBe(false);
     expect(result.current.booksById.size).toBe(1);
-    expect(result.current.booksById.get('doc-0')?.title).toBe(
-      'The Left Hand of Darkness',
-    );
-    expect(result.current.booksById.get('doc-0')?.author).toBe(
-      'Ursula K. Le Guin',
-    );
+    expect(result.current.booksById.get('book-1')).toEqual(book);
+    expect(result.current.error).toBeUndefined();
   });
 
-  it('returns error when Firestore listener errors', () => {
+  it('surfaces subscription errors and stops loading', () => {
+    const { handlers } = captureHandlers();
+    const { result } = renderHook(() => useBooks());
+
     const err = Object.assign(new Error('Permission denied'), {
       code: 'permission-denied' as const,
     });
-    mockUseCollection.mockReturnValue([undefined, false, err]);
-    const { result } = renderHook(() => useBooks());
+    act(() => handlers.onError(err));
+
     expect(result.current.error).toBe(err);
     expect(result.current.booksById.size).toBe(0);
     expect(result.current.loading).toBe(false);
+  });
+
+  it('clears a prior error once a later snapshot arrives', () => {
+    const { handlers } = captureHandlers();
+    const { result } = renderHook(() => useBooks());
+
+    act(() => handlers.onError(new Error('transient')));
+    act(() => handlers.onData([makeBook()]));
+
+    expect(result.current.error).toBeUndefined();
+    expect(result.current.booksById.size).toBe(1);
+  });
+
+  it('unsubscribes on unmount', () => {
+    const { unsubscribe } = captureHandlers();
+    const { unmount } = renderHook(() => useBooks());
+    unmount();
+    expect(unsubscribe).toHaveBeenCalledOnce();
   });
 });

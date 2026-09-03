@@ -1,44 +1,35 @@
-import { useEffect, useMemo } from 'react';
-import { useCollection } from 'react-firebase-hooks/firestore';
-import { collection } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { useEffect, useState } from 'react';
 import { log } from '@bookbingo/lib-util';
 import type { Book } from '@bookbingo/lib-types';
+import { subscribeToBooks } from '../data/books';
 
 /**
  * Hook to fetch all shared books from the /books/ collection.
  * Returns a Map keyed by book ID for O(1) lookups when joining with readings.
  */
 export function useBooks() {
-  const queryRef = useMemo(() => collection(db, 'books'), []);
-  const [snapshot, loading, error] = useCollection(queryRef);
+  const [booksById, setBooksById] = useState<Map<string, Book>>(new Map());
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error>();
 
   useEffect(() => {
-    if (error) log.error('useBooks', error);
-  }, [error]);
+    setLoading(true);
+    const unsubscribe = subscribeToBooks(
+      (books) => {
+        log.debug('useBooks', 'snapshot received', { count: books.length });
+        setBooksById(new Map(books.map((book) => [book.id, book])));
+        setError(undefined);
+        setLoading(false);
+      },
+      (err) => {
+        log.error('useBooks', err);
+        setError(err);
+        setLoading(false);
+      },
+    );
 
-  useEffect(() => {
-    if (snapshot) {
-      log.debug('useBooks', 'snapshot received', {
-        count: snapshot.docs.length,
-      });
-    }
-  }, [snapshot]);
-
-  const booksById = useMemo(() => {
-    const map = new Map<string, Book>();
-    if (!snapshot) return map;
-
-    snapshot.docs.forEach((doc) => {
-      const data = doc.data();
-      map.set(doc.id, {
-        id: doc.id,
-        ...data,
-      } as Book);
-    });
-
-    return map;
-  }, [snapshot]);
+    return unsubscribe;
+  }, []);
 
   return { booksById, loading, error };
 }
