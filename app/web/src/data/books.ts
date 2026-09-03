@@ -30,7 +30,7 @@ export function subscribeToBooks(
 }
 
 function tsToDate(ts?: { toDate(): Date }): Date {
-  return ts?.toDate() ?? new Date()
+  return ts?.toDate() ?? new Date();
 }
 
 function toBook(doc: QueryDocumentSnapshot): Book {

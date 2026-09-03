@@ -2,11 +2,13 @@ import type { Reading } from '@bookbingo/lib-types';
 
 import {
   collection,
+  collectionGroup,
   getDocs,
   onSnapshot,
   orderBy,
   query,
   QueryDocumentSnapshot,
+  QuerySnapshot,
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 
@@ -41,6 +43,36 @@ export function subscribeToReadings(
   );
 }
 
+function readingsByUser(snapshot: QuerySnapshot) {
+  const map = new Map<string, Reading[]>();
+  if (!snapshot) return map;
+  for (const doc of snapshot.docs) {
+    const userId = doc.ref.parent.parent?.id;
+    if (!userId) continue;
+
+    const reading: Reading = toReading(doc);
+    const existing = map.get(userId);
+    if (existing) {
+      existing.push(reading);
+    } else {
+      map.set(userId, [reading]);
+    }
+  }
+
+  return map;
+}
+
+export function subscribeToAllReadings(
+  onData: (readingsByUser: Map<string, Reading[]>) => void,
+  onError: (error: Error) => void,
+): () => void {
+  return onSnapshot(
+    collectionGroup(db, 'readings'),
+    (snap) => onData(readingsByUser(snap)),
+    onError,
+  );
+}
+
 function readingsQuery(userId: string) {
   return query(
     collection(db, 'users', userId, 'readings'),
@@ -51,12 +83,10 @@ function readingsQuery(userId: string) {
 function toReading(doc: QueryDocumentSnapshot): Reading {
   const data = doc.data();
   return {
-    id: doc.id, // ID is the key, not a stored field
+    id: doc.id,
     bookId: data.bookId,
     tiles: data.tiles,
     isFreebie: data.isFreebie,
-    // serverTimestamp() is null in the local snapshot until the write lands;
-    // fall back to now so a just-added reading renders instead of throwing.
     readAt: data.readAt?.toDate() ?? new Date(),
     createdAt: data.createdAt?.toDate() ?? new Date(),
     updatedAt: data.updatedAt?.toDate(),
