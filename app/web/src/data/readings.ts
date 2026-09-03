@@ -18,13 +18,22 @@ export interface ReadingRepository {
     onData: (readings: Reading[]) => void,
     onError: (error: Error) => void,
   ): () => void;
+  subscribeToAllReadings(
+    onData: (readingsByUser: Map<string, Reading[]>) => void,
+    onError: (error: Error) => void,
+  ): () => void;
 }
 
+/** One-shot fetch. For non-reactive callers (scoring, exports, integration tests). */
 export async function getReadingsByUser(userId: string): Promise<Reading[]> {
   const snap = await getDocs(readingsQuery(userId));
   return snap.docs.map(toReading);
 }
 
+/**
+ * Live subscription. Pushes the full ordered list on every change and returns
+ * an unsubscribe function. Primary path for UI hooks.
+ */
 export function subscribeToReadings(
   userId: string,
   onData: (readings: Reading[]) => void,
@@ -37,6 +46,10 @@ export function subscribeToReadings(
   );
 }
 
+/**
+ * Live subscription across every user's readings via the `readings` collection
+ * group, grouped by the owning user id. Feeds the leaderboard and library.
+ */
 export function subscribeToAllReadings(
   onData: (readingsByUser: Map<string, Reading[]>) => void,
   onError: (error: Error) => void,
@@ -55,6 +68,7 @@ function readingsQuery(userId: string) {
   );
 }
 
+/** Groups a collection-group snapshot by the user id in each doc's ref path. */
 function readingsByUser(snapshot: QuerySnapshot) {
   const map = new Map<string, Reading[]>();
   if (!snapshot) return map;

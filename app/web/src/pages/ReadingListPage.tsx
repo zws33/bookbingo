@@ -35,7 +35,7 @@ export function ReadingListPage({ userId }: ReadingListPageProps) {
   const [dialog, setDialog] = useState<DialogState>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const { tbrEntries, loading, error } = useTBR(userId);
+  const { entries, loading, error } = useTBR(userId);
   const { booksById } = useBooks();
   const { showSuccess, showError } = useToast();
 
@@ -163,7 +163,7 @@ export function ReadingListPage({ userId }: ReadingListPageProps) {
   return (
     <>
       <div className="space-y-4">
-        {tbrEntries.length === 0 ? (
+        {entries.length === 0 ? (
           <div className="py-12 text-center">
             <div className="mb-4 text-4xl">📖</div>
             <h3 className="font-display text-lg font-medium text-on-surface">
@@ -174,7 +174,7 @@ export function ReadingListPage({ userId }: ReadingListPageProps) {
             </p>
           </div>
         ) : (
-          tbrEntries.map((entry) => {
+          entries.map((entry) => {
             const book = booksById.get(entry.bookId);
             return (
               <TBREntryCard

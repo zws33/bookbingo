@@ -11,7 +11,7 @@ vi.mock('firebase/firestore', () => ({
 }));
 
 import { collection, onSnapshot, orderBy, query } from 'firebase/firestore';
-import { subscribeToTbrEntries } from './tbr';
+import { subscribeToTBR } from './tbr';
 
 const mockOnSnapshot = vi.mocked(onSnapshot);
 
@@ -29,12 +29,12 @@ beforeEach(() => {
   vi.clearAllMocks();
 });
 
-describe('subscribeToTbrEntries', () => {
+describe('subscribeToTBR', () => {
   it('queries the user tbr subcollection ordered by addedAt descending', () => {
     const unsubscribe = vi.fn();
     mockOnSnapshot.mockReturnValue(unsubscribe as never);
 
-    const result = subscribeToTbrEntries('user-42', vi.fn(), vi.fn());
+    const result = subscribeToTBR('user-42', vi.fn(), vi.fn());
 
     expect(collection).toHaveBeenCalledWith({}, 'users', 'user-42', 'tbr');
     expect(orderBy).toHaveBeenCalledWith('addedAt', 'desc');
@@ -58,7 +58,7 @@ describe('subscribeToTbrEntries', () => {
     }) as never);
 
     const onData = vi.fn();
-    subscribeToTbrEntries('user-1', onData, vi.fn());
+    subscribeToTBR('user-1', onData, vi.fn());
 
     pushSnapshot(
       makeSnapshot([
@@ -98,7 +98,7 @@ describe('subscribeToTbrEntries', () => {
     }) as never);
 
     const onData = vi.fn();
-    subscribeToTbrEntries('user-1', onData, vi.fn());
+    subscribeToTBR('user-1', onData, vi.fn());
 
     pushSnapshot(
       makeSnapshot([
@@ -129,7 +129,7 @@ describe('subscribeToTbrEntries', () => {
     }) as never);
 
     const onError = vi.fn();
-    subscribeToTbrEntries('user-1', vi.fn(), onError);
+    subscribeToTBR('user-1', vi.fn(), onError);
 
     const error = new Error('permission-denied');
     raise(error);
