@@ -31,31 +31,32 @@ One document per unique book, shared across all users. Multiple users reference 
 book through their readings.
 
 `bookId` is **deterministic**, a hash of the book's identity (not random):
+
 - Catalog book: `hash("openLibrary:" + openLibraryWorkKey)`
 - Manual book: `hash("manual:" + normalizedTitle + "|" + normalizedAuthor)`
 
 This makes dedup a point read on the computed ID rather than a query; concurrent creates
 of the same book converge on one document.
 
-| Field | Type | Notes |
-|---|---|---|
-| `title` | string | |
-| `author` | string | |
-| `createdBy` | string | UID of first adder; may be `"system-migration"` |
-| `createdAt` | Timestamp | |
-| `metadata` | map \| absent | see below; absent for bare manual entries |
+| Field         | Type          | Notes                                                         |
+| ------------- | ------------- | ------------------------------------------------------------- |
+| `title`       | string        |                                                               |
+| `author`      | string        |                                                               |
+| `createdBy`   | string        | UID of first adder; may be `"system-migration"`               |
+| `createdAt`   | Timestamp     |                                                               |
+| `metadata`    | map \| absent | see below; absent for bare manual entries                     |
 | `externalIds` | map \| absent | provenance only, keyed by provider; absent for manual entries |
 
 `metadata` map:
 
-| Field | Type |
-|---|---|
-| `pageCount` | number \| null |
+| Field           | Type           |
+| --------------- | -------------- |
+| `pageCount`     | number \| null |
 | `publishedDate` | string \| null |
-| `categories` | string[] |
-| `language` | string \| null |
-| `isbn` | string \| null |
-| `thumbnailUrl` | string \| null |
+| `categories`    | string[]       |
+| `language`      | string \| null |
+| `isbn`          | string \| null |
+| `thumbnailUrl`  | string \| null |
 
 `externalIds` is `{ openLibrary?: { key: string, enrichedAt: Timestamp } }`. `key` is the
 Open Library Work key, e.g. `/works/OL166894W`. This is provenance, **not** a dedup key —
@@ -65,11 +66,11 @@ identity is the deterministic document ID.
 
 `userId` is the Firebase Auth UID.
 
-| Field | Type | Notes |
-|---|---|---|
-| `name` | string | display name, defaults to `"User"` |
-| `photoURL` | string \| null | |
-| `updatedAt` | Timestamp | |
+| Field       | Type           | Notes                              |
+| ----------- | -------------- | ---------------------------------- |
+| `name`      | string         | display name, defaults to `"User"` |
+| `photoURL`  | string \| null |                                    |
+| `updatedAt` | Timestamp      |                                    |
 
 Written with `{ merge: true }` on each sign-in.
 
@@ -78,28 +79,28 @@ Written with `{ merge: true }` on each sign-in.
 A user's log of a book they've read, with the tiles they claimed for it. This is the only
 data that contributes to scoring.
 
-| Field | Type | Notes |
-|---|---|---|
-| `bookId` | string | references `/books/{bookId}` |
-| `tiles` | string[] | claimed tile IDs; max 3 unless `isFreebie` |
-| `isFreebie` | boolean | freebie readings may claim unlimited tiles |
-| `readAt` | Timestamp | when the user read the book |
-| `createdAt` | Timestamp | |
-| `updatedAt` | Timestamp \| absent | |
-| `bookTitle` | string \| absent | legacy denormalized field (migration) |
-| `bookAuthor` | string \| absent | legacy denormalized field (migration) |
+| Field        | Type                | Notes                                      |
+| ------------ | ------------------- | ------------------------------------------ |
+| `bookId`     | string              | references `/books/{bookId}`               |
+| `tiles`      | string[]            | claimed tile IDs; max 3 unless `isFreebie` |
+| `isFreebie`  | boolean             | freebie readings may claim unlimited tiles |
+| `readAt`     | Timestamp           | when the user read the book                |
+| `createdAt`  | Timestamp           |                                            |
+| `updatedAt`  | Timestamp \| absent |                                            |
+| `bookTitle`  | string \| absent    | legacy denormalized field (migration)      |
+| `bookAuthor` | string \| absent    | legacy denormalized field (migration)      |
 
 ## `/users/{userId}/tbr/{tbrId}` — to-be-read list
 
 Books the user plans to read. **Never** contributes to scoring — only `readings` do.
 
-| Field | Type | Notes |
-|---|---|---|
-| `bookId` | string | references `/books/{bookId}` |
-| `plannedTiles` | string[] | tiles the user intends to claim |
-| `notes` | string \| absent | optional personal note |
-| `addedAt` | Timestamp | |
-| `updatedAt` | Timestamp \| absent | |
+| Field          | Type                | Notes                           |
+| -------------- | ------------------- | ------------------------------- |
+| `bookId`       | string              | references `/books/{bookId}`    |
+| `plannedTiles` | string[]            | tiles the user intends to claim |
+| `notes`        | string \| absent    | optional personal note          |
+| `addedAt`      | Timestamp           |                                 |
+| `updatedAt`    | Timestamp \| absent |                                 |
 
 ## Access rules (summary)
 

@@ -3,16 +3,27 @@ packages:
   - lib/*
   - functions
 
+# Packages with postinstall/install scripts pnpm otherwise refuses to run
+# (ERR_PNPM_IGNORED_BUILDS), reviewed individually:
+# - @firebase/util: official Firebase postinstall, only acts on an opt-in
+#   env var (FIREBASE_WEBAPP_CONFIG) we don't set. Allowed.
+# - esbuild: copies the platform binary into place; vite/vitest/tsx don't
+#   run without it. Allowed.
+# - protobufjs: postinstall is just a semver-scheme warning printer, no
+#   side effects. Allowed.
+# - re2: only reachable via firebase-tools' emulator (superstatic), which
+#   already falls back to plain RegExp when the native re2 binding isn't
+#   built (lib/utils/patterns.js try/catch). Not used by CI's `verify` job
+#   at all. Declined rather than pay for a native compile/GitHub-artifact
+#   download nobody needs.
 allowBuilds:
-  '@firebase/util': set this to true or false
-  esbuild: set this to true or false
-  protobufjs: set this to true or false
-  re2: set this to true or false
+  '@firebase/util': true
+  esbuild: true
+  protobufjs: true
+  re2: false
 
-# These dependencies ship build (postinstall) scripts we deliberately skip.
-# Listing them here suppresses pnpm's ERR_PNPM_IGNORED_BUILDS prompt.
-# Uses pnpm-10 syntax (CI and local both run pnpm 10); `allowBuilds` is pnpm 11 only.
-ignoredBuiltDependencies:
+onlyBuiltDependencies:
   - '@firebase/util'
   - esbuild
   - protobufjs
+  - re2
