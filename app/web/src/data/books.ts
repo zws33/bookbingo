@@ -29,19 +29,21 @@ export function subscribeToBooks(
   );
 }
 
+function tsToDate(ts?: { toDate(): Date }): Date {
+  return ts?.toDate() ?? new Date()
+}
+
 function toBook(doc: QueryDocumentSnapshot): Book {
   const data = doc.data();
   const externalIds = toExternalIds(data.externalIds);
   return {
-    id: doc.id, // ID is the key, not a stored field
+    id: doc.id,
     title: data.title,
     author: data.author,
-    metadata: data.metadata,
+    ...(data.metadata !== undefined && { metadata: data.metadata }),
     ...(externalIds && { externalIds }),
     createdBy: data.createdBy,
-    // serverTimestamp() is null in the local snapshot until the write lands;
-    // fall back to now so a just-added book renders instead of throwing.
-    createdAt: data.createdAt?.toDate() ?? new Date(),
+    createdAt: tsToDate(data.createdAt),
   };
 }
 
@@ -55,7 +57,7 @@ function toExternalIds(
   return Object.fromEntries(
     Object.entries(externalIds).map(([provider, ref]) => [
       provider,
-      { key: ref.key, enrichedAt: ref.enrichedAt?.toDate() ?? new Date() },
+      { key: ref.key, enrichedAt: tsToDate(ref.enrichedAt) },
     ]),
   ) as ExternalBookIds;
 }

@@ -13,7 +13,6 @@ export function useBooks() {
   const [error, setError] = useState<Error>();
 
   useEffect(() => {
-    setLoading(true);
     const unsubscribe = subscribeToBooks(
       (books) => {
         log.debug('useBooks', 'snapshot received', { count: books.length });
