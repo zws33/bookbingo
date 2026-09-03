@@ -1,21 +1,29 @@
 import { useEffect, useState } from 'react';
 import { log } from '@bookbingo/lib-util';
 import type { TBREntry } from '@bookbingo/lib-types';
-import { subscribeToTbrEntries } from 'src/data/tbr';
+import { subscribeToTBR } from '../data/tbr';
 
 export function useTBR(userId: string) {
-  const [tbrEntries, setTbrEntries] = useState<TBREntry[]>([]);
-
+  const [entries, setEntries] = useState<TBREntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error>();
 
   useEffect(() => {
+    if (!userId) {
+      setEntries([]);
+      setLoading(false);
+      setError(undefined);
+      return;
+    }
+
     setLoading(true);
-    const unsubscribe = subscribeToTbrEntries(
+    const unsubscribe = subscribeToTBR(
       userId,
-      (entries) => {
+      (next) => {
+        log.debug('useTBR', 'snapshot received', { count: next.length });
+        setEntries(next);
+        setError(undefined);
         setLoading(false);
-        setTbrEntries(entries);
       },
       (err) => {
         log.error('useTBR', err);
@@ -27,9 +35,5 @@ export function useTBR(userId: string) {
     return unsubscribe;
   }, [userId]);
 
-  useEffect(() => {
-    if (error) log.error('useTBR', error);
-  }, [error]);
-
-  return { tbrEntries, loading, error };
+  return { entries, loading, error };
 }

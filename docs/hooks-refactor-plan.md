@@ -1,46 +1,46 @@
-# Hooks Refactor Plan: Extract Data Access to Repository Layer
+# Hooks Refactor: Data Access in the Repository Layer
 
-This document outlines the architectural refactoring plan to extract all data access logic from hooks in `@app/web/src/hooks/` into repository implementations in `@app/web/src/data/`.
+**Status: complete.** Every Firestore read in `app/web/src/hooks/` now goes through a module in `app/web/src/data/`.
 
-The goal is to achieve clean layering where hooks depend only on the data layer, not directly on Firebase or `react-firebase-hooks`.
+## Rules
 
-Reference commits:
+1. Hooks import from `../data/*` only — never `firebase/firestore`, `../lib/firebase`, or `react-firebase-hooks/firestore`.
+2. A repository exports `subscribeToX(…, onData, onError) => unsubscribe` and a `XRepository` interface describing it.
+3. Mapping Firestore documents to domain types lives in the repository (`toBook`, `toReading`, `toTBREntry`, `toUserProfile`), not the hook.
+4. Mappers tolerate a pending `serverTimestamp()` (null until the write lands) by falling back to `new Date()`.
+5. Hooks own `loading` / `error` / data state, clear `error` on a good snapshot, and log through `log.debug` / `log.error` under their own name.
+6. A hook taking a `userId` returns empty and does not subscribe when it is blank — an empty path segment throws in Firestore.
+7. Repository tests mock `firebase/firestore`; hook tests mock the repository. Neither loads both.
 
-- `8305241` - refactor: back useBooks with a subscribeToBooks repository seam
-- `1af08d9` - refactor: back useReadings with a subscribeToReadings repository seam
+## Layout
 
----
+| Hook             | Repository                                       | Query                                            |
+| ---------------- | ------------------------------------------------ | ------------------------------------------------ |
+| `useBooks`       | `data/books.ts` → `subscribeToBooks`             | `/books`                                         |
+| `useReadings`    | `data/readings.ts` → `subscribeToReadings`       | `/users/{id}/readings`, `readAt desc`            |
+| `useAllReadings` | `data/readings.ts` → `subscribeToAllReadings`    | `readings` collection group, grouped by owner id |
+| `useTBR`         | `data/tbr.ts` → `subscribeToTBR`                 | `/users/{id}/tbr`, `addedAt desc`                |
+| `useUsers`       | `data/users.ts` → `subscribeToUsers`             | `/users`                                         |
+| `useUserProfile` | `data/userProfile.ts` → `subscribeToUserProfile` | `/users/{id}`                                    |
 
-## Already Refactored
+`subscribeToAllReadings` shares `data/readings.ts` with the per-user query rather than getting its own module, so both reuse `toReading`.
 
-- **useBooks.ts** - uses `subscribeToBooks` from `../data/books`
-- **useReadings.ts** - uses `subscribeToReadings` from `../data/readings`
+`toUserProfile` lives in `data/users.ts` and is reused by `data/userProfile.ts`. It takes a `DocumentSnapshot`, not a `QueryDocumentSnapshot`, so the single-document read can pass its snapshot through.
 
----
+## Contracts worth not re-deriving
 
-## Remaining Hooks to Refactor
+- `useUserProfile` returns `profile: undefined` both while loading and when `/users/{id}` does not exist. A missing profile is a normal outcome — the leaderboard links to any user id present in the readings collection group. Callers must check `loading` before treating an absent profile as "not found".
+- `data/readings.ts` also exports `getReadingsByUser`, a one-shot `getDocs` fetch for non-reactive callers (scoring, exports, integration tests).
 
-- **useAllReadings.ts** → Create `data/allReadings.ts`
-  - Define `AllReadingsRepository` interface with `subscribeToAllReadings(onData, onError) => unsubscribe`
-  - Implement `subscribeToAllReadings` using `collectionGroup(db, 'readings')` with `onSnapshot`
-  - Add `toReading` helper that extracts `userId` from doc ref path (`doc.ref.parent.parent?.id`) and maps to `Reading`
-  - Return `Map<string, Reading[]>` grouped by userId
-  - Hook becomes thin wrapper: calls repository, manages `readingsByUser`, `loading`, `error` state
+## Out of scope
 
-- **useTBR.ts** → Create `data/tbr.ts`
-  - Define `TBRRepository` interface with `subscribeToTBR(userId, onData, onError) => unsubscribe`
-  - Implement `subscribeToTBR` using `collection(db, 'users', userId, 'tbr')` with `onSnapshot`
-  - Add `toTBREntry` helper that maps Firestore doc to `TBREntry` with id
-  - Hook becomes thin wrapper: calls repository, manages `entries`, `loading`, `error` state, handles empty `userId` case
+`App.tsx` still uses `react-firebase-hooks/auth` for `useAuthState`. This plan covered Firestore reads only; the auth seam is untouched.
 
-- **useUsers.ts** → Create `data/users.ts`
-  - Define `UsersRepository` interface with `subscribeToUsers(onData, onError) => unsubscribe`
-  - Implement `subscribeToUsers` using `collection(db, 'users')` with `onSnapshot`
-  - Add `toUserProfile` helper that maps Firestore doc to `UserProfile` with id, name, photoURL
-  - Hook becomes thin wrapper: calls repository, manages `users`, `loading`, `error` state
+## Reference commits
 
-- **useUserProfile.ts** → Create `data/userProfile.ts`
-  - Define `UserProfileRepository` interface with `subscribeToUserProfile(userId, onData, onError) => unsubscribe`
-  - Implement `subscribeToUserProfile` using `doc(db, 'users', userId)` with `onSnapshot`
-  - Add `toUserProfile` helper (reusable from users.ts) that maps Firestore doc snapshot to `UserProfile`
-  - Hook becomes thin wrapper: calls repository, manages `profile`, `loading`, `error` state, handles undefined snapshot case
+| Commit    | Change                                                                |
+| --------- | --------------------------------------------------------------------- |
+| `1af08d9` | `useReadings` seam — the template                                     |
+| `8305241` | `useBooks` seam                                                       |
+| `31ecf2d` | `useTBR` and `useAllReadings` seams                                   |
+| `78af58b` | Corrections to `31ecf2d` (blank-userId guard, naming, error handling) |

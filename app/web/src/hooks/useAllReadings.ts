@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { log } from '@bookbingo/lib-util';
 import type { Reading } from '@bookbingo/lib-types';
-import { subscribeToAllReadings } from 'src/data/readings';
+import { subscribeToAllReadings } from '../data/readings';
 
 export function useAllReadings(): {
   readingsByUser: Map<string, Reading[]>;
@@ -18,7 +18,7 @@ export function useAllReadings(): {
     setLoading(true);
     const unsubscribe = subscribeToAllReadings(
       (next) => {
-        log.debug('useReadings', 'snapshot received', { count: next.size });
+        log.debug('useAllReadings', 'snapshot received', { users: next.size });
         setReadingsByUser(next);
         setError(undefined);
         setLoading(false);
@@ -29,6 +29,7 @@ export function useAllReadings(): {
         setLoading(false);
       },
     );
+
     return unsubscribe;
   }, []);
 
