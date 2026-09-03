@@ -1,48 +1,36 @@
-import { useEffect, useMemo } from 'react';
-import { useCollection } from 'react-firebase-hooks/firestore';
-import { collectionGroup } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { useEffect, useState } from 'react';
 import { log } from '@bookbingo/lib-util';
 import type { Reading } from '@bookbingo/lib-types';
+import { subscribeToAllReadings } from 'src/data/readings';
 
 export function useAllReadings(): {
   readingsByUser: Map<string, Reading[]>;
   loading: boolean;
   error: Error | undefined;
 } {
-  const [snapshot, loading, error] = useCollection(
-    collectionGroup(db, 'readings'),
+  const [readingsByUser, setReadingsByUser] = useState<Map<string, Reading[]>>(
+    new Map(),
   );
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error>();
 
   useEffect(() => {
-    if (error) log.error('useAllReadings', error);
-  }, [error]);
-
-  const readingsByUser = useMemo(() => {
-    const map = new Map<string, Reading[]>();
-    if (!snapshot) return map;
-
-    for (const doc of snapshot.docs) {
-      const userId = doc.ref.parent.parent?.id;
-      if (!userId) continue;
-
-      const data = doc.data();
-      const reading: Reading = {
-        ...data,
-        // Fallback to empty string for legacy data missing bookId
-        bookId: data.bookId || '',
-        id: doc.id,
-      } as Reading;
-      const existing = map.get(userId);
-      if (existing) {
-        existing.push(reading);
-      } else {
-        map.set(userId, [reading]);
-      }
-    }
-
-    return map;
-  }, [snapshot]);
+    setLoading(true);
+    const unsubscribe = subscribeToAllReadings(
+      (next) => {
+        log.debug('useReadings', 'snapshot received', { count: next.size });
+        setReadingsByUser(next);
+        setError(undefined);
+        setLoading(false);
+      },
+      (err) => {
+        log.error('useAllReadings', err);
+        setError(err);
+        setLoading(false);
+      },
+    );
+    return unsubscribe;
+  }, []);
 
   return { readingsByUser, loading, error };
 }

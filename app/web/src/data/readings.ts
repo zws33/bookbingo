@@ -1,5 +1,4 @@
 import type { Reading } from '@bookbingo/lib-types';
-
 import {
   collection,
   collectionGroup,
@@ -21,16 +20,11 @@ export interface ReadingRepository {
   ): () => void;
 }
 
-/** One-shot fetch. For non-reactive callers (scoring, exports, integration tests). */
 export async function getReadingsByUser(userId: string): Promise<Reading[]> {
   const snap = await getDocs(readingsQuery(userId));
   return snap.docs.map(toReading);
 }
 
-/**
- * Live subscription. Pushes the full ordered list on every change and returns
- * an unsubscribe function. Primary path for UI hooks.
- */
 export function subscribeToReadings(
   userId: string,
   onData: (readings: Reading[]) => void,
@@ -40,6 +34,24 @@ export function subscribeToReadings(
     readingsQuery(userId),
     (snap) => onData(snap.docs.map(toReading)),
     onError,
+  );
+}
+
+export function subscribeToAllReadings(
+  onData: (readingsByUser: Map<string, Reading[]>) => void,
+  onError: (error: Error) => void,
+): () => void {
+  return onSnapshot(
+    collectionGroup(db, 'readings'),
+    (snap) => onData(readingsByUser(snap)),
+    onError,
+  );
+}
+
+function readingsQuery(userId: string) {
+  return query(
+    collection(db, 'users', userId, 'readings'),
+    orderBy('readAt', 'desc'),
   );
 }
 
@@ -60,24 +72,6 @@ function readingsByUser(snapshot: QuerySnapshot) {
   }
 
   return map;
-}
-
-export function subscribeToAllReadings(
-  onData: (readingsByUser: Map<string, Reading[]>) => void,
-  onError: (error: Error) => void,
-): () => void {
-  return onSnapshot(
-    collectionGroup(db, 'readings'),
-    (snap) => onData(readingsByUser(snap)),
-    onError,
-  );
-}
-
-function readingsQuery(userId: string) {
-  return query(
-    collection(db, 'users', userId, 'readings'),
-    orderBy('readAt', 'desc'),
-  );
 }
 
 function toReading(doc: QueryDocumentSnapshot): Reading {
