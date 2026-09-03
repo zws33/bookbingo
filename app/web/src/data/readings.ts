@@ -89,13 +89,10 @@ export async function createReading(
 ): Promise<string> {
   log.debug('readings', 'createReading', { bookId, tiles, isFreebie });
   try {
-    const docRef = await addDoc(collection(db, 'users', userId, 'readings'), {
-      bookId,
-      tiles,
-      isFreebie,
-      readAt: serverTimestamp(),
-      createdAt: serverTimestamp(),
-    });
+    const docRef = await addDoc(
+      readingsCollection(userId),
+      newReadingFields(bookId, tiles, isFreebie),
+    );
     log.event('add_reading', { reading_id: docRef.id, book_id: bookId });
     return docRef.id;
   } catch (error) {
@@ -118,7 +115,7 @@ export async function updateReading(
     isFreebie,
   });
   try {
-    await updateDoc(doc(db, 'users', userId, 'readings', readingId), {
+    await updateDoc(readingDoc(userId, readingId), {
       bookId,
       tiles,
       isFreebie,
@@ -137,7 +134,7 @@ export async function deleteReading(
 ): Promise<void> {
   log.debug('readings', 'deleteReading', { readingId });
   try {
-    await deleteDoc(doc(db, 'users', userId, 'readings', readingId));
+    await deleteDoc(readingDoc(userId, readingId));
     log.event('delete_reading', { reading_id: readingId });
   } catch (error) {
     log.error('readings', error);
@@ -145,11 +142,39 @@ export async function deleteReading(
   }
 }
 
+/**
+ * The one place the readings collection path is written. Exported because
+ * data/tbr.ts writes into this collection too — `promoteTBREntry` batches a
+ * reading create with a TBR delete, so it cannot go through `createReading`.
+ */
+export function readingsCollection(userId: string) {
+  return collection(db, 'users', userId, 'readings');
+}
+
+/**
+ * Field set for a newly created reading. Shared with the promote path in
+ * data/tbr.ts so both writers agree on the document shape.
+ */
+export function newReadingFields(
+  bookId: string,
+  tiles: string[],
+  isFreebie: boolean,
+) {
+  return {
+    bookId,
+    tiles,
+    isFreebie,
+    readAt: serverTimestamp(),
+    createdAt: serverTimestamp(),
+  };
+}
+
+function readingDoc(userId: string, readingId: string) {
+  return doc(db, 'users', userId, 'readings', readingId);
+}
+
 function readingsQuery(userId: string) {
-  return query(
-    collection(db, 'users', userId, 'readings'),
-    orderBy('readAt', 'desc'),
-  );
+  return query(readingsCollection(userId), orderBy('readAt', 'desc'));
 }
 
 /** Groups a collection-group snapshot by the user id in each doc's ref path. */

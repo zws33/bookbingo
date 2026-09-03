@@ -9,7 +9,7 @@ import {
   updateTBREntry,
   deleteTBREntry,
   promoteTBREntry,
-} from '../lib/tbr';
+} from '../data/tbr';
 import { BookForm, type BookFormData } from '../components/BookForm.js';
 import { BookSearch } from '../components/BookSearch';
 import { BookCard } from '../components/BookCard';

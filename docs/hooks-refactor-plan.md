@@ -1,6 +1,6 @@
 # Hooks Refactor: Data Access in the Repository Layer
 
-**Status: complete.** Every Firestore read in `app/web/src/hooks/` now goes through a module in `app/web/src/data/`. Book and reading **writes** followed (`books-data-consolidation-plan.md`); `lib/tbr.ts` and `lib/users.ts` are the only Firestore access left outside `data/`.
+**Status: complete.** Every Firestore read in `app/web/src/hooks/` now goes through a module in `app/web/src/data/`. Book, reading, and TBR **writes** followed (`books-data-consolidation-plan.md`); `lib/users.ts` is the only Firestore access left outside `data/`.
 
 ## Rules
 
@@ -25,10 +25,14 @@
 
 Writes are grouped by the collection they touch, not by the feature that calls them:
 
-| Write                                               | Repository         | Target                       |
-| --------------------------------------------------- | ------------------ | ---------------------------- |
-| `getOrCreateBook`                                   | `data/books.ts`    | `/books/{deriveBookId(...)}` |
-| `createReading` / `updateReading` / `deleteReading` | `data/readings.ts` | `/users/{id}/readings`       |
+| Write                                                  | Repository         | Target                                            |
+| ------------------------------------------------------ | ------------------ | ------------------------------------------------- |
+| `getOrCreateBook`                                      | `data/books.ts`    | `/books/{deriveBookId(...)}`                      |
+| `createReading` / `updateReading` / `deleteReading`    | `data/readings.ts` | `/users/{id}/readings`                            |
+| `createTBREntry` / `updateTBREntry` / `deleteTBREntry` | `data/tbr.ts`      | `/users/{id}/tbr`                                 |
+| `promoteTBREntry`                                      | `data/tbr.ts`      | batch: `/users/{id}/readings` + `/users/{id}/tbr` |
+
+`promoteTBREntry` writes across both collections in one `writeBatch`, so it cannot call `createReading` (which commits its own write). It imports `readingsCollection` and `newReadingFields` from `data/readings.ts` instead, keeping the readings path and document shape in one module.
 
 `subscribeToAllReadings` shares `data/readings.ts` with the per-user query rather than getting its own module, so both reuse `toReading`.
 
@@ -43,7 +47,7 @@ Writes are grouped by the collection they touch, not by the feature that calls t
 
 `App.tsx` still uses `react-firebase-hooks/auth` for `useAuthState`. This plan covered Firestore reads only; the auth seam is untouched.
 
-`lib/tbr.ts` (including `promoteTBREntry`, which writes a reading doc via `writeBatch`) and `lib/users.ts` still call Firestore directly. Until they move, the `no-restricted-imports` rule blocking `firebase/firestore` outside `data/` cannot be enabled.
+`lib/users.ts` (`saveUserProfile`, called from the auth flow) still writes `/users/{id}` directly. Until it moves, the `no-restricted-imports` rule blocking `firebase/firestore` outside `data/` cannot be enabled.
 
 ## Reference commits
 

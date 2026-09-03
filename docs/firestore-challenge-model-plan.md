@@ -40,7 +40,7 @@ Approximates the SQL sketch in `docs/product-model-brainstorm.md` as a Firestore
 - `lib/core/src/scoring.ts` — **no change** (vocabulary-agnostic).
 - `firestore.rules` — new `/challenges/**` matchers; membership-gated reads/writes; `request.resource.data.userId == request.auth.uid` on reading writes.
 - `firestore.indexes.json` — collectionGroup index on `readings.userId` (a user's readings across challenges); `challengeId` not needed (path-scoped).
-- `app/web/src/data/*`, `lib/tbr.ts` — repoint reading paths from `/users/{uid}/readings` to `/challenges/{cid}/readings`; add challenge context/selection.
+- `app/web/src/data/*` — repoint reading paths from `/users/{uid}/readings` to `/challenges/{cid}/readings`; add challenge context/selection.
 - `scripts/` — new migration script; update seed scripts.
 
 ## Ordered phases

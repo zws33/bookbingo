@@ -47,5 +47,5 @@ Every Firestore read **and write** for books and readings lives in `data/`, grou
 ## Risks
 
 - `getOrCreateBook` is a get-then-set with `{ merge: true }`; the integration test asserts a deterministic id from `deriveBookId`. Move the test body verbatim — do not restate the assertions.
-- The `no-restricted-imports` rule blocking `firebase/firestore` outside `data/` stays off until `lib/tbr.ts` and `lib/users.ts` move too. Out of scope here.
-- `lib/tbr.ts` `promoteTBREntry` writes a reading doc inline via `writeBatch`. It will be the last reading write outside `data/readings.ts`. Follow-up, not this change.
+- The `no-restricted-imports` rule blocking `firebase/firestore` outside `data/` stays off until `lib/users.ts` moves too.
+- `lib/tbr.ts` followed in a second pass: all four writes moved to `data/tbr.ts`, and `promoteTBREntry` now borrows `readingsCollection` / `newReadingFields` from `data/readings.ts` rather than restating the reading document shape.
