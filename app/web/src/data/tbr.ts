@@ -15,7 +15,7 @@ import {
 } from 'firebase/firestore';
 import { log } from '@bookbingo/lib-util';
 import { db } from '../lib/firebase';
-import { newReadingFields, readingsCollection } from './readings';
+import { readingsCollection, newReadingFields } from './readings';
 
 export interface TBRRepository {
   subscribeToTBR(
@@ -132,7 +132,7 @@ export async function promoteTBREntry(
 ): Promise<string> {
   try {
     const batch = writeBatch(db);
-    const readingRef = doc(readingsCollection(userId));
+    const readingRef = doc(readingsCollection(userId), tbrId);
 
     batch.set(readingRef, newReadingFields(bookId, tiles, isFreebie));
     batch.delete(tbrDoc(userId, tbrId));

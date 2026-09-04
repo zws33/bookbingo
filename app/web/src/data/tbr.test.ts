@@ -9,14 +9,17 @@ const DELETE_FIELD = { __sentinel: 'deleteField' };
 
 vi.mock('firebase/firestore', () => ({
   collection: vi.fn((_db, ...path: string[]) => ({ path: path.join('/') })),
-  // doc(db, ...segments) addresses an existing document; doc(collectionRef)
-  // with no segments is the "let Firestore generate the id" form that
-  // promoteTBREntry uses to build a reading ref before committing.
-  doc: vi.fn((ref: { path?: string }, ...path: string[]) =>
-    path.length === 0 && typeof ref?.path === 'string'
-      ? { path: `${ref.path}/generated-id`, id: 'generated-id' }
-      : { path: path.join('/') },
-  ),
+  // Two overloads are in play: doc(db, ...segments) addresses a document by
+  // absolute path, while doc(collectionRef, id) resolves against the parent
+  // collection. doc(collectionRef) with no segments is the "let Firestore
+  // generate the id" form. All three yield a ref carrying both path and id.
+  doc: vi.fn((ref: { path?: string }, ...path: string[]) => {
+    const base = typeof ref?.path === 'string' ? `${ref.path}/` : '';
+    if (path.length === 0) {
+      return { path: `${base}generated-id`, id: 'generated-id' };
+    }
+    return { path: `${base}${path.join('/')}`, id: path.at(-1) };
+  }),
   query: vi.fn((ref, ...constraints) => ({ ref, constraints })),
   orderBy: vi.fn((field, direction) => ({ field, direction })),
   addDoc: vi.fn(),
@@ -52,6 +55,8 @@ const mockAddDoc = vi.mocked(addDoc);
 const mockUpdateDoc = vi.mocked(updateDoc);
 const mockDeleteDoc = vi.mocked(deleteDoc);
 const mockWriteBatch = vi.mocked(writeBatch);
+
+const TBR_ID = 'tbr-1';
 
 /** WriteBatch stand-in: records set/delete calls and resolves on commit. */
 function stubBatch() {
@@ -112,7 +117,7 @@ describe('subscribeToTBR', () => {
     pushSnapshot(
       makeSnapshot([
         {
-          id: 'tbr-1',
+          id: TBR_ID,
           data: {
             bookId: 'book-1',
             plannedTiles: ['sci-fi'],
@@ -126,7 +131,7 @@ describe('subscribeToTBR', () => {
 
     expect(onData).toHaveBeenCalledWith([
       {
-        id: 'tbr-1',
+        id: TBR_ID,
         bookId: 'book-1',
         plannedTiles: ['sci-fi'],
         notes: 'Borrowed from library',
@@ -152,7 +157,7 @@ describe('subscribeToTBR', () => {
     pushSnapshot(
       makeSnapshot([
         {
-          id: 'tbr-1',
+          id: TBR_ID,
           data: {
             bookId: 'book-1',
             plannedTiles: [],
@@ -189,11 +194,10 @@ describe('subscribeToTBR', () => {
 
 describe('TBR writes', () => {
   it('createTBREntry adds to the user tbr subcollection and returns the id', async () => {
-    mockAddDoc.mockResolvedValue({ id: 'tbr-1' } as never);
+    mockAddDoc.mockResolvedValue({ id: TBR_ID } as never);
+    const entryId = await createTBREntry('user-1', 'book-1', ['sci-fi']);
 
-    const id = await createTBREntry('user-1', 'book-1', ['sci-fi']);
-
-    expect(id).toBe('tbr-1');
+    expect(entryId).toBe(TBR_ID);
     expect(mockAddDoc).toHaveBeenCalledWith(
       { path: 'users/user-1/tbr' },
       {
@@ -205,7 +209,7 @@ describe('TBR writes', () => {
   });
 
   it('createTBREntry trims notes and omits the field when blank', async () => {
-    mockAddDoc.mockResolvedValue({ id: 'tbr-1' } as never);
+    mockAddDoc.mockResolvedValue({ id: TBR_ID } as never);
 
     await createTBREntry('user-1', 'book-1', [], '  a note  ');
     expect(mockAddDoc.mock.calls[0]![1]).toMatchObject({ notes: 'a note' });
@@ -217,10 +221,10 @@ describe('TBR writes', () => {
   it('updateTBREntry clears notes with deleteField when blank', async () => {
     mockUpdateDoc.mockResolvedValue(undefined);
 
-    await updateTBREntry('user-1', 'tbr-1', ['mystery'], '');
+    await updateTBREntry('user-1', TBR_ID, ['mystery'], '');
 
     expect(mockUpdateDoc).toHaveBeenCalledWith(
-      { path: 'users/user-1/tbr/tbr-1' },
+      { path: 'users/user-1/tbr/tbr-1', id: TBR_ID },
       {
         plannedTiles: ['mystery'],
         notes: DELETE_FIELD,
@@ -232,10 +236,11 @@ describe('TBR writes', () => {
   it('deleteTBREntry targets the entry document', async () => {
     mockDeleteDoc.mockResolvedValue(undefined);
 
-    await deleteTBREntry('user-1', 'tbr-1');
+    await deleteTBREntry('user-1', TBR_ID);
 
     expect(mockDeleteDoc).toHaveBeenCalledWith({
       path: 'users/user-1/tbr/tbr-1',
+      id: TBR_ID,
     });
   });
 
@@ -244,17 +249,17 @@ describe('TBR writes', () => {
 
     const readingId = await promoteTBREntry(
       'user-1',
-      'tbr-1',
+      TBR_ID,
       'book-1',
       ['sci-fi'],
       true,
     );
 
-    expect(readingId).toBe('generated-id');
+    expect(readingId).toBe(TBR_ID);
     // The reading lands in the readings collection, not under tbr.
     expect(collection).toHaveBeenCalledWith({}, 'users', 'user-1', 'readings');
     expect(batch.set).toHaveBeenCalledWith(
-      { path: 'users/user-1/readings/generated-id', id: 'generated-id' },
+      { path: 'users/user-1/readings/tbr-1', id: TBR_ID },
       {
         bookId: 'book-1',
         tiles: ['sci-fi'],
@@ -265,6 +270,7 @@ describe('TBR writes', () => {
     );
     expect(batch.delete).toHaveBeenCalledWith({
       path: 'users/user-1/tbr/tbr-1',
+      id: TBR_ID,
     });
     // One commit — the two writes must land together or not at all.
     expect(batch.commit).toHaveBeenCalledOnce();
@@ -279,7 +285,7 @@ describe('TBR writes', () => {
     batch.commit.mockRejectedValue(failure);
 
     await expect(
-      promoteTBREntry('user-1', 'tbr-1', 'book-1', [], false),
+      promoteTBREntry('user-1', TBR_ID, 'book-1', [], false),
     ).rejects.toThrow(failure);
 
     expect(consoleError).toHaveBeenCalled();
