@@ -3,7 +3,7 @@ import { CatalogPage } from './pages/CatalogPage';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { signInWithPopup, signOut } from 'firebase/auth';
 import { auth, googleProvider } from './lib/firebase';
-import { saveUserProfile } from './lib/users';
+import { saveUserProfile } from './data/userProfile';
 import { useReadings } from './hooks/useReadings';
 import { useBooks } from './hooks/useBooks';
 import { BingoBoard } from './components/BingoBoard';

@@ -1,4 +1,11 @@
-import { doc, onSnapshot, type DocumentSnapshot } from 'firebase/firestore';
+import {
+  doc,
+  setDoc,
+  serverTimestamp,
+  onSnapshot,
+  type DocumentSnapshot,
+} from 'firebase/firestore';
+import type { User } from 'firebase/auth';
 import { db } from '../lib/firebase';
 import { toUserProfile } from './users';
 import type { UserProfile } from '../types';
@@ -11,6 +18,17 @@ export interface UserProfileRepository {
   ): () => void;
 }
 
+export async function saveUserProfile(user: User): Promise<void> {
+  await setDoc(
+    doc(db, 'users', user.uid),
+    {
+      name: user.displayName ?? 'User',
+      photoURL: user.photoURL ?? null,
+      updatedAt: serverTimestamp(),
+    },
+    { merge: true },
+  );
+}
 /**
  * Live subscription to a single /users/{id} document. Pushes the mapped
  * profile on every change and returns an unsubscribe function.
