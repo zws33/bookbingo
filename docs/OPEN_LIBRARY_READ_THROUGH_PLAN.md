@@ -21,10 +21,10 @@ Implements the **near-term + mid-term** horizons of
 | --------------------------------------------------------------------- | -------------------------------------------------------- |
 | Client already has the OL work key at selection time                  | `app/web/src/components/BookSearch.tsx:46-50`            |
 | `deriveBookId` is pure, in `lib/core`, callable from browser and Node | `lib/core/src/bookIdentity.ts:36`                        |
-| A direct `/books` read already exists                                 | `app/web/src/lib/books.ts:75` (`getBook`)                |
+| No single-book `/books` read exists — PR 3 adds one                   | `app/web/src/data/books.ts` (`getBook` removed, unused)  |
 | `lookup` is 3 **sequential** fetches                                  | `functions/src/books/providers/open-library.ts:67,73,74` |
 | `enrichBook` is stateless — no Firestore access at all today          | `functions/src/books/{handler,service}.ts`               |
-| `/books` is written **only** client-side                              | `app/web/src/lib/books.ts:30` (`getOrCreateBook`)        |
+| `/books` is written **only** client-side                              | `app/web/src/data/books.ts` (`getOrCreateBook`)          |
 | `functions/` does **not** depend on `@bookbingo/lib-core`             | `functions/package.json`                                 |
 | No Firestore rules test harness exists                                | repo-wide                                                |
 
@@ -201,9 +201,10 @@ without the other creates the dead-end path the ADR warns about.
 
 **Web side:**
 
-- `app/web/src/lib/books.ts`: add `toFreshnessInput(book: Book)` — the client's
-  `Timestamp → epoch ms` adapter. This file already imports Firebase, so the
-  conversion stays where Firebase types already live.
+- `app/web/src/data/books.ts`: add `getBook(bookId)` (the unused original was
+  removed in the data-layer consolidation) and `toFreshnessInput(book: Book)` —
+  the client's `Timestamp → epoch ms` adapter. This module owns every `/books`
+  read and write, so the conversion stays where Firebase types already live.
 - `app/web/src/lib/bookSearch.ts`: add `toEnrichmentResult(book: Book)` adapter
   (resolves the `Book` → `BookEnrichmentResult` mismatch from §0 constraint 2).
 - `BookSearch.tsx handleSelect`: derive id → `getBook` → freshness check →
@@ -285,7 +286,7 @@ follow-up. This phase is justified by latency, cost, and OL-guidance alignment,
 
 **5.1 — Timestamp representation: primitive at the boundary.**
 `isMetadataFresh` takes epoch ms, never a `Date` or `Timestamp`. Two adapters
-convert: `toFreshnessInput` in `app/web/src/lib/books.ts` (client SDK) and the
+convert: `toFreshnessInput` in `app/web/src/data/books.ts` (client SDK) and the
 admin `BookStore` implementation in `functions/src/books/store.ts`. This keeps
 `lib/core` pure — the `lib/` ↔ Firebase boundary CLAUDE.md defends — and
 confines Firebase's `Timestamp` to the two files that already import Firebase.

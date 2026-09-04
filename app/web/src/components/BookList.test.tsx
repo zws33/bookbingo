@@ -5,16 +5,20 @@ import type { Book, Reading } from '@bookbingo/lib-types';
 import { render } from '../testing/test-utils';
 import { BookList } from './BookList';
 
-// Mock only the I/O boundary — the Firestore-backed service layer. BookList is
-// otherwise props-driven (readings + booksById are passed in), so nothing else
-// needs stubbing. We assert the contract each service call must satisfy.
-vi.mock('../lib/books', () => ({
+// Mock only the I/O boundary — the Firestore-backed repository layer. BookList
+// is otherwise props-driven (readings + booksById are passed in), so nothing
+// else needs stubbing. We assert the contract each repository call must satisfy.
+vi.mock('../data/books', () => ({
   getOrCreateBook: vi.fn(),
+}));
+
+vi.mock('../data/readings', () => ({
   updateReading: vi.fn(),
   deleteReading: vi.fn(),
 }));
 
-import { getOrCreateBook, updateReading, deleteReading } from '../lib/books';
+import { getOrCreateBook } from '../data/books';
+import { updateReading, deleteReading } from '../data/readings';
 
 const getOrCreateBookMock = vi.mocked(getOrCreateBook);
 const updateReadingMock = vi.mocked(updateReading);

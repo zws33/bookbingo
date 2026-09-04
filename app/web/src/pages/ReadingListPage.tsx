@@ -3,13 +3,13 @@ import type { Book, TBREntry } from '@bookbingo/lib-types';
 import { useTBR } from '../hooks/useTBR';
 import { useBooks } from '../hooks/useBooks';
 import { useToast } from '../lib/ToastContext';
-import { getOrCreateBook } from '../lib/books';
+import { getOrCreateBook } from '../data/books';
 import {
   createTBREntry,
   updateTBREntry,
   deleteTBREntry,
   promoteTBREntry,
-} from '../lib/tbr';
+} from '../data/tbr';
 import { BookForm, type BookFormData } from '../components/BookForm.js';
 import { BookSearch } from '../components/BookSearch';
 import { BookCard } from '../components/BookCard';

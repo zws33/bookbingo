@@ -1,5 +1,5 @@
 /**
- * Integration tests for getReadingsByUser against the Firestore emulator.
+ * Integration tests for the readings repository against the Firestore emulator.
  *
  * Requires the Firebase emulator to be running:
  *   pnpm --filter @bookbingo/web emulator:start
@@ -13,11 +13,17 @@ import {
   collection,
   deleteDoc,
   doc,
+  getDoc,
   setDoc,
 } from 'firebase/firestore';
 import { signInAnonymously } from 'firebase/auth';
 import { db, auth } from '../lib/firebase';
-import { getReadingsByUser } from './readings';
+import {
+  createReading,
+  deleteReading,
+  getReadingsByUser,
+  updateReading,
+} from './readings';
 
 // A fresh anonymous user per run keeps writes isolated from other suites.
 let TEST_USER_ID: string;
@@ -132,5 +138,51 @@ describe('getReadingsByUser integration (emulator)', () => {
     // A distinct, unseeded user id — no docs under its readings subcollection.
     const readings = await getReadingsByUser(`${TEST_USER_ID}-empty`);
     expect(readings).toEqual([]);
+  });
+});
+
+describe('reading writes integration (emulator)', () => {
+  // Readings store a bookId but Firestore does not enforce the reference, so
+  // these use literal ids rather than round-tripping through getOrCreateBook.
+  it('createReading writes the document and returns its id', async () => {
+    const id = await createReading(TEST_USER_ID, 'book-1', ['sci-fi'], false);
+    createdReadingIds.push(id);
+
+    const snap = await getDoc(doc(db, 'users', TEST_USER_ID, 'readings', id));
+    expect(snap.exists()).toBe(true);
+    const data = snap.data()!;
+    expect(data.bookId).toBe('book-1');
+    expect(data.tiles).toEqual(['sci-fi']);
+    expect(data.isFreebie).toBe(false);
+    expect(data.readAt).toBeTruthy();
+    expect(data.createdAt).toBeTruthy();
+  });
+
+  it('updateReading replaces bookId, tiles, isFreebie and sets updatedAt', async () => {
+    const id = await createReading(
+      TEST_USER_ID,
+      'book-old',
+      ['mystery'],
+      false,
+    );
+    createdReadingIds.push(id);
+
+    await updateReading(TEST_USER_ID, id, 'book-new', ['sci-fi'], true);
+
+    const snap = await getDoc(doc(db, 'users', TEST_USER_ID, 'readings', id));
+    const data = snap.data()!;
+    expect(data.bookId).toBe('book-new');
+    expect(data.tiles).toEqual(['sci-fi']);
+    expect(data.isFreebie).toBe(true);
+    expect(data.updatedAt).toBeTruthy();
+  });
+
+  it('deleteReading removes the document', async () => {
+    const id = await createReading(TEST_USER_ID, 'book-1', [], false);
+
+    await deleteReading(TEST_USER_ID, id);
+
+    const snap = await getDoc(doc(db, 'users', TEST_USER_ID, 'readings', id));
+    expect(snap.exists()).toBe(false);
   });
 });

@@ -7,7 +7,8 @@ import { BookForm, type BookFormData } from './BookForm';
 import { EmptyState } from './EmptyState';
 import { SearchFilter } from './SearchFilter';
 import { useToast } from '../lib/ToastContext';
-import { getOrCreateBook, updateReading, deleteReading } from '../lib/books';
+import { getOrCreateBook } from '../data/books';
+import { updateReading, deleteReading } from '../data/readings';
 import { log } from '@bookbingo/lib-util';
 import { PageStatus } from './PageStatus';
 

@@ -38,7 +38,7 @@ pnpm --filter @bookbingo/lib-core exec node --import tsx --test --test-name-patt
 pnpm --filter @bookbingo/functions exec node --import tsx --test src/feedback/handler.test.ts
 
 # Web integration tests (Firebase emulator-backed)
-pnpm exec firebase emulators:exec --project demo-bookbingo 'pnpm --filter @bookbingo/web exec vitest run --config vitest.config.int.ts src/lib/books.int.test.ts'
+pnpm exec firebase emulators:exec --project demo-bookbingo 'pnpm --filter @bookbingo/web exec vitest run --config vitest.config.int.ts src/data/readings.int.test.ts'
 ```
 
 `pnpm run verify` is the same chain CI runs locally: `format:check -> lint -> build -> test -> typecheck`.

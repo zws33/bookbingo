@@ -21,7 +21,7 @@ Run targeted tests with the package's native runner instead of the root aggregat
 - Web unit test: `pnpm --filter @bookbingo/web exec vitest run src/components/BookForm.test.tsx`
 - Shared library test: `pnpm --filter @bookbingo/lib-core exec node --import tsx --test src/scoring.test.ts`
 - Functions test: `pnpm --filter @bookbingo/functions exec node --import tsx --test src/feedback/handler.test.ts`
-- Web integration test: `pnpm exec firebase emulators:exec --project demo-bookbingo 'pnpm --filter @bookbingo/web exec vitest run --config vitest.config.int.ts src/lib/books.int.test.ts'`
+- Web integration test: `pnpm exec firebase emulators:exec --project demo-bookbingo 'pnpm --filter @bookbingo/web exec vitest run --config vitest.config.int.ts src/data/readings.int.test.ts'`
 
 ## Architecture
 
