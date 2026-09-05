@@ -33,8 +33,64 @@ describe('auth service', () => {
 
     const result = subscribeToAuthState(onData, onError);
 
-    expect(onAuthStateChanged).toHaveBeenCalledWith(auth, onData, onError);
+    expect(onAuthStateChanged).toHaveBeenCalledWith(
+      auth,
+      expect.any(Function),
+      onError,
+    );
     expect(result).toBe(unsubscribe);
+  });
+
+  it('forwards a null user straight through to onData', () => {
+    const onData = vi.fn();
+    const onError = vi.fn();
+    vi.mocked(onAuthStateChanged).mockImplementation((_auth, callback) => {
+      (callback as (user: User | null) => void)(null);
+      return vi.fn();
+    });
+
+    subscribeToAuthState(onData, onError);
+
+    expect(onData).toHaveBeenCalledWith(null);
+    expect(onError).not.toHaveBeenCalled();
+  });
+
+  it('narrows a valid Firebase user to AuthUser before calling onData', () => {
+    const onData = vi.fn();
+    const onError = vi.fn();
+    const user = {
+      uid: 'user-1',
+      displayName: 'Ada',
+      photoURL: null,
+    } as User;
+    vi.mocked(onAuthStateChanged).mockImplementation((_auth, callback) => {
+      (callback as (user: User | null) => void)(user);
+      return vi.fn();
+    });
+
+    subscribeToAuthState(onData, onError);
+
+    expect(onData).toHaveBeenCalledWith({
+      uid: 'user-1',
+      displayName: 'Ada',
+      photoURL: null,
+    });
+    expect(onError).not.toHaveBeenCalled();
+  });
+
+  it('routes a user missing uid to onError instead of onData', () => {
+    const onData = vi.fn();
+    const onError = vi.fn();
+    const invalidUser = { displayName: 'Ada', photoURL: null } as User;
+    vi.mocked(onAuthStateChanged).mockImplementation((_auth, callback) => {
+      (callback as (user: User | null) => void)(invalidUser);
+      return vi.fn();
+    });
+
+    subscribeToAuthState(onData, onError);
+
+    expect(onData).not.toHaveBeenCalled();
+    expect(onError).toHaveBeenCalledWith(expect.any(Error));
   });
 
   it('signs in with the shared Google provider and returns the user', async () => {

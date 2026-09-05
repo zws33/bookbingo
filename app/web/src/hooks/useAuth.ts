@@ -1,10 +1,9 @@
 import { useEffect, useState } from 'react';
 import { log } from '@bookbingo/lib-util';
-import type { User } from 'firebase/auth';
-import { subscribeToAuthState } from '../lib/auth';
+import { subscribeToAuthState, type AuthUser } from '../lib/auth';
 
 export function useAuth() {
-  const [user, setUser] = useState<User | null>();
+  const [user, setUser] = useState<AuthUser | null>();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error>();
 

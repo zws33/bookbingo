@@ -5,10 +5,10 @@ import {
   onSnapshot,
   type DocumentSnapshot,
 } from 'firebase/firestore';
-import type { User } from 'firebase/auth';
 import { db } from '../lib/firebase';
 import { toUserProfile } from './users';
 import type { UserProfile } from '../types';
+import type { AuthUser } from '../lib/auth';
 
 export interface UserProfileRepository {
   subscribeToUserProfile(
@@ -18,7 +18,7 @@ export interface UserProfileRepository {
   ): () => void;
 }
 
-export async function saveUserProfile(user: User): Promise<void> {
+export async function saveUserProfile(user: AuthUser): Promise<void> {
   await setDoc(
     doc(db, 'users', user.uid),
     {
