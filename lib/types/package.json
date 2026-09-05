@@ -10,6 +10,9 @@
   "scripts": {
     "build": "tsc -b tsconfig.build.json"
   },
+  "dependencies": {
+    "zod": "^4.4.2"
+  },
   "devDependencies": {
     "@bookbingo/tsconfig": "workspace:*"
   }
