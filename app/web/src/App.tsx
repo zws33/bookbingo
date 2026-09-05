@@ -1,9 +1,8 @@
 import { NavLink, Routes, Route, Navigate } from 'react-router-dom';
 import { CatalogPage } from './pages/CatalogPage';
-import { useAuthState } from 'react-firebase-hooks/auth';
-import { signInWithPopup, signOut } from 'firebase/auth';
-import { auth, googleProvider } from './lib/firebase';
-import { saveUserProfile } from './lib/users';
+import { signInWithGoogle, signOutUser } from './lib/auth';
+import { saveUserProfile } from './data/userProfile';
+import { useAuth } from './hooks/useAuth';
 import { useReadings } from './hooks/useReadings';
 import { useBooks } from './hooks/useBooks';
 import { BingoBoard } from './components/BingoBoard';
@@ -21,15 +20,14 @@ import { useEffect, useState, useCallback } from 'react';
 const isStaging = import.meta.env.MODE === 'staging';
 
 function App() {
-  const [user, loading, error] = useAuthState(auth);
+  const { user, loading, error } = useAuth();
   const { readings } = useReadings(user?.uid ?? '');
   const { booksById } = useBooks();
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
 
   const handleSignIn = async () => {
     try {
-      const result = await signInWithPopup(auth, googleProvider);
-      await saveUserProfile(result.user);
+      await signInWithGoogle();
     } catch (err) {
       log.error('Sign in error:', err);
     }
@@ -37,7 +35,7 @@ function App() {
 
   const handleSignOut = async () => {
     try {
-      await signOut(auth);
+      await signOutUser();
     } catch (err) {
       log.error('Sign out error:', err);
     }
