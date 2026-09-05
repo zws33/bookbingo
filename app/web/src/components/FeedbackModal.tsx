@@ -1,5 +1,6 @@
 import { useState, useCallback, type SubmitEvent } from 'react';
 import { httpsCallable } from 'firebase/functions';
+import { SubmitFeedbackResponseSchema } from '@bookbingo/lib-types';
 import { functions } from '../lib/firebase';
 import { useToast } from '../lib/ToastContext';
 import { Input, Label, Button, Dialog, Textarea } from './ui/index.js';
@@ -40,11 +41,12 @@ export function FeedbackModal({ isOpen, onClose }: FeedbackModalProps) {
 
     setIsSubmitting(true);
     try {
-      await submitFeedbackCallable({
+      const response = await submitFeedbackCallable({
         type,
         title: title.trim(),
         description: description.trim(),
       });
+      SubmitFeedbackResponseSchema.parse(response.data);
       showSuccess(
         'Feedback submitted! Thanks for helping improve Book Bingo. 🎉',
       );

@@ -98,7 +98,9 @@ describe('FeedbackModal', () => {
   });
 
   it('calls onClose after successful submission', async () => {
-    mockHttpsCallable.mockResolvedValue({ data: {} });
+    mockHttpsCallable.mockResolvedValue({
+      data: { issueUrl: 'https://github.com/...', issueNumber: 1 },
+    });
     const user = userEvent.setup();
     render(<FeedbackModal isOpen={true} onClose={onClose} />);
 
