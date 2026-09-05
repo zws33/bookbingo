@@ -4,18 +4,17 @@ import { connectAuthEmulator, getAuth } from 'firebase/auth';
 import { connectFirestoreEmulator, getFirestore } from 'firebase/firestore';
 import { connectFunctionsEmulator, getFunctions } from 'firebase/functions';
 import { initLogger, log } from '@bookbingo/lib-util';
+import z from 'zod/v4';
 
-const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID,
-  // Optional — analytics is simply skipped when this is absent, and the
-  // emulator env files deliberately omit it.
-  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID,
-};
+const FirebaseEnvSchema = z.object({
+  VITE_FIREBASE_API_KEY: z.string().min(1),
+  VITE_FIREBASE_AUTH_DOMAIN: z.string().min(1),
+  VITE_FIREBASE_PROJECT_ID: z.string().min(1),
+  VITE_FIREBASE_STORAGE_BUCKET: z.string().min(1),
+  VITE_FIREBASE_MESSAGING_SENDER_ID: z.string().min(1),
+  VITE_FIREBASE_APP_ID: z.string().min(1),
+  VITE_FIREBASE_MEASUREMENT_ID: z.string().min(1).optional(),
+});
 
 // Fail loudly on an incomplete config rather than shipping a bundle that
 // looks fine and dies at runtime. Vite inlines a missing `import.meta.env.X`
@@ -24,29 +23,26 @@ const firebaseConfig = {
 // not hypothetical: the first CI staging deploy built cleanly with all seven
 // values empty, and only a missing service account stopped it from
 // overwriting staging.
-const missing = (
-  [
-    'apiKey',
-    'authDomain',
-    'projectId',
-    'storageBucket',
-    'messagingSenderId',
-    'appId',
-  ] as const
-).filter((key) => !firebaseConfig[key]);
-
-if (missing.length > 0) {
-  const vars = missing
-    .map(
-      (key) =>
-        `VITE_FIREBASE_${key.replace(/[A-Z]/g, (c) => `_${c}`).toUpperCase()}`,
-    )
-    .join(', ');
+const env = FirebaseEnvSchema.safeParse(import.meta.env);
+if (!env.success) {
+  const vars = Object.keys(z.flattenError(env.error).fieldErrors).join(', ');
   throw new Error(
     `Firebase config is incomplete in mode "${import.meta.env.MODE}" — missing: ${vars}. ` +
       'Local dev reads app/web/.env.<mode>; CI reads GitHub secrets. See app/web/.env.example.',
   );
 }
+
+const firebaseConfig = {
+  apiKey: env.data.VITE_FIREBASE_API_KEY,
+  authDomain: env.data.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: env.data.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: env.data.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: env.data.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: env.data.VITE_FIREBASE_APP_ID,
+  ...(env.data.VITE_FIREBASE_MEASUREMENT_ID !== undefined && {
+    measurementId: env.data.VITE_FIREBASE_MEASUREMENT_ID,
+  }),
+};
 
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
