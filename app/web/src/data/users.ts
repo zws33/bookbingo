@@ -5,6 +5,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import type { UserProfile } from '../types';
+import { UserProfileDocSchema, mapValid } from './schemas';
 
 export interface UsersRepository {
   subscribeToUsers(
@@ -23,7 +24,7 @@ export function subscribeToUsers(
 ): () => void {
   return onSnapshot(
     collection(db, 'users'),
-    (snap) => onData(snap.docs.map(toUserProfile)),
+    (snap) => onData(mapValid('users', snap.docs, toUserProfile)),
     onError,
   );
 }
@@ -37,10 +38,10 @@ export function subscribeToUsers(
  * enrichment (or by a test fixture) can be missing either.
  */
 export function toUserProfile(doc: DocumentSnapshot): UserProfile {
-  const data = doc.data() ?? {};
+  const data = UserProfileDocSchema.parse(doc.data() ?? {});
   return {
     id: doc.id, // ID is the key, not a stored field
-    name: data.name ?? 'User',
+    name: data.name,
     ...(data.photoURL != null && { photoURL: data.photoURL }),
   };
 }

@@ -16,6 +16,7 @@ import {
 } from 'firebase/firestore';
 import { log } from '@bookbingo/lib-util';
 import { db } from '../lib/firebase';
+import { ReadingDocSchema, mapValid } from './schemas';
 
 export interface ReadingRepository {
   getReadingsByUser(userId: string): Promise<Reading[]>;
@@ -47,7 +48,7 @@ export interface ReadingRepository {
 /** One-shot fetch. For non-reactive callers (scoring, exports, integration tests). */
 export async function getReadingsByUser(userId: string): Promise<Reading[]> {
   const snap = await getDocs(readingsQuery(userId));
-  return snap.docs.map(toReading);
+  return mapValid('readings', snap.docs, toReading);
 }
 
 /**
@@ -61,7 +62,7 @@ export function subscribeToReadings(
 ): () => void {
   return onSnapshot(
     readingsQuery(userId),
-    (snap) => onData(snap.docs.map(toReading)),
+    (snap) => onData(mapValid('readings', snap.docs, toReading)),
     onError,
   );
 }
@@ -185,7 +186,14 @@ function readingsByUser(snapshot: QuerySnapshot) {
     const userId = doc.ref.parent.parent?.id;
     if (!userId) continue;
 
-    const reading: Reading = toReading(doc);
+    let reading: Reading;
+    try {
+      reading = toReading(doc);
+    } catch (error) {
+      log.error('readings', `skipped invalid document ${doc.ref.path}`, error);
+      continue;
+    }
+
     const existing = map.get(userId);
     if (existing) {
       existing.push(reading);
@@ -198,14 +206,16 @@ function readingsByUser(snapshot: QuerySnapshot) {
 }
 
 function toReading(doc: QueryDocumentSnapshot): Reading {
-  const data = doc.data();
+  const data = ReadingDocSchema.parse(doc.data());
   return {
     id: doc.id,
     bookId: data.bookId,
+    ...(data.bookTitle !== undefined && { bookTitle: data.bookTitle }),
+    ...(data.bookAuthor !== undefined && { bookAuthor: data.bookAuthor }),
     tiles: data.tiles,
     isFreebie: data.isFreebie,
-    readAt: data.readAt?.toDate() ?? new Date(),
-    createdAt: data.createdAt?.toDate() ?? new Date(),
-    updatedAt: data.updatedAt?.toDate(),
+    readAt: data.readAt,
+    createdAt: data.createdAt,
+    ...(data.updatedAt !== undefined && { updatedAt: data.updatedAt }),
   };
 }

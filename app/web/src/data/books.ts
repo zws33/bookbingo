@@ -1,4 +1,4 @@
-import type { Book, BookMetadata, ExternalBookIds } from '@bookbingo/lib-types';
+import type { Book, BookMetadata } from '@bookbingo/lib-types';
 
 import {
   collection,
@@ -11,6 +11,7 @@ import {
 } from 'firebase/firestore';
 import { deriveBookId } from '@bookbingo/lib-core';
 import { db } from '../lib/firebase';
+import { BookDocSchema, mapValid } from './schemas';
 
 interface BookEnrichment {
   /** Open Library Work key, e.g. "/works/OL166894W". */
@@ -41,7 +42,7 @@ export function subscribeToBooks(
 ): () => void {
   return onSnapshot(
     collection(db, 'books'),
-    (snap) => onData(snap.docs.map(toBook)),
+    (snap) => onData(mapValid('books', snap.docs, toBook)),
     onError,
   );
 }
@@ -99,35 +100,15 @@ export async function getOrCreateBook(
   return bookId;
 }
 
-function tsToDate(ts?: { toDate(): Date }): Date {
-  return ts?.toDate() ?? new Date();
-}
-
 function toBook(doc: QueryDocumentSnapshot): Book {
-  const data = doc.data();
-  const externalIds = toExternalIds(data.externalIds);
+  const data = BookDocSchema.parse(doc.data());
   return {
     id: doc.id,
     title: data.title,
     author: data.author,
     ...(data.metadata !== undefined && { metadata: data.metadata }),
-    ...(externalIds && { externalIds }),
+    ...(data.externalIds !== undefined && { externalIds: data.externalIds }),
     createdBy: data.createdBy,
-    createdAt: tsToDate(data.createdAt),
+    createdAt: data.createdAt,
   };
-}
-
-function toExternalIds(
-  externalIds:
-    | Record<string, { key: string; enrichedAt?: { toDate(): Date } }>
-    | undefined,
-): ExternalBookIds | undefined {
-  if (!externalIds) return undefined;
-
-  return Object.fromEntries(
-    Object.entries(externalIds).map(([provider, ref]) => [
-      provider,
-      { key: ref.key, enrichedAt: tsToDate(ref.enrichedAt) },
-    ]),
-  ) as ExternalBookIds;
 }

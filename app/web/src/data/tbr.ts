@@ -16,6 +16,7 @@ import {
 import { log } from '@bookbingo/lib-util';
 import { db } from '../lib/firebase';
 import { readingsCollection, newReadingFields } from './readings';
+import { TBREntryDocSchema, mapValid } from './schemas';
 
 export interface TBRRepository {
   subscribeToTBR(
@@ -57,7 +58,7 @@ export function subscribeToTBR(
 ): () => void {
   return onSnapshot(
     tbrQuery(userId),
-    (snap) => onData(snap.docs.map(toTBREntry)),
+    (snap) => onData(mapValid('tbr', snap.docs, toTBREntry)),
     onError,
   );
 }
@@ -164,15 +165,13 @@ function tbrQuery(userId: string) {
 }
 
 function toTBREntry(doc: QueryDocumentSnapshot): TBREntry {
-  const data = doc.data();
+  const data = TBREntryDocSchema.parse(doc.data());
   return {
     id: doc.id, // ID is the key, not a stored field
     bookId: data.bookId,
     plannedTiles: data.plannedTiles,
     ...(data.notes !== undefined && { notes: data.notes }),
-    // serverTimestamp() is null in the local snapshot until the write lands;
-    // fall back to now so a just-added entry renders instead of throwing.
-    addedAt: data.addedAt?.toDate() ?? new Date(),
-    ...(data.updatedAt?.toDate && { updatedAt: data.updatedAt.toDate() }),
+    addedAt: data.addedAt,
+    ...(data.updatedAt !== undefined && { updatedAt: data.updatedAt }),
   };
 }
