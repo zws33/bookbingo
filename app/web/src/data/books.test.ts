@@ -48,7 +48,11 @@ function ts(date: Date) {
 /** Build a QuerySnapshot-like object from (id, data) pairs. */
 function makeSnapshot(docs: { id: string; data: Record<string, unknown> }[]) {
   return {
-    docs: docs.map(({ id, data }) => ({ id, data: () => data })),
+    docs: docs.map(({ id, data }) => ({
+      id,
+      data: () => data,
+      ref: { path: `books/${id}` },
+    })),
   };
 }
 
@@ -201,6 +205,94 @@ describe('subscribeToBooks', () => {
     raise(err);
 
     expect(onError).toHaveBeenCalledWith(err);
+  });
+
+  it('skips a document missing a required field and delivers the rest', () => {
+    const consoleError = vi
+      .spyOn(console, 'error')
+      .mockImplementation(() => {});
+    let pushSnapshot: (snap: unknown) => void = () => {};
+    mockOnSnapshot.mockImplementation(((
+      _query: unknown,
+      onNext: (snap: unknown) => void,
+    ) => {
+      pushSnapshot = onNext;
+      return vi.fn();
+    }) as never);
+
+    const onData = vi.fn<(books: Book[]) => void>();
+    subscribeToBooks(onData, vi.fn());
+
+    pushSnapshot(
+      makeSnapshot([
+        {
+          id: 'invalid-book',
+          data: {
+            // title is missing
+            author: 'Unknown',
+            createdBy: 'user-1',
+            createdAt: ts(new Date('2026-01-01T00:00:00Z')),
+          },
+        },
+        {
+          id: 'book-1',
+          data: {
+            title: 'Untitled',
+            author: 'Unknown',
+            createdBy: 'user-1',
+            createdAt: ts(new Date('2026-01-01T00:00:00Z')),
+          },
+        },
+      ]),
+    );
+
+    const [books] = onData.mock.calls[0]!;
+    expect(books).toHaveLength(1);
+    expect(books[0]!.id).toBe('book-1');
+    expect(consoleError).toHaveBeenCalled();
+    consoleError.mockRestore();
+  });
+
+  it('skips a document with an unknown externalIds provider key', () => {
+    const consoleError = vi
+      .spyOn(console, 'error')
+      .mockImplementation(() => {});
+    let pushSnapshot: (snap: unknown) => void = () => {};
+    mockOnSnapshot.mockImplementation(((
+      _query: unknown,
+      onNext: (snap: unknown) => void,
+    ) => {
+      pushSnapshot = onNext;
+      return vi.fn();
+    }) as never);
+
+    const onData = vi.fn<(books: Book[]) => void>();
+    subscribeToBooks(onData, vi.fn());
+
+    pushSnapshot(
+      makeSnapshot([
+        {
+          id: 'book-1',
+          data: {
+            title: 'Untitled',
+            author: 'Unknown',
+            externalIds: {
+              unknownProvider: {
+                key: 'abc',
+                enrichedAt: ts(new Date('2026-01-01T00:00:00Z')),
+              },
+            },
+            createdBy: 'user-1',
+            createdAt: ts(new Date('2026-01-01T00:00:00Z')),
+          },
+        },
+      ]),
+    );
+
+    const [books] = onData.mock.calls[0]!;
+    expect(books).toHaveLength(0);
+    expect(consoleError).toHaveBeenCalled();
+    consoleError.mockRestore();
   });
 });
 

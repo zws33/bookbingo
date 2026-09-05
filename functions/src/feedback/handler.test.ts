@@ -283,6 +283,27 @@ describe('submitFeedbackHandler', () => {
       );
     });
 
+    it('throws when the GitHub response is missing required fields', async () => {
+      globalThis.fetch = mock.fn(() =>
+        Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ number: 'not-a-number' }),
+          text: () => Promise.resolve(''),
+        }),
+      ) as never;
+
+      await assert.rejects(() =>
+        submitFeedbackHandler(
+          authedReq({
+            type: 'bug',
+            title: 'A title',
+            description: 'A description',
+          }),
+          TEST_DEPS,
+        ),
+      );
+    });
+
     it('does not leak the GitHub error body in the thrown error', async () => {
       const secretBody =
         'PAT is not configured correctly — secret error details';

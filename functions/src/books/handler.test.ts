@@ -48,4 +48,28 @@ describe('enrichBookHandler', () => {
       { code: 'invalid-argument' },
     );
   });
+
+  test('throws invalid-argument for a whitespace-only search query', async () => {
+    await assert.rejects(
+      enrichBookHandler(
+        makeRequest(
+          { uid: 'user-1', token: {}, rawToken: 'test' },
+          { action: 'search', query: '  ' },
+        ),
+      ),
+      { code: 'invalid-argument' },
+    );
+  });
+
+  test('throws invalid-argument for an unrecognised action', async () => {
+    await assert.rejects(
+      enrichBookHandler(
+        makeRequest(
+          { uid: 'user-1', token: {}, rawToken: 'test' },
+          { action: 'bogus' },
+        ),
+      ),
+      { code: 'invalid-argument' },
+    );
+  });
 });

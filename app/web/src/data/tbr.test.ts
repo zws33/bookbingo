@@ -171,6 +171,36 @@ describe('subscribeToTBR', () => {
     expect(entries[0]!.addedAt).toBeInstanceOf(Date);
   });
 
+  it('leaves notes absent when the field is not stored', () => {
+    let pushSnapshot: (snap: unknown) => void = () => {};
+    mockOnSnapshot.mockImplementation(((
+      _query: unknown,
+      onNext: (snap: unknown) => void,
+    ) => {
+      pushSnapshot = onNext;
+      return vi.fn();
+    }) as never);
+
+    const onData = vi.fn();
+    subscribeToTBR('user-1', onData, vi.fn());
+
+    pushSnapshot(
+      makeSnapshot([
+        {
+          id: TBR_ID,
+          data: {
+            bookId: 'book-1',
+            plannedTiles: [],
+            addedAt: ts(new Date('2026-02-01T00:00:00Z')),
+          },
+        },
+      ]),
+    );
+
+    const [entries] = onData.mock.calls[0]!;
+    expect('notes' in entries[0]!).toBe(false);
+  });
+
   it('forwards listener errors to onError', () => {
     let raise: (error: Error) => void = () => {};
     mockOnSnapshot.mockImplementation(((

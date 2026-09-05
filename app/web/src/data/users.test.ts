@@ -107,6 +107,13 @@ describe('toUserProfile', () => {
     expect('photoURL' in profile).toBe(false);
   });
 
+  it('omits photoURL when the stored value is null', () => {
+    const profile = toUserProfile(
+      makeDoc('user-1', { name: 'Ada', photoURL: null }),
+    );
+    expect('photoURL' in profile).toBe(false);
+  });
+
   it('tolerates a snapshot whose data() is undefined', () => {
     expect(toUserProfile(makeDoc('user-1', undefined))).toEqual({
       id: 'user-1',

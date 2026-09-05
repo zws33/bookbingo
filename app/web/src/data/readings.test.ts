@@ -62,7 +62,11 @@ function ts(date: Date) {
 /** Build a QuerySnapshot-like object from (id, data) pairs. */
 function makeSnapshot(docs: { id: string; data: Record<string, unknown> }[]) {
   return {
-    docs: docs.map(({ id, data }) => ({ id, data: () => data })),
+    docs: docs.map(({ id, data }) => ({
+      id,
+      data: () => data,
+      ref: { path: `readings/${id}` },
+    })),
   };
 }
 
@@ -245,6 +249,42 @@ describe('subscribeToReadings', () => {
     raise(err);
 
     expect(onError).toHaveBeenCalledWith(err);
+  });
+
+  it('skips a document whose tiles field is not an array', () => {
+    const consoleError = vi
+      .spyOn(console, 'error')
+      .mockImplementation(() => {});
+    let pushSnapshot: (snap: unknown) => void = () => {};
+    mockOnSnapshot.mockImplementation(((
+      _query: unknown,
+      onNext: (snap: unknown) => void,
+    ) => {
+      pushSnapshot = onNext;
+      return vi.fn();
+    }) as never);
+
+    const onData = vi.fn();
+    subscribeToReadings('user-1', onData, vi.fn());
+
+    pushSnapshot(
+      makeSnapshot([
+        {
+          id: 'reading-1',
+          data: {
+            bookId: 'book-1',
+            tiles: 'sci-fi', // not an array
+            isFreebie: false,
+            readAt: ts(new Date('2026-02-01T00:00:00Z')),
+            createdAt: ts(new Date('2026-01-15T00:00:00Z')),
+          },
+        },
+      ]),
+    );
+
+    expect(onData).toHaveBeenCalledWith([]);
+    expect(consoleError).toHaveBeenCalled();
+    consoleError.mockRestore();
   });
 });
 
