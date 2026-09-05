@@ -1,10 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import { getAnalytics, logEvent } from 'firebase/analytics';
-import {
-  connectAuthEmulator,
-  getAuth,
-  GoogleAuthProvider,
-} from 'firebase/auth';
+import { connectAuthEmulator, getAuth } from 'firebase/auth';
 import { connectFirestoreEmulator, getFirestore } from 'firebase/firestore';
 import { connectFunctionsEmulator, getFunctions } from 'firebase/functions';
 import { initLogger, log } from '@bookbingo/lib-util';
@@ -54,7 +50,6 @@ if (missing.length > 0) {
 
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
-export const googleProvider = new GoogleAuthProvider();
 export const db = getFirestore(app);
 export const functions = getFunctions(app);
 
