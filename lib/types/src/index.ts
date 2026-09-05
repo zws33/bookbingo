@@ -172,3 +172,5 @@ export interface ScoreBreakdown {
   tileCounts: Map<string, number>;
   totalBooks: number;
 }
+
+export * from './schemas.js';
