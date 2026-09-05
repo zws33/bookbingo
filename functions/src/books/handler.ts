@@ -1,4 +1,5 @@
 import { HttpsError, type CallableRequest } from 'firebase-functions/v2/https';
+import z from 'zod/v4';
 import { BookEnrichmentService } from './service.js';
 import type { BookSearchResult, BookEnrichmentResult } from './types.js';
 import { OpenLibraryProvider } from './providers/open-library.js';
@@ -6,13 +7,13 @@ import { OpenLibraryProvider } from './providers/open-library.js';
 const provider = new OpenLibraryProvider();
 const service = new BookEnrichmentService(provider);
 
-type EnrichBookAction = 'search' | 'lookup';
-
-interface EnrichBookData {
-  action: EnrichBookAction;
-  query?: string;
-  externalId?: string;
-}
+const EnrichBookRequestSchema = z.discriminatedUnion('action', [
+  z.object({ action: z.literal('search'), query: z.string().trim().min(1) }),
+  z.object({
+    action: z.literal('lookup'),
+    externalId: z.string().trim().min(1),
+  }),
+]);
 
 /**
  * Handles book enrichment requests (search or detail lookup).
@@ -27,39 +28,18 @@ export async function enrichBookHandler(
     );
   }
 
-  const data = request.data as EnrichBookData;
-  const { action, query, externalId } = data;
-
-  if (action === 'search') {
-    if (!query || typeof query !== 'string' || query.trim().length === 0) {
-      throw new HttpsError(
-        'invalid-argument',
-        'query is required for search action.',
-      );
-    }
-    return service.searchBooks(query);
+  const parsed = EnrichBookRequestSchema.safeParse(request.data);
+  if (!parsed.success) {
+    throw new HttpsError('invalid-argument', z.prettifyError(parsed.error));
   }
 
-  if (action === 'lookup') {
-    if (
-      !externalId ||
-      typeof externalId !== 'string' ||
-      externalId.trim().length === 0
-    ) {
-      throw new HttpsError(
-        'invalid-argument',
-        'externalId is required for lookup action.',
-      );
-    }
-    try {
-      return await service.getBookDetails(externalId);
-    } catch (error) {
-      throw new HttpsError('not-found', (error as Error).message);
-    }
+  if (parsed.data.action === 'search') {
+    return service.searchBooks(parsed.data.query);
   }
 
-  throw new HttpsError(
-    'invalid-argument',
-    'Invalid action. Must be "search" or "lookup".',
-  );
+  try {
+    return await service.getBookDetails(parsed.data.externalId);
+  } catch (error) {
+    throw new HttpsError('not-found', (error as Error).message);
+  }
 }

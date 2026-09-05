@@ -1,18 +1,22 @@
 import { HttpsError, type CallableRequest } from 'firebase-functions/v2/https';
 import { logger } from 'firebase-functions';
+import z from 'zod/v4';
 
 export const GITHUB_API_URL =
   'https://api.github.com/repos/zws33/bookbingo/issues';
 export const TITLE_MAX_LENGTH = 200;
 export const DESCRIPTION_MAX_LENGTH = 2000;
 
-type FeedbackType = 'bug' | 'feature';
+const SubmitFeedbackRequestSchema = z.object({
+  type: z.enum(['bug', 'feature']),
+  title: z.string().trim().min(1).max(TITLE_MAX_LENGTH),
+  description: z.string().trim().min(1).max(DESCRIPTION_MAX_LENGTH),
+});
 
-interface SubmitFeedbackData {
-  type: FeedbackType;
-  title: string;
-  description: string;
-}
+const GitHubIssueResponseSchema = z.object({
+  html_url: z.string(),
+  number: z.number().int().positive(),
+});
 
 export interface FeedbackDeps {
   pat: string;
@@ -30,37 +34,11 @@ export async function submitFeedbackHandler(
     );
   }
 
-  const data = request.data as SubmitFeedbackData;
-  const { type, title, description } = data;
-
-  if (!type || (type !== 'bug' && type !== 'feature')) {
-    throw new HttpsError(
-      'invalid-argument',
-      'type must be "bug" or "feature".',
-    );
+  const parsed = SubmitFeedbackRequestSchema.safeParse(request.data);
+  if (!parsed.success) {
+    throw new HttpsError('invalid-argument', z.prettifyError(parsed.error));
   }
-  if (!title || typeof title !== 'string' || title.trim().length === 0) {
-    throw new HttpsError('invalid-argument', 'title is required.');
-  }
-  if (title.trim().length > TITLE_MAX_LENGTH) {
-    throw new HttpsError(
-      'invalid-argument',
-      `title must be at most ${TITLE_MAX_LENGTH} characters.`,
-    );
-  }
-  if (
-    !description ||
-    typeof description !== 'string' ||
-    description.trim().length === 0
-  ) {
-    throw new HttpsError('invalid-argument', 'description is required.');
-  }
-  if (description.trim().length > DESCRIPTION_MAX_LENGTH) {
-    throw new HttpsError(
-      'invalid-argument',
-      `description must be at most ${DESCRIPTION_MAX_LENGTH} characters.`,
-    );
-  }
+  const { type, title, description } = parsed.data;
 
   const label = type === 'bug' ? 'bug' : 'enhancement';
 
@@ -73,8 +51,8 @@ export async function submitFeedbackHandler(
       'X-GitHub-Api-Version': '2022-11-28',
     },
     body: JSON.stringify({
-      title: title.trim(),
-      body: description.trim(),
+      title,
+      body: description,
       labels: ['user-feedback', label],
     }),
   });
@@ -91,10 +69,6 @@ export async function submitFeedbackHandler(
     );
   }
 
-  const { html_url: issueUrl, number: issueNumber } =
-    (await response.json()) as {
-      html_url: string;
-      number: number;
-    };
-  return { issueUrl, issueNumber };
+  const issue = GitHubIssueResponseSchema.parse(await response.json());
+  return { issueUrl: issue.html_url, issueNumber: issue.number };
 }

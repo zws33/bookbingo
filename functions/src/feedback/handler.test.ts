@@ -109,7 +109,6 @@ describe('submitFeedbackHandler', () => {
           ),
         (err: HttpsErrorLike) => {
           assert.equal(err.code, 'invalid-argument');
-          assert.match(err.message, /title must be at most/);
           return true;
         },
       );
@@ -157,7 +156,6 @@ describe('submitFeedbackHandler', () => {
           ),
         (err: HttpsErrorLike) => {
           assert.equal(err.code, 'invalid-argument');
-          assert.match(err.message, /description must be at most/);
           return true;
         },
       );
