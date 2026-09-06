@@ -64,8 +64,8 @@ export interface Book {
   /** External catalog references, keyed by provider. Provenance, not a dedup key. */
   externalIds?: ExternalBookIds;
   /** User ID of who first added this book */
-  createdBy: string;
-  createdAt: Date;
+  createdBy?: string;
+  createdAt?: Date;
 }
 
 // =============================================================================
