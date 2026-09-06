@@ -18,8 +18,8 @@ The scoring algorithm rewards balanced reading across many categories while stil
 
 ### Prerequisites
 
-- [Node.js](https://nodejs.org/) (v24 — pinned via `functions/package.json` engines and CI)
-- [pnpm](https://pnpm.io/) (v10)
+- [Node.js](https://nodejs.org/) (v22 — pinned via `.nvmrc` and used in CI)
+- [pnpm](https://pnpm.io/) (v11 — pinned via `packageManager` in the root `package.json`)
 
 ### Running Locally
 
@@ -31,21 +31,28 @@ cd bookbingo
 # Install dependencies
 pnpm install
 
-# Copy environment config and fill in your Firebase credentials
-cp app/web/.env.example app/web/.env.local
+# Start the web app and Firebase emulators together
+pnpm run dev:local
 
-# Start the development server
-pnpm run dev:web
+# Optional: seed the local emulator with sample data
+pnpm run emulator:seed
 ```
 
 Open http://localhost:5173 in your browser.
+
+If you prefer separate terminals, run `pnpm run emulator:start` in one and
+`pnpm run dev:web:emulator` in another.
+
+For local runs against a real Firebase project, copy `app/web/.env.example` to
+`app/web/.env.staging` or `app/web/.env.prod`, fill in the values, and use the
+matching script: `pnpm run dev:web:staging` or `pnpm run dev:web:prod`.
 
 ## Project Structure
 
 ```
 bookbingo/
 ├── lib/
-│   ├── types/src/        # Shared TypeScript types (Tile, UserBook, Reading, ScoreBreakdown, …)
+│   ├── types/src/        # Shared TypeScript types (Tile, Book, Reading, TBREntry, ScoreBreakdown, …)
 │   ├── core/src/         # Business logic: scoring, validation, tile definitions, statistics
 │   └── util/src/         # Cross-platform utilities (logger)
 ├── app/
@@ -54,7 +61,9 @@ bookbingo/
 └── docs/                 # Design documents
 ```
 
-Each directory under `lib/`, `app/`, and `functions/` is a separate [pnpm workspace](https://pnpm.io/workspaces) package. They reference each other as `@bookbingo/*` workspace dependencies.
+The workspace packages live under `app/*` and `lib/*`, plus the top-level
+`functions` package. They reference each other as `@bookbingo/*` workspace
+dependencies.
 
 ## Architecture
 
@@ -72,30 +81,44 @@ When adding a feature, start in `lib/` (logic + tests), then wire it into `app/w
 Run this after every change before committing:
 
 ```bash
-pnpm run lint && pnpm test && pnpm run typecheck
+pnpm run verify
 ```
+
+`verify` matches CI and runs `format:check -> lint -> build -> test ->
+typecheck` in that order. The build step intentionally comes before typecheck
+because `functions/` resolves `@bookbingo/lib-types` from built workspace
+output.
 
 ### Individual commands
 
 ```bash
-pnpm test              # Run all tests (node:test)
-pnpm run typecheck     # Type-check with tsc --build --noEmit
-pnpm run lint          # Lint all TypeScript files
-pnpm run format        # Format with Prettier
-pnpm run build         # Compile all packages with tsc --build
+pnpm test                  # Run all workspace tests (node:test + Vitest)
+pnpm run test:integration  # Run web integration tests against Firebase emulators
+pnpm run typecheck         # Type-check workspace packages with tsc --noEmit
+pnpm run lint              # Lint the repo
+pnpm run format            # Format with Prettier
+pnpm run build             # Compile all packages with tsc --build
 ```
 
 ### Environments
 
-The app has separate staging and production Firebase environments:
+Recommended local development uses the committed emulator config:
 
 ```bash
-pnpm run dev:web           # Development (uses .env.local)
+pnpm run dev:local         # Web app + Firebase emulators
+pnpm run dev:web:emulator  # Web app only, pointed at local emulators
+```
+
+Real Firebase projects use environment-specific files in `app/web/`:
+
+```bash
 pnpm run dev:web:staging   # Staging environment
 pnpm run dev:web:prod      # Production environment
 ```
 
-Environment config files live in `app/web/`. Copy `.env.example` to `.env.local` and fill in your Firebase project credentials.
+Use `app/web/.env.example` as the template for `app/web/.env.staging` or
+`app/web/.env.prod`. The emulator-backed local flow does not require real
+Firebase credentials.
 
 ## Scoring System
 
@@ -121,7 +144,7 @@ The result: a reader who covers 25 diverse tiles with 10 books will outscore one
 | Web app         | React 19 + Vite + Tailwind CSS                                               |
 | Backend         | Firebase (Auth, Firestore, Hosting)                                          |
 | Testing         | `node:test` in `lib/` + `functions/`; Vitest + Testing Library in `app/web/` |
-| Package manager | pnpm (monorepo workspaces)                                                   |
+| Package manager | pnpm 11 (monorepo workspaces)                                                |
 | Build           | `tsc --build` (project references)                                           |
 
 ## License
