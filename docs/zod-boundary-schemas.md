@@ -27,12 +27,12 @@ Current state: `zod@^4.4.2` is a `functions/` dependency and parses Open Library
 
 Firestore document payloads differ from the domain types in `lib/types`:
 
-| Domain field                                      | Domain type                                  | Firestore transport type                                                                 |
-| ------------------------------------------------- | -------------------------------------------- | ---------------------------------------------------------------------------------------- |
-| `id`                                              | `string`                                     | absent — it is `doc.id`, the key                                                         |
-| `createdAt` / `readAt` / `addedAt` / `enrichedAt` | `Date`                                       | `Timestamp` \| `null` while a `serverTimestamp()` write is pending in the local snapshot |
-| `updatedAt`                                       | `Date \| undefined`                          | `Timestamp` \| absent                                                                    |
-| `externalIds`                                     | `Partial<Record<BookProvider, ExternalRef>>` | map, provider keys unconstrained on the wire                                             |
+| Domain field                       | Domain type                             | Firestore transport type                                                                 |
+| ---------------------------------- | --------------------------------------- | ---------------------------------------------------------------------------------------- |
+| `id`                               | `string`                                | absent — it is `doc.id`, the key                                                         |
+| `createdAt` / `readAt` / `addedAt` | `Date`                                  | `Timestamp` \| `null` while a `serverTimestamp()` write is pending in the local snapshot |
+| `updatedAt`                        | `Date \| undefined`                     | `Timestamp` \| absent                                                                    |
+| `externalIds`                      | `Partial<Record<BookProvider, string>>` | map, provider keys unconstrained on the wire                                             |
 
 Consequence: each Firestore schema parses `doc.data()` and outputs the domain type minus `id`; `id` is merged from `doc.id` after parse.
 
@@ -67,22 +67,22 @@ const BookMetadataSchema = z.object({
   thumbnailUrl: z.url().nullable(),
 });
 
-const ExternalRefSchema = z.object({
-  key: z.string().min(1),
-  enrichedAt: ServerInstant,
-});
-
 const BookProviderSchema = z.enum(['openLibrary']);
+
+// Tolerates the legacy `{ key, enrichedAt }` record alongside the current plain
+// string. Collapse to `z.string().min(1)` once no legacy documents remain.
+const ExternalKey = z.union([
+  z.string().min(1),
+  z.object({ key: z.string().min(1) }).transform((ref) => ref.key),
+]);
 
 const BookDocSchema = z.object({
   title: z.string(),
   author: z.string(),
   metadata: BookMetadataSchema.optional(),
-  externalIds: z
-    .partialRecord(BookProviderSchema, ExternalRefSchema)
-    .optional(),
-  createdBy: z.string().min(1),
-  createdAt: ServerInstant,
+  externalIds: z.partialRecord(BookProviderSchema, ExternalKey).optional(),
+  createdBy: z.string().min(1).optional(),
+  createdAt: OptionalInstant,
 });
 
 const ReadingDocSchema = z.object({
@@ -133,10 +133,7 @@ const BookCreateSchema = z.object({
   author: z.string().trim().min(1),
   metadata: BookMetadataSchema.optional(),
   externalIds: z
-    .partialRecord(
-      BookProviderSchema,
-      z.object({ key: z.string().min(1), enrichedAt: ServerTimestampSentinel }),
-    )
+    .partialRecord(BookProviderSchema, z.string().min(1))
     .optional(),
   createdBy: z.string().min(1),
   createdAt: ServerTimestampSentinel,

@@ -74,7 +74,6 @@ describe('subscribeToBooks', () => {
 
   it('maps each pushed snapshot to Book[] via onData', () => {
     const createdAt = new Date('2026-01-01T00:00:00Z');
-    const enrichedAt = new Date('2026-01-02T00:00:00Z');
     let pushSnapshot: (snap: unknown) => void = () => {};
     mockOnSnapshot.mockImplementation(((
       _query: unknown,
@@ -94,12 +93,7 @@ describe('subscribeToBooks', () => {
           data: {
             title: 'The Left Hand of Darkness',
             author: 'Ursula K. Le Guin',
-            externalIds: {
-              openLibrary: {
-                key: '/works/OL455403W',
-                enrichedAt: ts(enrichedAt),
-              },
-            },
+            externalIds: { openLibrary: '/works/OL455403W' },
             createdBy: 'user-1',
             createdAt: ts(createdAt),
           },
@@ -113,19 +107,51 @@ describe('subscribeToBooks', () => {
         title: 'The Left Hand of Darkness',
         author: 'Ursula K. Le Guin',
         metadata: undefined,
-        externalIds: {
-          openLibrary: {
-            key: '/works/OL455403W',
-            enrichedAt,
-          },
-        },
+        externalIds: { openLibrary: '/works/OL455403W' },
         createdBy: 'user-1',
         createdAt,
       },
     ]);
   });
 
-  it('falls back to a Date when createdAt is still a pending serverTimestamp (null)', () => {
+  it('reads the legacy { key, enrichedAt } externalIds shape as a plain key', () => {
+    let pushSnapshot: (snap: unknown) => void = () => {};
+    mockOnSnapshot.mockImplementation(((
+      _query: unknown,
+      onNext: (snap: unknown) => void,
+    ) => {
+      pushSnapshot = onNext;
+      return vi.fn();
+    }) as never);
+
+    const onData = vi.fn<(books: Book[]) => void>();
+    subscribeToBooks(onData, vi.fn());
+
+    pushSnapshot(
+      makeSnapshot([
+        {
+          id: 'book-1',
+          data: {
+            title: 'The Left Hand of Darkness',
+            author: 'Ursula K. Le Guin',
+            externalIds: {
+              openLibrary: {
+                key: '/works/OL455403W',
+                enrichedAt: ts(new Date('2026-01-02T00:00:00Z')),
+              },
+            },
+          },
+        },
+      ]),
+    );
+
+    const [books] = onData.mock.calls[0]!;
+    expect(books[0]!.externalIds).toEqual({
+      openLibrary: '/works/OL455403W',
+    });
+  });
+
+  it('leaves createdAt undefined while it is a pending serverTimestamp (null)', () => {
     let pushSnapshot: (snap: unknown) => void = () => {};
     mockOnSnapshot.mockImplementation(((
       _query: unknown,
@@ -153,7 +179,7 @@ describe('subscribeToBooks', () => {
     );
 
     const [books] = onData.mock.calls[0]!;
-    expect(books[0]!.createdAt).toBeInstanceOf(Date);
+    expect(books[0]!.createdAt).toBeUndefined();
   });
 
   it('leaves externalIds undefined when the field is absent', () => {
@@ -276,12 +302,7 @@ describe('subscribeToBooks', () => {
           data: {
             title: 'Untitled',
             author: 'Unknown',
-            externalIds: {
-              unknownProvider: {
-                key: 'abc',
-                enrichedAt: ts(new Date('2026-01-01T00:00:00Z')),
-              },
-            },
+            externalIds: { unknownProvider: 'abc' },
             createdBy: 'user-1',
             createdAt: ts(new Date('2026-01-01T00:00:00Z')),
           },
@@ -361,9 +382,7 @@ describe('getOrCreateBook', () => {
       {
         title: TITLE,
         author: AUTHOR,
-        externalIds: {
-          openLibrary: { key: '/works/OL455403W', enrichedAt: SERVER_TS },
-        },
+        externalIds: { openLibrary: '/works/OL455403W' },
         metadata,
         createdBy: 'user-1',
         createdAt: SERVER_TS,

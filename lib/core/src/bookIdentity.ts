@@ -1,21 +1,3 @@
-/**
- * Deterministic book identity.
- *
- * A book's Firestore document id is a pure function of its identity:
- *   - catalog book: hash("openLibrary:" + workKey)
- *   - manual book:  hash("manual:" + normTitle + "|" + normAuthor)
- *
- * Because the id is deterministic, deduplication is a `getDoc` on the computed
- * id rather than a query, and the create race (issue #7) closes by construction
- * — concurrent creates target the same id and converge.
- *
- * FROZEN CONTRACT. The normalization pipeline and hash below must not change
- * once books are migrated: changing them changes every derived id and silently
- * re-introduces duplicates. bookIdentity.test.ts is the source of truth; treat
- * edits here as a data-migration event. See
- * docs/decisions/book-identity-and-deduplication.md.
- */
-
 export interface BookIdentity {
   /**
    * Open Library Work key, e.g. "/works/OL166894W". When present, the book is

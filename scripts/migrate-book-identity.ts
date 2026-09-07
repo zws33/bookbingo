@@ -71,9 +71,16 @@ const db = getFirestore();
 
 const BATCH_LIMIT = 500;
 
-/** The Open Library Work key for a book doc, from either schema (legacy or migrated). */
+/**
+ * The Open Library Work key for a book doc. Reads every shape this collection
+ * has held: the legacy flat `externalId`, the `{ key, enrichedAt }` record, and
+ * the current provider-to-key string.
+ */
 function olKeyOf(data: DocumentData): string | null {
-  return data.externalId ?? data.externalIds?.openLibrary?.key ?? null;
+  const ref = data.externalIds?.openLibrary;
+  return (
+    data.externalId ?? (typeof ref === 'string' ? ref : (ref?.key ?? null))
+  );
 }
 
 /** The deterministic id a book doc should live at, given its content. */
@@ -168,11 +175,7 @@ async function runRekey() {
 
     const olKey = olDoc ? olKeyOf(olDoc) : null;
     if (olKey) {
-      const enrichedAt =
-        olDoc?.externalIds?.openLibrary?.enrichedAt ??
-        olDoc?.createdAt ??
-        FieldValue.serverTimestamp();
-      newDoc.externalIds = { openLibrary: { key: olKey, enrichedAt } };
+      newDoc.externalIds = { openLibrary: olKey };
     }
 
     if (docs.length > 1) {

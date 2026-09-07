@@ -48,8 +48,8 @@ the read-through plan.
   (`lib/core/src/bookIdentity.ts`, a frozen contract.)
 - Readings reference `bookId`, **never** the Open Library key.
 - `externalIds` is a provider-keyed provenance map:
-  `Partial<Record<BookProvider, ExternalRef>>`, where `ExternalRef` is
-  `{ key, enrichedAt }`. `BookProvider` is currently the union `'openLibrary'`.
+  `Partial<Record<BookProvider, string>>`, mapping a provider to its native id.
+  `BookProvider` is currently the union `'openLibrary'`.
 - A `BookMetadata` snapshot is persisted on the doc.
 
 The catch: `/books` is written **only** by `getOrCreateBook` at reading-create

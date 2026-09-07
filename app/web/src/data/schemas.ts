@@ -18,20 +18,24 @@ const OptionalInstant = FirestoreTimestamp.nullish().transform((t) =>
   t?.toDate(),
 );
 
-const ExternalRefSchema = z.object({
-  key: z.string().min(1),
-  enrichedAt: ServerInstant,
-});
+/**
+ * A provider's native id. Reads both the current plain-string shape and the
+ * legacy `{ key, enrichedAt }` record, so documents written before `enrichedAt`
+ * was dropped still parse instead of being skipped by `mapValid`. Collapse to
+ * `z.string().min(1)` once no legacy documents remain.
+ */
+const ExternalKey = z.union([
+  z.string().min(1),
+  z.object({ key: z.string().min(1) }).transform((ref) => ref.key),
+]);
 
 export const BookDocSchema = z.object({
   title: z.string(),
   author: z.string(),
   metadata: BookMetadataSchema.optional(),
-  externalIds: z
-    .partialRecord(BookProviderSchema, ExternalRefSchema)
-    .optional(),
-  createdBy: z.string().min(1),
-  createdAt: ServerInstant,
+  externalIds: z.partialRecord(BookProviderSchema, ExternalKey).optional(),
+  createdBy: z.string().min(1).optional(),
+  createdAt: OptionalInstant,
 });
 
 export const ReadingDocSchema = z.object({

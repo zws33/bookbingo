@@ -1,6 +1,7 @@
 import { test, describe, before, after, beforeEach } from 'node:test';
 import assert from 'node:assert';
 import { OpenLibraryProvider } from './open-library.js';
+import { ProviderError } from '../types.js';
 
 const SEARCH_PAYLOAD = {
   docs: [
@@ -25,13 +26,15 @@ const WORK_PAYLOAD = {
 function jsonResponse(payload: unknown): Response {
   return {
     ok: true,
+    status: 200,
     statusText: 'OK',
     json: async () => payload,
   } as unknown as Response;
 }
 
-function errorResponse(statusText: string): Response {
-  return { ok: false, statusText } as unknown as Response;
+/** Mirrors a real Response closely enough to exercise status-based classification. */
+function errorResponse(statusText: string, status = 404): Response {
+  return { ok: false, status, statusText } as unknown as Response;
 }
 
 /** Yields to the microtask/macrotask queue so concurrent work can start. */
@@ -133,7 +136,7 @@ describe('OpenLibraryProvider', () => {
       let shouldFail = true;
       installSearchFetch(() =>
         shouldFail
-          ? errorResponse('Server Error')
+          ? errorResponse('Server Error', 500)
           : jsonResponse(SEARCH_PAYLOAD),
       );
       const provider = makeProvider({ searchCacheTtlMs: 1000 });
@@ -190,7 +193,7 @@ describe('OpenLibraryProvider', () => {
         requestedUrls.push(String(input));
         await tick();
         return shouldFail
-          ? errorResponse('Server Error')
+          ? errorResponse('Server Error', 500)
           : jsonResponse(SEARCH_PAYLOAD);
       }) as typeof fetch;
       const provider = makeProvider({ searchCacheTtlMs: 1000 });
@@ -276,7 +279,7 @@ describe('OpenLibraryProvider', () => {
         return jsonResponse(WORK_PAYLOAD);
       }) as typeof fetch;
 
-      const result = await makeProvider().lookup('/works/OL1W');
+      const result = await makeProvider().getDetails('/works/OL1W');
 
       assert.equal(
         authorSawEditionsStarted,
@@ -297,7 +300,7 @@ describe('OpenLibraryProvider', () => {
         return errorResponse('Not Found');
       }) as typeof fetch;
 
-      const result = await makeProvider().lookup('/works/OL1W');
+      const result = await makeProvider().getDetails('/works/OL1W');
 
       assert.equal(result.author, '');
       assert.equal(result.metadata.pageCount, null);
@@ -308,8 +311,66 @@ describe('OpenLibraryProvider', () => {
       installSearchFetch(() => errorResponse('Not Found'));
 
       await assert.rejects(
-        makeProvider().lookup('/works/OL1W'),
+        makeProvider().getDetails('/works/OL1W'),
         /OpenLibrary work lookup failed/,
+      );
+    });
+
+    test('surfaces the upstream status and url on the thrown ProviderError', async () => {
+      installSearchFetch(() => errorResponse('Not Found', 404));
+
+      await assert.rejects(
+        makeProvider().getDetails('/works/OL1W'),
+        (error) => {
+          assert.ok(error instanceof ProviderError);
+          assert.equal(error.status, 404);
+          assert.equal(error.url, 'https://openlibrary.org/works/OL1W.json');
+          return true;
+        },
+      );
+    });
+
+    test('reports a transport failure as a null status, preserving the cause', async () => {
+      const transportError = new Error('fetch failed', {
+        cause: Object.assign(new Error('connect ETIMEDOUT'), {
+          code: 'UND_ERR_CONNECT_TIMEOUT',
+        }),
+      });
+      global.fetch = (async () => {
+        throw transportError;
+      }) as typeof fetch;
+
+      await assert.rejects(
+        makeProvider().getDetails('/works/OL1W'),
+        (error) => {
+          assert.ok(error instanceof ProviderError);
+          assert.equal(error.status, null);
+          assert.equal(error.cause, transportError);
+          return true;
+        },
+      );
+    });
+
+    test('throws a ProviderError when the work body is not JSON', async () => {
+      global.fetch = (async () => {
+        return {
+          ok: true,
+          status: 200,
+          statusText: 'OK',
+          json: async () => {
+            throw new SyntaxError('Unexpected token < in JSON');
+          },
+        } as unknown as Response;
+      }) as typeof fetch;
+
+      await assert.rejects(
+        makeProvider().getDetails('/works/OL1W'),
+        (error) => {
+          assert.ok(error instanceof ProviderError);
+          assert.equal(error.status, 200);
+          assert.match(error.message, /malformed JSON/);
+          return true;
+        },
       );
     });
   });

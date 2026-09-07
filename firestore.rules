@@ -2,11 +2,14 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Shared books collection
+    // Shared books collection. Provenance is not tracked, so there is no owner
+    // to gate updates on: any signed-in user may create or amend a book. The
+    // deterministic doc id (lib-core deriveBookId) is what prevents duplicates,
+    // and merge-writes from the enrich function land as updates on docs it
+    // created without a createdBy.
     match /books/{bookId} {
       allow read, list: if request.auth != null;
-      allow create: if request.auth != null;
-      allow update: if request.auth != null && (request.auth.uid == resource.data.createdBy || resource.data.createdBy == 'system-migration');
+      allow create, update: if request.auth != null;
     }
 
     // User profiles and their private readings

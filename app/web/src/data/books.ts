@@ -81,12 +81,7 @@ export async function getOrCreateBook(
       title: title.trim(),
       author: author.trim(),
       ...(enrichment && {
-        externalIds: {
-          openLibrary: {
-            key: enrichment.externalId,
-            enrichedAt: serverTimestamp(),
-          },
-        },
+        externalIds: { openLibrary: enrichment.externalId },
         metadata: enrichment.metadata,
       }),
       createdBy: userId,
@@ -108,7 +103,7 @@ function toBook(doc: QueryDocumentSnapshot): Book {
     author: data.author,
     ...(data.metadata !== undefined && { metadata: data.metadata }),
     ...(data.externalIds !== undefined && { externalIds: data.externalIds }),
-    createdBy: data.createdBy,
-    createdAt: data.createdAt,
+    ...(data.createdBy !== undefined && { createdBy: data.createdBy }),
+    ...(data.createdAt !== undefined && { createdAt: data.createdAt }),
   };
 }

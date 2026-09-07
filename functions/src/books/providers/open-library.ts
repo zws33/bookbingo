@@ -4,6 +4,8 @@ import type {
   BookProvider,
   BookSearchResult,
 } from '../types.js';
+import { ProviderError } from '../types.js';
+import { logEvent, logFailure, logWarning } from '../../observability.js';
 
 const DocSchema = z.object({
   key: z.string(),
@@ -101,10 +103,13 @@ export class OpenLibraryProvider implements BookProvider {
     const cached = this.searchCache.get(key);
     if (cached) {
       if (cached.expiresAt > now) {
+        logEvent('ol.search_cache', { hit: true, size: this.searchCache.size });
         return cached.request;
       }
       this.searchCache.delete(key);
     }
+
+    logEvent('ol.search_cache', { hit: false, size: this.searchCache.size });
 
     const request = this.fetchSearch(query);
     this.searchCache.set(key, {
@@ -153,14 +158,72 @@ export class OpenLibraryProvider implements BookProvider {
     );
   }
 
-  async lookup(externalId: string): Promise<BookEnrichmentResult> {
-    const workRes = await fetch(`${this.baseUrl}${externalId}.json`, {
-      headers: this.headers,
-    });
-    if (!workRes.ok) {
-      throw new Error(`OpenLibrary work lookup failed: ${workRes.statusText}`);
+  /**
+   * Single instrumented exit point to Open Library. Every upstream call goes
+   * through here so each one emits an `ol.fetch` event with its status and
+   * duration, and so transport failures and error statuses arrive at the
+   * handler as one classifiable type.
+   */
+  private async fetchJson(
+    url: string,
+    kind: 'search' | 'work' | 'author' | 'editions',
+    label: string,
+  ): Promise<unknown> {
+    const startedAt = Date.now();
+
+    let response: Response;
+    try {
+      response = await fetch(url, { headers: this.headers });
+    } catch (error) {
+      const durationMs = Date.now() - startedAt;
+      logFailure('ol.fetch', error, { kind, url, status: null, durationMs });
+      throw new ProviderError(`OpenLibrary ${label} failed: no response`, {
+        status: null,
+        url,
+        cause: error,
+      });
     }
-    const work = WorkSchema.parse(await workRes.json());
+
+    const durationMs = Date.now() - startedAt;
+    const status = response.status;
+
+    if (!response.ok) {
+      logEvent('ol.fetch', { kind, url, status, durationMs, ok: false });
+      throw new ProviderError(
+        `OpenLibrary ${label} failed: ${status} ${response.statusText}`,
+        { status, url },
+      );
+    }
+
+    try {
+      const body: unknown = await response.json();
+      logEvent('ol.fetch', { kind, url, status, durationMs, ok: true });
+      return body;
+    } catch (error) {
+      logFailure('ol.fetch', error, {
+        kind,
+        url,
+        status,
+        durationMs,
+        ok: false,
+        reason: 'malformed-json',
+      });
+      throw new ProviderError(`OpenLibrary ${label} returned malformed JSON`, {
+        status,
+        url,
+        cause: error,
+      });
+    }
+  }
+
+  async getDetails(externalId: string): Promise<BookEnrichmentResult> {
+    const work = WorkSchema.parse(
+      await this.fetchJson(
+        `${this.baseUrl}${externalId}.json`,
+        'work',
+        'work lookup',
+      ),
+    );
 
     const [author, pageCount] = await Promise.all([
       this.fetchAuthorName(work.authors?.[0]?.author?.key),
@@ -191,11 +254,7 @@ export class OpenLibraryProvider implements BookProvider {
     url.searchParams.set('fields', this.searchFields);
     url.searchParams.set('limit', '10');
 
-    const response = await fetch(url.toString(), { headers: this.headers });
-    if (!response.ok) {
-      throw new Error(`OpenLibrary search failed: ${response.statusText}`);
-    }
-    const json = await response.json();
+    const json = await this.fetchJson(url.toString(), 'search', 'search');
     const dto = SearchResponseSchema.parse(json);
 
     return dto.docs.map((doc) => ({
@@ -218,27 +277,65 @@ export class OpenLibraryProvider implements BookProvider {
     }
   }
 
+  /**
+   * Author and page count are optional enrichments: a failure degrades the
+   * result instead of failing the lookup. Each degradation is logged as
+   * `ol.enrichment_degraded`, because silently returning ''/null is otherwise
+   * indistinguishable from a book that genuinely has no author or page count.
+   */
   private async fetchAuthorName(
     authorKey: string | undefined,
   ): Promise<string> {
     if (!authorKey) return '';
-    const res = await fetch(`${this.baseUrl}${authorKey}.json`, {
-      headers: this.headers,
-    });
-    if (!res.ok) return '';
-    const parsed = AuthorSchema.safeParse(await res.json());
-    return parsed.success ? parsed.data.name : '';
+    try {
+      const body = await this.fetchJson(
+        `${this.baseUrl}${authorKey}.json`,
+        'author',
+        'author lookup',
+      );
+      const parsed = AuthorSchema.safeParse(body);
+      if (!parsed.success) {
+        logEvent('ol.enrichment_degraded', {
+          field: 'author',
+          authorKey,
+          reason: 'schema-mismatch',
+        });
+        return '';
+      }
+      return parsed.data.name;
+    } catch (error) {
+      logWarning('ol.enrichment_degraded', error, {
+        field: 'author',
+        authorKey,
+      });
+      return '';
+    }
   }
 
   private async fetchPageCount(workKey: string): Promise<number | null> {
-    const res = await fetch(`${this.baseUrl}${workKey}/editions.json?limit=1`, {
-      headers: this.headers,
-    });
-    if (!res.ok) return null;
-    const parsed = EditionsSchema.safeParse(await res.json());
-    return parsed.success
-      ? (parsed.data.entries?.[0]?.number_of_pages ?? null)
-      : null;
+    try {
+      const body = await this.fetchJson(
+        `${this.baseUrl}${workKey}/editions.json?limit=1`,
+        'editions',
+        'editions lookup',
+      );
+      const parsed = EditionsSchema.safeParse(body);
+      if (!parsed.success) {
+        logEvent('ol.enrichment_degraded', {
+          field: 'pageCount',
+          workKey,
+          reason: 'schema-mismatch',
+        });
+        return null;
+      }
+      return parsed.data.entries?.[0]?.number_of_pages ?? null;
+    } catch (error) {
+      logWarning('ol.enrichment_degraded', error, {
+        field: 'pageCount',
+        workKey,
+      });
+      return null;
+    }
   }
 }
 

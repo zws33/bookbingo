@@ -38,14 +38,14 @@ book through their readings.
 This makes dedup a point read on the computed ID rather than a query; concurrent creates
 of the same book converge on one document.
 
-| Field         | Type          | Notes                                                         |
-| ------------- | ------------- | ------------------------------------------------------------- |
-| `title`       | string        |                                                               |
-| `author`      | string        |                                                               |
-| `createdBy`   | string        | UID of first adder; may be `"system-migration"`               |
-| `createdAt`   | Timestamp     |                                                               |
-| `metadata`    | map \| absent | see below; absent for bare manual entries                     |
-| `externalIds` | map \| absent | provenance only, keyed by provider; absent for manual entries |
+| Field         | Type                | Notes                                                           |
+| ------------- | ------------------- | --------------------------------------------------------------- |
+| `title`       | string              |                                                                 |
+| `author`      | string              |                                                                 |
+| `createdBy`   | string \| absent    | UID of first adder; absent on books the enrich function created |
+| `createdAt`   | Timestamp \| absent | absent on books the enrich function created                     |
+| `metadata`    | map \| absent       | see below; absent for bare manual entries                       |
+| `externalIds` | map \| absent       | provenance only, keyed by provider; absent for manual entries   |
 
 `metadata` map:
 
@@ -58,9 +58,13 @@ of the same book converge on one document.
 | `isbn`          | string \| null |
 | `thumbnailUrl`  | string \| null |
 
-`externalIds` is `{ openLibrary?: { key: string, enrichedAt: Timestamp } }`. `key` is the
-Open Library Work key, e.g. `/works/OL166894W`. This is provenance, **not** a dedup key —
-identity is the deterministic document ID.
+`externalIds` is `{ openLibrary?: string }`, mapping a provider to its native id — for
+Open Library, the Work key, e.g. `/works/OL166894W`. This is provenance, **not** a dedup
+key — identity is the deterministic document ID.
+
+Documents written before `enrichedAt` was dropped hold `{ key, enrichedAt }` instead of a
+plain string. `BookDocSchema` reads both and normalizes to the string; the union goes away
+once no such documents remain.
 
 ## `/users/{userId}` — user profile
 

@@ -130,12 +130,7 @@ async function main(): Promise<void> {
       createdAt: FieldValue.serverTimestamp(),
     };
     if (book.openLibraryKey) {
-      data.externalIds = {
-        openLibrary: {
-          key: book.openLibraryKey,
-          enrichedAt: FieldValue.serverTimestamp(),
-        },
-      };
+      data.externalIds = { openLibrary: book.openLibraryKey };
     }
     if (book.metadata) data.metadata = book.metadata;
     bookWrites.push({ ref: db.collection('books').doc(id), data });
