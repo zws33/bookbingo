@@ -68,8 +68,6 @@ export async function getOrCreateBook(
   });
   const bookRef = doc(db, 'books', bookId);
 
-  // Deterministic id == dedup. If it already exists, reuse it as-is so we don't
-  // clobber the original createdBy/createdAt provenance.
   const existing = await getDoc(bookRef);
   if (existing.exists()) {
     return bookId;

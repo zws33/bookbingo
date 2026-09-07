@@ -4,27 +4,27 @@ export const BookProviderSchema = z.enum(['openLibrary']);
 
 export const BookMetadataSchema = z.object({
   pageCount: z.number().int().nonnegative().nullable(),
-  publishedDate: z.string().nullable(),
-  categories: z.array(z.string()),
-  language: z.string().nullable(),
-  isbn: z.string().nullable(),
-  thumbnailUrl: z.string().nullable(),
+  publishedDate: z.string().max(200).nullable(),
+  categories: z.array(z.string().max(200)),
+  language: z.string().max(200).nullable(),
+  isbn: z.string().max(200).nullable(),
+  thumbnailUrl: z.url().nullable(),
 });
 
 export const BookSearchResultSchema = z.object({
   externalId: z.string().min(1),
   title: z.string(),
   author: z.string(),
-  thumbnailUrl: z.string().nullable(),
+  thumbnailUrl: z.url().nullable(),
   publishedDate: z.string().nullable(),
 });
 
 export const SearchBooksResponseSchema = z.array(BookSearchResultSchema);
 
 export const BookEnrichmentResultSchema = z.object({
-  externalId: z.string().min(1),
-  title: z.string(),
-  author: z.string(),
+  externalId: z.string().min(1).max(200),
+  title: z.string().max(200),
+  author: z.string().max(200),
   metadata: BookMetadataSchema,
 });
 
