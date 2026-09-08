@@ -3,7 +3,7 @@ import type { Book, TBREntry } from '@bookbingo/lib-types';
 import { useTBR } from '../hooks/useTBR';
 import { useBooks } from '../hooks/useBooks';
 import { useToast } from '../lib/ToastContext';
-import { getOrCreateBook } from '../data/books';
+import { createManualBook } from '../lib/createManualBook';
 import {
   createTBREntry,
   updateTBREntry,
@@ -11,12 +11,13 @@ import {
   promoteTBREntry,
 } from '../data/tbr';
 import { BookForm, type BookFormData } from '../components/BookForm.js';
+import { ReadingForm } from '../components/ReadingForm';
 import { BookSearch } from '../components/BookSearch';
 import { BookCard } from '../components/BookCard';
 import { PageStatus } from '../components/PageStatus';
 import { Dialog, AlertDialog, Button } from '../components/ui/index.js';
 import { log } from '@bookbingo/lib-util';
-import type { BookEnrichmentResult } from '@bookbingo/lib-types';
+import type { BookLookupResult } from '../lib/bookSearch';
 
 interface ReadingListPageProps {
   userId: string;
@@ -24,7 +25,7 @@ interface ReadingListPageProps {
 
 type DialogState =
   | { kind: 'search' }
-  | { kind: 'add'; enrichment: BookEnrichmentResult }
+  | { kind: 'add'; enrichment: BookLookupResult }
   | { kind: 'manual' }
   | { kind: 'edit'; entry: TBREntry; book: Book }
   | { kind: 'promote'; entry: TBREntry; book: Book }
@@ -42,7 +43,7 @@ export function ReadingListPage({ userId }: ReadingListPageProps) {
   const closeDialog = useCallback(() => setDialog(null), []);
 
   const handleBookSelectedForAdd = useCallback(
-    (enrichment: BookEnrichmentResult) => {
+    (enrichment: BookLookupResult) => {
       setDialog({ kind: 'add', enrichment });
     },
     [],
@@ -53,20 +54,11 @@ export function ReadingListPage({ userId }: ReadingListPageProps) {
   }, []);
 
   const handleAdd = useCallback(
-    async (data: BookFormData) => {
+    async (data: { tiles: string[]; isFreebie: boolean }) => {
       if (dialog?.kind !== 'add') return;
       setIsSubmitting(true);
       try {
-        const bookId = await getOrCreateBook(
-          dialog.enrichment.title,
-          dialog.enrichment.author,
-          userId,
-          {
-            externalId: dialog.enrichment.externalId,
-            metadata: dialog.enrichment.metadata,
-          },
-        );
-        await createTBREntry(userId, bookId, data.tiles);
+        await createTBREntry(userId, dialog.enrichment.bookId, data.tiles);
         showSuccess('Added to reading list');
         closeDialog();
       } catch (err) {
@@ -79,13 +71,19 @@ export function ReadingListPage({ userId }: ReadingListPageProps) {
     [dialog, userId, showSuccess, showError, closeDialog],
   );
 
+  // Failsafe path: only reached when catalog search doesn't find the book, so
+  // createManualBook (server-side) is the only thing that ever writes it to
+  // /books.
   const handleManualAdd = useCallback(
     async (data: BookFormData) => {
       if (dialog?.kind !== 'manual') return;
-      if (!data.title || !data.author) return;
       setIsSubmitting(true);
       try {
-        const bookId = await getOrCreateBook(data.title, data.author, userId);
+        const bookId = await createManualBook(
+          data.title,
+          data.author,
+          data.metadata,
+        );
         await createTBREntry(userId, bookId, data.tiles);
         showSuccess('Added to reading list');
         closeDialog();
@@ -231,8 +229,7 @@ export function ReadingListPage({ userId }: ReadingListPageProps) {
           />
         )}
         {dialog?.kind === 'add' && (
-          <BookForm
-            identityLocked={true}
+          <ReadingForm
             initialData={{
               title: dialog.enrichment.title,
               author: dialog.enrichment.author,
@@ -247,6 +244,7 @@ export function ReadingListPage({ userId }: ReadingListPageProps) {
         {dialog?.kind === 'manual' && (
           <BookForm
             identityLocked={false}
+            collectMetadata
             onSubmit={handleManualAdd}
             onCancel={closeDialog}
             isSubmitting={isSubmitting}

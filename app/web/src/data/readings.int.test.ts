@@ -143,7 +143,7 @@ describe('getReadingsByUser integration (emulator)', () => {
 
 describe('reading writes integration (emulator)', () => {
   // Readings store a bookId but Firestore does not enforce the reference, so
-  // these use literal ids rather than round-tripping through getOrCreateBook.
+  // these use literal ids rather than round-tripping through a real book write.
   it('createReading writes the document and returns its id', async () => {
     const id = await createReading(TEST_USER_ID, 'book-1', ['sci-fi'], false);
     createdReadingIds.push(id);
