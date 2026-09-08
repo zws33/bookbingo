@@ -35,8 +35,6 @@ export async function createManualBookHandler(
       uid,
       outcome: 'ok',
       bookId: created.id,
-      title: parsed.data.title,
-      author: parsed.data.author,
       hasPageCount: parsed.data.metadata.pageCount !== null,
       hasPublishedDate: parsed.data.metadata.publishedDate !== null,
       hasCategories: parsed.data.metadata.categories.length > 0,

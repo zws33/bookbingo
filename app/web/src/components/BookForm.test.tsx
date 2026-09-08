@@ -192,6 +192,115 @@ describe('BookForm', () => {
     });
   });
 
+  describe('metadata collection', () => {
+    it('does not show metadata fields by default', () => {
+      renderBookForm({ identityLocked: false });
+
+      expect(screen.queryByLabelText('Page count')).not.toBeInTheDocument();
+    });
+
+    it('does not show metadata fields when identity is locked, even if requested', () => {
+      renderBookForm({
+        identityLocked: true,
+        collectMetadata: true,
+        initialData: {
+          title: 'Dune',
+          author: 'Frank Herbert',
+          tiles: [],
+          isFreebie: false,
+        },
+      });
+
+      expect(screen.queryByLabelText('Page count')).not.toBeInTheDocument();
+    });
+
+    it('shows metadata fields when collectMetadata is set and identity is editable', () => {
+      renderBookForm({ identityLocked: false, collectMetadata: true });
+
+      expect(screen.getByLabelText('Page count')).toBeInTheDocument();
+      expect(screen.getByLabelText('Published')).toBeInTheDocument();
+      expect(screen.getByLabelText('ISBN')).toBeInTheDocument();
+      expect(screen.getByLabelText('Language')).toBeInTheDocument();
+      expect(screen.getByLabelText('Categories')).toBeInTheDocument();
+      expect(screen.getByLabelText('Cover image URL')).toBeInTheDocument();
+    });
+
+    it('submits null for blank metadata fields and an empty categories array', async () => {
+      const { user, onSubmit } = renderBookForm({
+        identityLocked: false,
+        collectMetadata: true,
+      });
+
+      await user.type(screen.getByLabelText('Title'), 'Dune');
+      await user.type(screen.getByLabelText('Author'), 'Frank Herbert');
+      await user.click(saveButton());
+
+      expect(onSubmit).toHaveBeenCalledWith(
+        expect.objectContaining({
+          metadata: {
+            pageCount: null,
+            publishedDate: null,
+            categories: [],
+            language: null,
+            isbn: null,
+            thumbnailUrl: null,
+          },
+        }),
+      );
+    });
+
+    it('parses entered metadata, splitting and trimming comma-separated categories', async () => {
+      const { user, onSubmit } = renderBookForm({
+        identityLocked: false,
+        collectMetadata: true,
+      });
+
+      await user.type(screen.getByLabelText('Title'), 'Dune');
+      await user.type(screen.getByLabelText('Author'), 'Frank Herbert');
+      await user.type(screen.getByLabelText('Page count'), '412');
+      await user.type(screen.getByLabelText('Published'), '1965');
+      await user.type(screen.getByLabelText('ISBN'), '9780441172719');
+      await user.type(screen.getByLabelText('Language'), 'en');
+      await user.type(
+        screen.getByLabelText('Categories'),
+        ' Science Fiction ,  Classics ,,',
+      );
+      await user.type(
+        screen.getByLabelText('Cover image URL'),
+        'https://example.com/dune.jpg',
+      );
+      await user.click(saveButton());
+
+      expect(onSubmit).toHaveBeenCalledWith(
+        expect.objectContaining({
+          metadata: {
+            pageCount: 412,
+            publishedDate: '1965',
+            categories: ['Science Fiction', 'Classics'],
+            language: 'en',
+            isbn: '9780441172719',
+            thumbnailUrl: 'https://example.com/dune.jpg',
+          },
+        }),
+      );
+    });
+
+    it('omits metadata entirely when not requested', async () => {
+      const { user, onSubmit } = renderBookForm({ identityLocked: false });
+
+      await user.type(screen.getByLabelText('Title'), 'Dune');
+      await user.type(screen.getByLabelText('Author'), 'Frank Herbert');
+      await user.click(saveButton());
+
+      expect(onSubmit).toHaveBeenCalledWith({
+        title: 'Dune',
+        author: 'Frank Herbert',
+        tiles: [],
+        isFreebie: false,
+      });
+    });
+  });
+
   describe('submission and cancellation', () => {
     it('shows a saving state and disables both actions while submitting', () => {
       renderBookForm({

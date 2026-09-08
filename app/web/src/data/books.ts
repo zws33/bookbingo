@@ -10,6 +10,7 @@ import {
   setDoc,
 } from 'firebase/firestore';
 import { deriveBookId } from '@bookbingo/lib-core';
+import { log } from '@bookbingo/lib-util';
 import { db } from '../lib/firebase';
 import { BookDocSchema, mapValid } from './schemas';
 
@@ -94,7 +95,9 @@ export async function getOrCreateBook(
 }
 
 function toBook(doc: QueryDocumentSnapshot): Book {
-  const data = BookDocSchema.parse(doc.data());
+  const raw = doc.data();
+  const data = BookDocSchema.parse(raw);
+  warnIfThumbnailDropped(doc.id, raw, data);
   return {
     id: doc.id,
     title: data.title,
@@ -104,4 +107,24 @@ function toBook(doc: QueryDocumentSnapshot): Book {
     ...(data.createdBy !== undefined && { createdBy: data.createdBy }),
     ...(data.createdAt !== undefined && { createdAt: data.createdAt }),
   };
+}
+
+/**
+ * `BookDocSchema` coerces a stored thumbnailUrl that fails `z.url()` (a
+ * legacy empty string, most commonly) to null rather than dropping the whole
+ * document. Log which books that affects so they can be found and backfilled,
+ * without noise for books that simply never had a thumbnail (raw was already
+ * null/absent).
+ */
+function warnIfThumbnailDropped(
+  bookId: string,
+  raw: unknown,
+  parsed: { metadata?: { thumbnailUrl: string | null } | undefined },
+): void {
+  const rawThumbnailUrl = (raw as { metadata?: { thumbnailUrl?: unknown } })
+    ?.metadata?.thumbnailUrl;
+  const hadRawValue = rawThumbnailUrl !== null && rawThumbnailUrl !== undefined;
+  if (hadRawValue && parsed.metadata?.thumbnailUrl === null) {
+    log.warn('books', `dropping invalid thumbnailUrl for book ${bookId}`);
+  }
 }

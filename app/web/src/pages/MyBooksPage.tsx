@@ -2,7 +2,6 @@ import { useState, useMemo, useCallback } from 'react';
 import { useReadings } from '../hooks/useReadings';
 import { useBooks } from '../hooks/useBooks';
 import { useToast } from '../lib/ToastContext';
-import { getOrCreateBook } from '../data/books';
 import { createReading } from '../data/readings';
 import { BookList } from '../components/BookList';
 import { BookSearch } from '../components/BookSearch';
@@ -11,18 +10,24 @@ import { Dialog } from '../components/ui/index.js';
 import { BookForm, type BookFormData } from '../components/BookForm';
 import { getScoreBreakdown } from '@bookbingo/lib-core';
 import { log } from '@bookbingo/lib-util';
-import type { BookEnrichmentResult } from '../lib/bookSearch';
+import type { BookLookupResult } from '../lib/bookSearch';
+import { ReadingForm } from '../components/ReadingForm';
+import { createManualBook } from '../lib/createManualBook';
 
 interface MyBooksPageProps {
   userId: string;
 }
 
-type DialogState = { kind: 'search' } | { kind: 'entry' } | null;
+type DialogState =
+  | { kind: 'search' }
+  | { kind: 'readingForm' }
+  | { kind: 'manualEntry' }
+  | null;
 
 export function MyBooksPage({ userId }: MyBooksPageProps) {
   const [dialog, setDialog] = useState<DialogState>(null);
   const [pendingEnrichment, setPendingEnrichment] =
-    useState<BookEnrichmentResult | null>(null);
+    useState<BookLookupResult | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { showSuccess, showError } = useToast();
   const {
@@ -40,33 +45,26 @@ export function MyBooksPage({ userId }: MyBooksPageProps) {
     return getScoreBreakdown(readings);
   }, [readings]);
 
-  const handleBookSelected = useCallback(
-    (data: BookEnrichmentResult | null) => {
-      setPendingEnrichment(data);
-      setDialog({ kind: 'entry' });
-    },
-    [],
-  );
+  const handleBookSelected = useCallback((data: BookLookupResult) => {
+    setPendingEnrichment(data);
+    setDialog({ kind: 'readingForm' });
+  }, []);
 
   const handleAddModalClose = useCallback(() => {
     setDialog(null);
     setPendingEnrichment(null);
   }, []);
 
+  // Failsafe path: only reached when catalog search doesn't find the book, so
+  // there is no enrichment to attach. createManualBook (server-side) is the
+  // only thing that ever writes this book to /books.
   const handleAddBook = async (data: BookFormData) => {
-    if (data) setIsSubmitting(true);
+    setIsSubmitting(true);
     try {
-      const enrichment = pendingEnrichment
-        ? {
-            externalId: pendingEnrichment.externalId,
-            metadata: pendingEnrichment.metadata,
-          }
-        : undefined;
-      const bookId = await getOrCreateBook(
+      const bookId = await createManualBook(
         data.title,
         data.author,
-        userId,
-        enrichment,
+        data.metadata,
       );
       await createReading(userId, bookId, data.tiles, data.isFreebie);
       showSuccess('Book added successfully');
@@ -79,14 +77,32 @@ export function MyBooksPage({ userId }: MyBooksPageProps) {
     }
   };
 
-  const addFormInitialData = pendingEnrichment
-    ? {
-        title: pendingEnrichment.title,
-        author: pendingEnrichment.author,
-        tiles: [],
-        isFreebie: false,
-      }
-    : undefined;
+  // Happy path: the book was already written to /books by the enrichBook
+  // 'lookup' callable (see functions/src/books/handler.ts createBook), which
+  // is also who derives bookId — the client only records the reading.
+  const submitReadingData = async (data: {
+    tiles: string[];
+    isFreebie: boolean;
+  }) => {
+    if (!pendingEnrichment) return;
+    setIsSubmitting(true);
+    try {
+      await createReading(
+        userId,
+        pendingEnrichment.bookId,
+        data.tiles,
+        data.isFreebie,
+      );
+      showSuccess('Book added successfully');
+      handleAddModalClose();
+    } catch (err) {
+      showError('Failed to add book');
+      log.error('Add book error:', err);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <>
       {' '}
@@ -130,13 +146,26 @@ export function MyBooksPage({ userId }: MyBooksPageProps) {
         {dialog?.kind === 'search' && (
           <BookSearch
             onBookSelected={handleBookSelected}
-            onManualEntry={() => handleBookSelected(null)}
+            onManualEntry={() => setDialog({ kind: 'manualEntry' })}
           />
         )}
-        {dialog?.kind === 'entry' && (
+        {dialog?.kind === 'readingForm' && pendingEnrichment && (
+          <ReadingForm
+            initialData={{
+              title: pendingEnrichment.title,
+              author: pendingEnrichment.author,
+              tiles: [],
+              isFreebie: false,
+            }}
+            onSubmit={submitReadingData}
+            onCancel={handleAddModalClose}
+            isSubmitting={isSubmitting}
+          />
+        )}
+        {dialog?.kind === 'manualEntry' && (
           <BookForm
-            identityLocked={!!pendingEnrichment}
-            initialData={addFormInitialData}
+            identityLocked={false}
+            collectMetadata
             onSubmit={handleAddBook}
             onCancel={handleAddModalClose}
             isSubmitting={isSubmitting}

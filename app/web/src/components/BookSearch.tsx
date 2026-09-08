@@ -5,11 +5,11 @@ import {
   searchBooks,
   lookupBook,
   type BookSearchResult,
-  type BookEnrichmentResult,
+  type BookLookupResult,
 } from '../lib/bookSearch.js';
 
 interface BookSearchProps {
-  onBookSelected: (data: BookEnrichmentResult) => void;
+  onBookSelected: (data: BookLookupResult) => void;
   onManualEntry: () => void;
 }
 

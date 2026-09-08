@@ -1,9 +1,10 @@
 import type {
   BookSearchResult,
   BookEnrichmentResult,
+  BookLookupResult,
 } from '@bookbingo/lib-types';
 
-export type { BookSearchResult, BookEnrichmentResult };
+export type { BookSearchResult, BookEnrichmentResult, BookLookupResult };
 
 /**
  * A failed upstream provider call, carrying enough to classify it without the

@@ -102,14 +102,29 @@ export interface BookSearchResult {
 }
 
 /**
- * Full enrichment result for a specific book (via the enrichBook callable).
- * Shared contract between app/web and functions.
+ * Full enrichment result for a specific book, as fetched from the catalog
+ * provider. Internal to functions/ (see BookProvider.getDetails) — the
+ * enrichBook 'lookup' callable augments this with a bookId before returning
+ * it to the client; see BookLookupResult.
  */
 export interface BookEnrichmentResult {
   externalId: string;
   title: string;
   author: string;
   metadata: BookMetadata;
+}
+
+/**
+ * Response of the enrichBook 'lookup' callable. Shared contract between
+ * app/web and functions.
+ *
+ * `bookId` is the shared /books document id, derived and written server-side
+ * (functions/src/books/handler.ts createBook). The client uses it as-is to
+ * create a reading — it never derives or writes a /books document itself, so
+ * a book's provenance (catalog vs. manual, which provider) stays opaque to it.
+ */
+export interface BookLookupResult extends BookEnrichmentResult {
+  bookId: string;
 }
 
 // =============================================================================

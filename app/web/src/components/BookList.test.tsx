@@ -8,19 +8,13 @@ import { BookList } from './BookList';
 // Mock only the I/O boundary — the Firestore-backed repository layer. BookList
 // is otherwise props-driven (readings + booksById are passed in), so nothing
 // else needs stubbing. We assert the contract each repository call must satisfy.
-vi.mock('../data/books', () => ({
-  getOrCreateBook: vi.fn(),
-}));
-
 vi.mock('../data/readings', () => ({
   updateReading: vi.fn(),
   deleteReading: vi.fn(),
 }));
 
-import { getOrCreateBook } from '../data/books';
 import { updateReading, deleteReading } from '../data/readings';
 
-const getOrCreateBookMock = vi.mocked(getOrCreateBook);
 const updateReadingMock = vi.mocked(updateReading);
 const deleteReadingMock = vi.mocked(deleteReading);
 
@@ -59,7 +53,6 @@ const editDialog = () => screen.getByRole('dialog');
 describe('BookList edit flow', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    getOrCreateBookMock.mockResolvedValue('book-1');
     updateReadingMock.mockResolvedValue(undefined);
     deleteReadingMock.mockResolvedValue(undefined);
   });
@@ -76,7 +69,7 @@ describe('BookList edit flow', () => {
     expect(within(dialog).queryByLabelText('Title')).not.toBeInTheDocument();
   });
 
-  it('persists tile changes via getOrCreateBook then updateReading', async () => {
+  it("persists tile changes via updateReading, using the reading's existing bookId", async () => {
     const { user } = renderBookList();
 
     await user.click(screen.getByRole('button', { name: /Dune/ }));
@@ -97,11 +90,6 @@ describe('BookList edit flow', () => {
         false,
       );
     });
-    expect(getOrCreateBookMock).toHaveBeenCalledWith(
-      'Dune',
-      'Frank Herbert',
-      'user-1',
-    );
   });
 
   it('deletes the reading after confirming in the alert dialog', async () => {

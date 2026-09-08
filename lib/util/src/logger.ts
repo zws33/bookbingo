@@ -15,6 +15,9 @@ export const log = {
   debug: (label: string, ...args: unknown[]): void => {
     if (_isDev) console.debug(`[${label}]`, ...args);
   },
+  warn: (label: string, ...args: unknown[]): void => {
+    console.warn(`[${label}]`, ...args);
+  },
   error: (label: string, ...args: unknown[]): void => {
     console.error(`[${label}]`, ...args);
     const first = args[0];

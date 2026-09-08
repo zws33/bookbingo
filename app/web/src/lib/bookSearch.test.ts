@@ -48,6 +48,50 @@ describe('searchBooks', () => {
 });
 
 describe('lookupBook', () => {
+  it('parses a valid response into BookLookupResult, including bookId', async () => {
+    mockHttpsCallable.mockResolvedValue({
+      data: {
+        bookId: 'abc123',
+        externalId: '/works/OL1W',
+        title: 'Dune',
+        author: 'Frank Herbert',
+        metadata: {
+          pageCount: 412,
+          publishedDate: '1965',
+          categories: [],
+          language: 'en',
+          isbn: null,
+          thumbnailUrl: null,
+        },
+      },
+    });
+
+    const result = await lookupBook('/works/OL1W');
+
+    expect(result.bookId).toBe('abc123');
+    expect(result.title).toBe('Dune');
+  });
+
+  it('rejects a callable response missing bookId', async () => {
+    mockHttpsCallable.mockResolvedValue({
+      data: {
+        externalId: '/works/OL1W',
+        title: 'Dune',
+        author: 'Frank Herbert',
+        metadata: {
+          pageCount: null,
+          publishedDate: null,
+          categories: [],
+          language: null,
+          isbn: null,
+          thumbnailUrl: null,
+        },
+      },
+    });
+
+    await expect(lookupBook('/works/OL1W')).rejects.toThrow();
+  });
+
   it('rejects a malformed callable response', async () => {
     mockHttpsCallable.mockResolvedValue({ data: { title: 'Missing fields' } });
 

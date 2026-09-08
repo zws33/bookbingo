@@ -3,6 +3,7 @@ import z from 'zod/v4';
 import type {
   BookSearchResult,
   BookEnrichmentResult,
+  BookLookupResult,
   BookProvider,
 } from './types.js';
 import { ProviderError } from './types.js';
@@ -25,7 +26,7 @@ const EnrichBookRequestSchema = z.discriminatedUnion('action', [
  */
 export async function enrichBookHandler(
   request: CallableRequest<unknown>,
-): Promise<BookSearchResult[] | BookEnrichmentResult> {
+): Promise<BookSearchResult[] | BookLookupResult> {
   if (!request.auth) {
     throw new HttpsError(
       'unauthenticated',
@@ -104,7 +105,7 @@ export async function enrichBookHandler(
     hasPageCount: bookDetails.metadata.pageCount !== null,
     durationMs: Date.now() - startedAt,
   });
-  return bookDetails;
+  return { ...bookDetails, bookId: written.bookId };
 }
 
 /**

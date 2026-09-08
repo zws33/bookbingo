@@ -1,16 +1,13 @@
 import { httpsCallable, type FunctionsError } from 'firebase/functions';
-import type {
-  BookSearchResult,
-  BookEnrichmentResult,
-} from '@bookbingo/lib-types';
+import type { BookSearchResult, BookLookupResult } from '@bookbingo/lib-types';
 import {
   SearchBooksResponseSchema,
-  BookEnrichmentResultSchema,
+  BookLookupResultSchema,
 } from '@bookbingo/lib-types';
 import { log } from '@bookbingo/lib-util';
 import { functions } from './firebase';
 
-export type { BookSearchResult, BookEnrichmentResult };
+export type { BookSearchResult, BookLookupResult };
 
 const enrichBook = httpsCallable(functions, 'enrichBook');
 
@@ -47,11 +44,11 @@ export async function searchBooks(query: string): Promise<BookSearchResult[]> {
 
 export async function lookupBook(
   externalId: string,
-): Promise<BookEnrichmentResult> {
+): Promise<BookLookupResult> {
   const startedAt = Date.now();
   try {
     const result = await enrichBook({ action: 'lookup', externalId });
-    const parsed = BookEnrichmentResultSchema.parse(result.data);
+    const parsed = BookLookupResultSchema.parse(result.data);
     log.event('book_lookup', {
       external_id: externalId,
       duration_ms: Date.now() - startedAt,

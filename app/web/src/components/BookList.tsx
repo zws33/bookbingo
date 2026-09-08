@@ -7,7 +7,6 @@ import { BookForm, type BookFormData } from './BookForm';
 import { EmptyState } from './EmptyState';
 import { SearchFilter } from './SearchFilter';
 import { useToast } from '../lib/ToastContext';
-import { getOrCreateBook } from '../data/books';
 import { updateReading, deleteReading } from '../data/readings';
 import { log } from '@bookbingo/lib-util';
 import { PageStatus } from './PageStatus';
@@ -51,11 +50,10 @@ export function BookList({
     if (!selectedReading) return;
     setIsSubmitting(true);
     try {
-      const bookId = await getOrCreateBook(data.title, data.author, userId);
       await updateReading(
         userId,
         selectedReading.id,
-        bookId,
+        selectedReading.bookId,
         data.tiles,
         data.isFreebie,
       );

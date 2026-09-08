@@ -46,7 +46,6 @@ type CreateManualBookRequest = {
 
 type CreateManualBookResponse = {
   bookId: string;
-  created: boolean;
 };
 
 function makeMetadata(): BookMetadata {
@@ -166,7 +165,6 @@ describe.sequential('createManualBook integration (emulator)', () => {
       },
     });
 
-    expect(response.data.created).toBe(true);
     expect(response.data.bookId).toMatch(/\S+/);
     createdBookIds.push(response.data.bookId);
 

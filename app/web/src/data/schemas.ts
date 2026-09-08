@@ -29,10 +29,28 @@ const ExternalKey = z.union([
   z.object({ key: z.string().min(1) }).transform((ref) => ref.key),
 ]);
 
+/**
+ * Read-time thumbnailUrl. Write paths enforce `z.url()`, but legacy documents
+ * written before that check landed can hold an empty string or another
+ * non-URL value. Coerce those to null instead of failing the whole document's
+ * parse (mapValid would otherwise drop the entire book) — toBook logs which
+ * books this affects so they can be backfilled.
+ */
+const ReadThumbnailUrl = z
+  .string()
+  .nullable()
+  .transform((value) =>
+    value !== null && z.url().safeParse(value).success ? value : null,
+  );
+
+const BookMetadataReadSchema = BookMetadataSchema.extend({
+  thumbnailUrl: ReadThumbnailUrl,
+});
+
 export const BookDocSchema = z.object({
   title: z.string(),
   author: z.string(),
-  metadata: BookMetadataSchema.optional(),
+  metadata: BookMetadataReadSchema.optional(),
   externalIds: z.partialRecord(BookProviderSchema, ExternalKey).optional(),
   createdBy: z.string().min(1).optional(),
   createdAt: OptionalInstant,

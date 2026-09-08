@@ -81,6 +81,19 @@ test('log.error is safe when dispatch is null', () => {
   console.error = originalError;
 });
 
+test('log.warn writes to console regardless of isDev', () => {
+  const calls: unknown[][] = [];
+  const originalWarn = console.warn;
+  console.warn = (...args: unknown[]) => calls.push(args);
+
+  initLogger({ isDev: false, dispatch: null });
+  log.warn('books', 'dropping invalid thumbnailUrl');
+
+  console.warn = originalWarn;
+  assert.equal(calls.length, 1);
+  assert.deepEqual(calls[0], ['[books]', 'dropping invalid thumbnailUrl']);
+});
+
 test('log.debug writes to console when isDev is true', () => {
   const calls: unknown[][] = [];
   const originalDebug = console.debug;
