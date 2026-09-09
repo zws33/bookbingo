@@ -1,0 +1,24 @@
+{
+  "recommendations": [
+    // Formatting + linting — both are enforced by `pnpm run verify`.
+    "esbenp.prettier-vscode",
+    "dbaeumer.vscode-eslint",
+
+    // Tailwind v4 CSS-first IntelliSense (reads app/web/src/index.css).
+    "bradlc.vscode-tailwindcss",
+
+    // Vitest runner for app/web (lib/ and functions/ use node:test, which has
+    // no extension — run those with `pnpm test`).
+    "vitest.explorer",
+
+    // Firestore rules syntax + firebase.json / .firebaserc schema support.
+    "toba.vsfire",
+
+    // Already in the global config via claudeCode.preferredLocation.
+    "anthropic.claude-code"
+  ],
+  "unwantedRecommendations": [
+    // pnpm workspaces only — these surface npm/yarn-flavored actions.
+    "christian-kohler.npm-intellisense"
+  ]
+}

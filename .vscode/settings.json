@@ -1,0 +1,120 @@
+{
+  // Project-specific overrides for BookBingo. Global settings (font, vim,
+  // whichkey, per-language formatters) stay in the user settings.json — only
+  // things that follow from THIS repo's toolchain belong here.
+
+  // ── TypeScript ───────────────────────────────────────────────
+  // Pin tsserver to the workspace compiler (5.9.3 via pnpm). The bundled VS
+  // Code TS drifts from what `pnpm run typecheck` uses, which surfaces as
+  // editor errors CI doesn't have (and vice versa).
+  "typescript.tsdk": "node_modules/typescript/lib",
+  "typescript.enablePromptUseWorkspaceTsdk": true,
+
+  // `verbatimModuleSyntax: true` in lib/tsconfig/base.json means a type
+  // imported as a value emits a runtime import that resolves to nothing.
+  // Force auto-import to write `import type`.
+  "typescript.preferences.preferTypeOnlyAutoImports": true,
+
+  // Two extension conventions coexist: lib/ and functions/ are NodeNext and
+  // emit real ESM, so relative imports need explicit `.js`; app/web/ is
+  // bundler-resolved and goes extensionless. "auto" reads the containing
+  // project's resolution mode and gets both right — do not hardcode either.
+  "typescript.preferences.importModuleSpecifierEnding": "auto",
+
+  // Six tsconfig projects across the workspace; the default 3GB ceiling gets
+  // tight once app/web + functions + all three libs are loaded.
+  "typescript.tsserver.maxTsServerMemory": 4096,
+
+  // ── ESLint ───────────────────────────────────────────────────
+  // eslint.config.js uses `projectService` for type-aware rules
+  // (@typescript-eslint/no-deprecated). Lint runs from the repo root so
+  // `tsconfigRootDir: import.meta.dirname` resolves correctly.
+  // Anchor to the repo root explicitly. `{ "mode": "auto" }` infers the cwd
+  // per-file and in a pnpm workspace can land in app/web/ — which has no
+  // eslint.config.js, silently dropping the type-aware rules.
+  "eslint.useFlatConfig": true,
+  "eslint.workingDirectories": [{ "directory": ".", "changeProcessCWD": true }],
+
+  // ── Prettier ─────────────────────────────────────────────────
+  // Use the workspace Prettier (3.8.1), not the extension's bundled copy.
+  // `pnpm run verify` fails on `format:check`, so format-on-save must produce
+  // byte-identical output to the CLI.
+  "prettier.prettierPath": "node_modules/prettier",
+  // Never format with editor-setting fallbacks — .prettierrc is the only
+  // source of truth, and .prettierignore carves out build output.
+  "prettier.requireConfig": true,
+
+  // CLAUDE.md: Prettier owns every tracked file type. Global settings.json
+  // only declares formatters for js/ts/json/go/python — these two close the
+  // gap so .md and .css don't drift out of format:check compliance.
+  "[markdown]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.formatOnSave": true
+  },
+  "[css]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.formatOnSave": true
+  },
+
+  // ── Tailwind CSS v4 ──────────────────────────────────────────
+  // v4 is CSS-first: app/web/src/index.css does `@import 'tailwindcss'` and
+  // declares the palette in `@theme`. VS Code's CSS validator doesn't know
+  // @theme/@apply/@custom-variant and flags every one as an unknown at-rule.
+  "css.lint.unknownAtRules": "ignore",
+  // The CSS entrypoint isn't at the repo root, so IntelliSense needs a pointer.
+  "tailwindCSS.experimental.configFile": "app/web/src/index.css",
+  // Classes are composed through the cn() helper in app/web/src/lib/cn.ts.
+  "tailwindCSS.classFunctions": ["cn", "clsx", "twMerge"],
+  // Tailwind classes live inside string literals; without this there's no
+  // completion inside className="...".
+  "editor.quickSuggestions": {
+    "strings": "on"
+  },
+
+  // ── Noise control ────────────────────────────────────────────
+  // Mirrors .prettierignore + .gitignore. Generated and machine-local paths
+  // that would otherwise pollute Cmd+P, find-in-files, and the file watcher.
+  // `emulator-data/` matters most: `pnpm run dev:local` writes to it
+  // continuously, and an unexcluded watcher churns on every emulator flush.
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/dist": true,
+    "**/coverage": true,
+    "app/web/.tsbuild": true,
+    "functions/lib": true,
+    "emulator-data": true,
+    "firebase-export-*": true,
+    "pre-migration-backup": true,
+    ".firebase": true,
+    "**/*.tsbuildinfo": true,
+    "pnpm-lock.yaml": true,
+    "**/*.log": true
+  },
+  "files.watcherExclude": {
+    "**/node_modules/**": true,
+    "**/dist/**": true,
+    "**/coverage/**": true,
+    "app/web/.tsbuild/**": true,
+    "functions/lib/**": true,
+    "emulator-data/**": true,
+    "firebase-export-*/**": true,
+    ".firebase/**": true,
+    "**/*.tsbuildinfo": true
+  },
+
+  // TODO(zach): decide whether generated dirs should also be HIDDEN from the
+  // explorer, not just excluded from search. See the note in chat — add a
+  // "files.exclude" block here if you want them gone from the tree.
+
+  // ── Firestore rules ──────────────────────────────────────────
+  "[firestore]": {
+    "editor.formatOnSave": false
+  },
+
+  // ── Misc ─────────────────────────────────────────────────────
+  // pnpm workspaces: never let the editor offer npm/yarn.
+  "npm.packageManager": "pnpm",
+  "typescript.tsserver.watchOptions": {
+    "watchFile": "useFsEventsOnParentDirectory"
+  }
+}
