@@ -2,7 +2,14 @@
 
 Scope: every seam where data crosses into the application from outside its own type system. Shapes only; no implementation.
 
-Current state: `zod@^4.4.2` is a `functions/` dependency and parses Open Library responses (`functions/src/books/providers/open-library.ts`). No other boundary validates. `app/web` has no zod dependency.
+Status: implemented, with the deviations below. Code is the source of truth; the shapes here are the original design and are not kept in sync.
+
+| Designed here                                                 | Shipped                                                                                                                              |
+| ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| Contract schemas in `lib/types`                               | Split per consumer: `app/web/src/types/schemas.ts` (responses), `functions/src/books/schema.ts` (requests, `BookMetadataSchema`)     |
+| `enrichBook` callable, action-discriminated                   | Two callables: `searchBooks`, `fetchBookDetails`                                                                                     |
+| `BookDocSchema` validates `externalIds`, `BookProviderSchema` | Neither exists on the read side — `externalIds` is write-only provenance no reader consumes, so validating it could only cost a book |
+| `metadata` optional on read                                   | Required and total; per-field `.catch()` recovers partial data                                                                       |
 
 ## Boundary inventory
 
@@ -115,7 +122,6 @@ Behavior deltas against today's mappers:
 
 | Schema                      | Delta                                                                                                         |
 | --------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| `BookDocSchema.externalIds` | `partialRecord` rejects unknown provider keys; `toExternalIds` passes them through                            |
 | `UserProfileDocSchema.name` | `.default` fires on `undefined` only; today `??` also replaces `null` — use `.catch('User')` to preserve that |
 | all                         | `.strict()` vs pass-through on unknown fields is unset; default `strip` matches current mapper behavior       |
 
@@ -250,12 +256,12 @@ Replaces the `missing` array loop in `firebase.ts:27-49`. The thrown error must 
 
 ## Placement
 
-| Schemas                                                               | Package                       | Reason                                                           |
-| --------------------------------------------------------------------- | ----------------------------- | ---------------------------------------------------------------- |
-| Callable request/response, `BookMetadataSchema`, `BookProviderSchema` | `lib/types`                   | shared by `app/web` and `functions`; one definition per contract |
-| Firestore read/write, `AuthUserSchema`                                | `app/web/src/data/schemas.ts` | `functions` never reads Firestore or Auth state                  |
-| Open Library, GitHub                                                  | `functions/src/**` (existing) | provider-local, not shared                                       |
-| `FirebaseEnvSchema`                                                   | `app/web/src/lib/firebase.ts` | single call site                                                 |
+| Schemas                                         | Package                       | Reason                                          |
+| ----------------------------------------------- | ----------------------------- | ----------------------------------------------- |
+| Callable request/response, `BookMetadataSchema` | per consumer                  | shipped split rather than shared; see Status    |
+| Firestore read/write, `AuthUserSchema`          | `app/web/src/data/schemas.ts` | `functions` never reads Firestore or Auth state |
+| Open Library, GitHub                            | `functions/src/**` (existing) | provider-local, not shared                      |
+| `FirebaseEnvSchema`                             | `app/web/src/lib/firebase.ts` | single call site                                |
 
 Adding zod to `lib/types` converts it from a types-only package to one with a runtime dependency and a runtime bundle contribution. `lib/` framework-agnosticism holds — zod is neither React nor Firebase, and `FirestoreTimestamp` is structural.
 

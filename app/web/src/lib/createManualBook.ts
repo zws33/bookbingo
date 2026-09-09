@@ -1,20 +1,11 @@
 import { httpsCallable, type FunctionsError } from 'firebase/functions';
 import type { BookMetadata } from '@bookbingo/lib-types';
-import { CreateManualBookResponseSchema } from '@bookbingo/lib-types';
+import { EMPTY_METADATA } from '@bookbingo/lib-types';
 import { log } from '@bookbingo/lib-util';
 import { functions } from './firebase';
+import { CreateManualBookResponseSchema } from 'src/types/schemas';
 
 const createManualBookCallable = httpsCallable(functions, 'createManualBook');
-
-/** Manual entry collects only title/author; every metadata field is unknown. */
-const EMPTY_METADATA: BookMetadata = {
-  pageCount: null,
-  publishedDate: null,
-  categories: [],
-  language: null,
-  isbn: null,
-  thumbnailUrl: null,
-};
 
 /**
  * The callable's error code, e.g. `functions/invalid-argument`. Paired with

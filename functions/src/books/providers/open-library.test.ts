@@ -287,7 +287,7 @@ describe('OpenLibraryProvider', () => {
         'editions request should start before the author request settles',
       );
       assert.equal(result.author, 'Frank Herbert');
-      assert.equal(result.metadata.pageCount, 412);
+      assert.equal(result.pageCount, 412);
     });
 
     test('still resolves when the author and editions lookups fail', async () => {
@@ -303,8 +303,8 @@ describe('OpenLibraryProvider', () => {
       const result = await makeProvider().getDetails('/works/OL1W');
 
       assert.equal(result.author, '');
-      assert.equal(result.metadata.pageCount, null);
-      assert.equal(result.metadata.thumbnailUrl?.includes('42'), true);
+      assert.equal(result.pageCount, null);
+      assert.equal(result.thumbnailUrl?.includes('42'), true);
     });
 
     test('throws when the work lookup fails', async () => {

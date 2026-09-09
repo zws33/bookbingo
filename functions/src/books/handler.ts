@@ -1,32 +1,25 @@
 import { HttpsError, type CallableRequest } from 'firebase-functions/v2/https';
 import z from 'zod/v4';
 import type {
-  BookSearchResult,
-  BookEnrichmentResult,
-  BookLookupResult,
+  ProviderBookDetails,
   BookProvider,
+  ProviderSearchResult,
 } from './types.js';
 import { ProviderError } from './types.js';
 import { OpenLibraryProvider } from './providers/open-library.js';
 import { db } from '../firebase.js';
 import { logEvent, logFailure } from '../observability.js';
+import {
+  BookSearchQuerySchema,
+  GetBookDetailsRequestSchema,
+} from './schema.js';
+import type { BookMetadata } from '@bookbingo/lib-types';
 
 const provider: BookProvider = new OpenLibraryProvider();
 
-const EnrichBookRequestSchema = z.discriminatedUnion('action', [
-  z.object({ action: z.literal('search'), query: z.string().trim().min(1) }),
-  z.object({
-    action: z.literal('lookup'),
-    externalId: z.string().trim().min(1),
-  }),
-]);
-
-/**
- * Handles book enrichment requests (search or detail lookup).
- */
-export async function enrichBookHandler(
+export async function searchBooksHandler(
   request: CallableRequest<unknown>,
-): Promise<BookSearchResult[] | BookLookupResult> {
+): Promise<ProviderSearchResult[]> {
   if (!request.auth) {
     throw new HttpsError(
       'unauthenticated',
@@ -34,41 +27,57 @@ export async function enrichBookHandler(
     );
   }
 
-  const parsed = EnrichBookRequestSchema.safeParse(request.data);
+  const parsed = BookSearchQuerySchema.safeParse(request.data);
   if (!parsed.success) {
     throw new HttpsError('invalid-argument', z.prettifyError(parsed.error));
   }
+  const { q } = parsed.data;
+  const uid = request.auth.uid;
+  const startedAt = Date.now();
+
+  try {
+    const results = await provider.search(q);
+    logEvent('book.search', {
+      uid,
+      outcome: 'ok',
+      resultCount: results.length,
+      durationMs: Date.now() - startedAt,
+    });
+    return results;
+  } catch (error) {
+    logFailure('book.search', error, {
+      uid,
+      outcome: 'error',
+      durationMs: Date.now() - startedAt,
+    });
+    throw toHttpsError(error, 'Book search is unavailable.');
+  }
+}
+
+export async function fetchBookDetailsHandler(
+  request: CallableRequest<unknown>,
+): Promise<{ bookId: string; title: string; author: string }> {
+  if (!request.auth) {
+    throw new HttpsError(
+      'unauthenticated',
+      'Must be signed in to fetch book details.',
+    );
+  }
+
+  const parsed = GetBookDetailsRequestSchema.safeParse(request.data);
+  if (!parsed.success) {
+    throw new HttpsError('invalid-argument', z.prettifyError(parsed.error));
+  }
+  const externalId = parsed.data.externalId;
 
   const uid = request.auth.uid;
   const startedAt = Date.now();
 
-  if (parsed.data.action === 'search') {
-    try {
-      const results = await provider.search(parsed.data.query);
-      logEvent('enrich.search', {
-        uid,
-        outcome: 'ok',
-        resultCount: results.length,
-        durationMs: Date.now() - startedAt,
-      });
-      return results;
-    } catch (error) {
-      logFailure('enrich.search', error, {
-        uid,
-        outcome: 'error',
-        durationMs: Date.now() - startedAt,
-      });
-      throw toHttpsError(error, 'Book search is unavailable.');
-    }
-  }
-
-  const externalId = parsed.data.externalId;
-
-  let bookDetails: BookEnrichmentResult;
+  let bookDetails: ProviderBookDetails;
   try {
     bookDetails = await provider.getDetails(externalId);
   } catch (error) {
-    logFailure('enrich.lookup', error, {
+    logFailure('book.fetch', error, {
       uid,
       externalId,
       outcome: 'error',
@@ -85,7 +94,7 @@ export async function enrichBookHandler(
   try {
     written = await createBook(bookDetails);
   } catch (error) {
-    logFailure('enrich.lookup', error, {
+    logFailure('book.fetch', error, {
       uid,
       externalId,
       outcome: 'error',
@@ -95,17 +104,21 @@ export async function enrichBookHandler(
     throw new HttpsError('internal', 'Failed to create book.');
   }
 
-  logEvent('enrich.lookup', {
+  logEvent('book.fetch', {
     uid,
     externalId,
     outcome: 'ok',
     bookId: written.bookId,
     bookCreated: written.created,
     hasAuthor: bookDetails.author !== '',
-    hasPageCount: bookDetails.metadata.pageCount !== null,
+    hasPageCount: bookDetails.pageCount !== null,
     durationMs: Date.now() - startedAt,
   });
-  return { ...bookDetails, bookId: written.bookId };
+  return {
+    bookId: written.bookId,
+    title: bookDetails.title,
+    author: bookDetails.author,
+  };
 }
 
 /**
@@ -135,27 +148,39 @@ function toHttpsError(error: unknown, fallbackMessage: string): HttpsError {
   return new HttpsError('internal', fallbackMessage);
 }
 
+function toBookData(details: ProviderBookDetails) {
+  const metadata: BookMetadata = {
+    pageCount: details.pageCount,
+    publishedDate: details.publishedDate,
+    categories: details.categories,
+    language: details.language,
+    isbn: details.isbn,
+    thumbnailUrl: details.thumbnailUrl,
+  };
+  const bookData = {
+    title: details.title.trim(),
+    author: details.author.trim(),
+    externalIds: { openLibrary: details.externalId },
+    metadata,
+  };
+
+  return bookData;
+}
+
 async function createBook(
-  enrichment: BookEnrichmentResult,
+  details: ProviderBookDetails,
 ): Promise<{ bookId: string; created: boolean }> {
-  const bookId = createId(enrichment.externalId);
+  const bookId = createId(details.externalId);
   const bookRef = db.collection('books').doc(bookId);
 
   let created = false;
   await db.runTransaction(async (transaction) => {
     const existingBook = await transaction.get(bookRef);
-    created = !existingBook.exists;
-    if (created) {
-      transaction.set(
-        bookRef,
-        {
-          title: enrichment.title.trim(),
-          author: enrichment.author.trim(),
-          externalIds: { openLibrary: enrichment.externalId },
-          metadata: enrichment.metadata,
-        },
-        { merge: true },
-      );
+
+    if (!existingBook.exists) {
+      const bookData = toBookData(details);
+      transaction.set(bookRef, bookData, { merge: true });
+      created = true;
     }
   });
 

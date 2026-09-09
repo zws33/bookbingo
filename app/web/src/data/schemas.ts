@@ -1,5 +1,5 @@
 import z from 'zod/v4';
-import { BookMetadataSchema, BookProviderSchema } from '@bookbingo/lib-types';
+import { EMPTY_METADATA } from '@bookbingo/lib-types';
 import { log } from '@bookbingo/lib-util';
 import type { QueryDocumentSnapshot } from 'firebase/firestore';
 
@@ -19,40 +19,39 @@ const OptionalInstant = FirestoreTimestamp.nullish().transform((t) =>
 );
 
 /**
- * A provider's native id. Reads both the current plain-string shape and the
- * legacy `{ key, enrichedAt }` record, so documents written before `enrichedAt`
- * was dropped still parse instead of being skipped by `mapValid`. Collapse to
- * `z.string().min(1)` once no legacy documents remain.
+ * Read-time metadata: total by construction. Written out rather than derived
+ * from the write contract in `functions/src/books/schema.ts`, so adding a
+ * field there cannot introduce a read that throws.
+ *
+ * Per-field `.catch()` preserves partial data — one bad `thumbnailUrl` no
+ * longer discards a good `pageCount`, where a single failing field would
+ * otherwise make `mapValid` drop the whole book. toBook logs the thumbnail
+ * case so those books can be found and backfilled. The object-level
+ * `.default()` covers a document with no `metadata` at all, and `.catch()` on
+ * top also covers a stored `null`, which `.default()` alone does not replace.
+ *
+ * Every fallback is a thunk. zod returns a `.catch()` value by reference and
+ * only shallow-clones a `.default()` one, so a shared literal would hand the
+ * same `categories` array to every recovered book and to the exported
+ * EMPTY_METADATA that `createManualBook` sends as its default payload.
  */
-const ExternalKey = z.union([
-  z.string().min(1),
-  z.object({ key: z.string().min(1) }).transform((ref) => ref.key),
-]);
-
-/**
- * Read-time thumbnailUrl. Write paths enforce `z.url()`, but legacy documents
- * written before that check landed can hold an empty string or another
- * non-URL value. Coerce those to null instead of failing the whole document's
- * parse (mapValid would otherwise drop the entire book) — toBook logs which
- * books this affects so they can be backfilled.
- */
-const ReadThumbnailUrl = z
-  .string()
-  .nullable()
-  .transform((value) =>
-    value !== null && z.url().safeParse(value).success ? value : null,
-  );
-
-const BookMetadataReadSchema = BookMetadataSchema.extend({
-  thumbnailUrl: ReadThumbnailUrl,
-});
+const BookMetadataReadSchema = z
+  .object({
+    pageCount: z.number().int().nonnegative().nullable().catch(null),
+    publishedDate: z.string().trim().max(200).nullable().catch(null),
+    categories: z.array(z.string().trim().max(200)).catch(() => []),
+    language: z.string().trim().max(200).nullable().catch(null),
+    isbn: z.string().trim().max(200).nullable().catch(null),
+    thumbnailUrl: z.url().nullable().catch(null),
+  })
+  .default(() => ({ ...EMPTY_METADATA, categories: [] }))
+  .catch(() => ({ ...EMPTY_METADATA, categories: [] }));
 
 export const BookDocSchema = z.object({
   title: z.string(),
   author: z.string(),
-  metadata: BookMetadataReadSchema.optional(),
-  externalIds: z.partialRecord(BookProviderSchema, ExternalKey).optional(),
-  createdBy: z.string().min(1).optional(),
+  metadata: BookMetadataReadSchema,
+  createdBy: z.string().optional(),
   createdAt: OptionalInstant,
 });
 

@@ -1,8 +1,8 @@
 import z from 'zod/v4';
 import type {
-  BookEnrichmentResult,
   BookProvider,
-  BookSearchResult,
+  ProviderBookDetails,
+  ProviderSearchResult,
 } from '../types.js';
 import { ProviderError } from '../types.js';
 import { logEvent, logFailure, logWarning } from '../../observability.js';
@@ -61,7 +61,7 @@ interface SearchCacheEntry {
   /**
    * The in-flight or settled request.
    */
-  request: Promise<BookSearchResult[]>;
+  request: Promise<ProviderSearchResult[]>;
 }
 
 export interface OpenLibraryProviderOptions {
@@ -96,7 +96,7 @@ export class OpenLibraryProvider implements BookProvider {
     this.now = options.now ?? Date.now;
   }
 
-  async search(query: string): Promise<BookSearchResult[]> {
+  async search(query: string): Promise<ProviderSearchResult[]> {
     const key = normalizeQuery(query);
     const now = this.now();
 
@@ -139,7 +139,7 @@ export class OpenLibraryProvider implements BookProvider {
    */
   private trackSettlement(
     key: string,
-    request: Promise<BookSearchResult[]>,
+    request: Promise<ProviderSearchResult[]>,
   ): void {
     void request.then(
       (results) => {
@@ -216,7 +216,7 @@ export class OpenLibraryProvider implements BookProvider {
     }
   }
 
-  async getDetails(externalId: string): Promise<BookEnrichmentResult> {
+  async getDetails(externalId: string): Promise<ProviderBookDetails> {
     const work = WorkSchema.parse(
       await this.fetchJson(
         `${this.baseUrl}${externalId}.json`,
@@ -235,20 +235,18 @@ export class OpenLibraryProvider implements BookProvider {
       externalId,
       title: work.title,
       author,
-      metadata: {
-        pageCount,
-        publishedDate: work.first_publish_date ?? null,
-        categories: work.subjects?.slice(0, 5) ?? [],
-        language: null,
-        isbn: null,
-        thumbnailUrl: coverId
-          ? `https://covers.openlibrary.org/b/id/${coverId}-M.jpg`
-          : null,
-      },
+      pageCount,
+      publishedDate: work.first_publish_date ?? null,
+      categories: work.subjects?.slice(0, 5) ?? [],
+      language: null,
+      isbn: null,
+      thumbnailUrl: coverId
+        ? `https://covers.openlibrary.org/b/id/${coverId}-M.jpg`
+        : null,
     };
   }
 
-  private async fetchSearch(query: string): Promise<BookSearchResult[]> {
+  private async fetchSearch(query: string): Promise<ProviderSearchResult[]> {
     const url = new URL(`${this.baseUrl}/search.json`);
     url.searchParams.set('q', query);
     url.searchParams.set('fields', this.searchFields);

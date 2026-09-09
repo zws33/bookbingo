@@ -2,17 +2,7 @@ import { HttpsError, type CallableRequest } from 'firebase-functions/v2/https';
 import z from 'zod/v4';
 import { db } from '../firebase.js';
 import { logEvent, logFailure } from '../observability.js';
-import { BookMetadataSchema } from '@bookbingo/lib-types';
-
-const CreateManualBookRequestSchema = z.object({
-  title: z.string().trim().min(1),
-  author: z.string().trim().min(1),
-  metadata: BookMetadataSchema,
-});
-
-export type CreateManualBookRequest = z.infer<
-  typeof CreateManualBookRequestSchema
->;
+import { CreateManualBookRequestSchema } from './schema.js';
 
 export async function createManualBookHandler(
   request: CallableRequest<unknown>,

@@ -19,7 +19,13 @@ export interface Tile {
 // =============================================================================
 
 /**
- * Structured metadata for a book, sourced from external APIs (e.g., Google Books).
+ * Everything known about a book beyond its identity. Every field is nullable
+ * or empty-able and the container is always present. That invariant is what
+ * makes the struct evolvable: adding a field is backward-compatible via the
+ * read-time default, and removing one is a client-side deletion.
+ *
+ * Defined by role, not by source — a provider's payload shape belongs to that
+ * provider (functions/src/books/types.ts), not here.
  */
 export interface BookMetadata {
   pageCount: number | null;
@@ -30,35 +36,21 @@ export interface BookMetadata {
   thumbnailUrl: string | null;
 }
 
-/** Supported external catalog providers. */
-export type BookProvider = 'openLibrary';
+/** Every field unknown. The read-time default and the manual-entry default. */
+export const EMPTY_METADATA: BookMetadata = {
+  pageCount: null,
+  publishedDate: null,
+  categories: [],
+  language: null,
+  isbn: null,
+  thumbnailUrl: null,
+};
 
-/**
- * Map from provider to that provider's native id, e.g. an Open Library Work key
- * "/works/OL166894W". Absent for manual-entry books. Provenance only — identity
- * and deduplication are handled by the deterministic document ID, not by this
- * field. See docs/decisions/book-identity-and-deduplication.md.
- */
-export type ExternalBookIds = Partial<Record<BookProvider, string>>;
-
-/**
- * Shared book entity (Firestore: /books/{bookId}).
- * Multiple users can reference the same book via their readings.
- *
- * The document id is deterministic — a hash derived from the external key
- * (catalog books) or a normalized title+author key (manual books). See
- * lib/core/bookIdentity.ts and the identity decision record.
- */
 export interface Book {
   id: string;
   title: string;
   author: string;
-  metadata?: BookMetadata;
-  /** External catalog references, keyed by provider. Provenance, not a dedup key. */
-  externalIds?: ExternalBookIds;
-  /** User ID of who first added this book */
-  createdBy?: string;
-  createdAt?: Date;
+  metadata: BookMetadata;
 }
 
 // =============================================================================
@@ -83,37 +75,6 @@ export interface Reading {
   readAt: Date;
   createdAt: Date;
   updatedAt?: Date;
-}
-
-// =============================================================================
-// Book Search / Enrichment API Contract
-// =============================================================================
-
-/**
- * Result of a book search query (via the enrichBook callable).
- * Shared contract between app/web and functions.
- */
-export interface BookSearchResult {
-  externalId: string;
-  title: string;
-  author: string;
-  thumbnailUrl: string | null;
-  publishedDate: string | null;
-}
-
-export interface BookEnrichmentResult {
-  externalId: string;
-  title: string;
-  author: string;
-  metadata: BookMetadata;
-}
-
-export interface BookLookupResult {
-  bookId: string;
-  externalId: string;
-  title: string;
-  author: string;
-  metadata: BookMetadata;
 }
 
 // =============================================================================
@@ -169,5 +130,3 @@ export interface ScoreBreakdown {
   tileCounts: Map<string, number>;
   totalBooks: number;
 }
-
-export * from './schemas.js';

@@ -1,4 +1,5 @@
 import type { Reading, Book } from '@bookbingo/lib-types';
+import { EMPTY_METADATA } from '@bookbingo/lib-types';
 import type { UserProfile } from '../types';
 
 export function makeReading(overrides: Partial<Reading> = {}): Reading {
@@ -18,8 +19,7 @@ export function makeBook(overrides: Partial<Book> = {}): Book {
     id: 'book-1',
     title: 'The Left Hand of Darkness',
     author: 'Ursula K. Le Guin',
-    createdBy: 'user-1',
-    createdAt: new Date('2026-01-01'),
+    metadata: EMPTY_METADATA,
     ...overrides,
   };
 }

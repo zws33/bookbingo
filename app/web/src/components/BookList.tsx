@@ -201,7 +201,7 @@ export function BookList({
         >
           <div className="space-y-4">
             <div className="flex gap-4">
-              {selectedBookData?.metadata?.thumbnailUrl && (
+              {selectedBookData?.metadata.thumbnailUrl && (
                 <img
                   src={selectedBookData.metadata.thumbnailUrl}
                   alt=""
@@ -216,19 +216,19 @@ export function BookList({
                 <p className="italic text-on-surface-variant">
                   {selectedBook.author}
                 </p>
-                {selectedBookData?.metadata?.publishedDate && (
+                {selectedBookData?.metadata.publishedDate && (
                   <p className="text-sm text-on-surface-variant">
                     {selectedBookData.metadata.publishedDate}
                   </p>
                 )}
-                {selectedBookData?.metadata?.pageCount && (
+                {selectedBookData?.metadata.pageCount && (
                   <p className="text-sm text-on-surface-variant">
                     {selectedBookData.metadata.pageCount} pages
                   </p>
                 )}
               </div>
             </div>
-            {selectedBookData?.metadata?.categories &&
+            {selectedBookData &&
               selectedBookData.metadata.categories.length > 0 && (
                 <div className="flex flex-wrap gap-1">
                   {selectedBookData.metadata.categories.map((cat) => (

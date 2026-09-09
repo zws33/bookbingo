@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { Book } from '@bookbingo/lib-types';
+import { EMPTY_METADATA } from '@bookbingo/lib-types';
 
 // Prevent real Firebase SDK initialization; the repository only passes `db`
 // through to collection(), which we mock below.
@@ -37,6 +38,23 @@ function makeSnapshot(docs: { id: string; data: Record<string, unknown> }[]) {
 beforeEach(() => {
   vi.clearAllMocks();
 });
+
+/** Pushes one document through the listener and returns the onData spy. */
+function pushOneBook(data: Record<string, unknown>) {
+  let pushSnapshot: (snap: unknown) => void = () => {};
+  mockOnSnapshot.mockImplementation(((
+    _query: unknown,
+    onNext: (snap: unknown) => void,
+  ) => {
+    pushSnapshot = onNext;
+    return vi.fn();
+  }) as never);
+
+  const onData = vi.fn<(books: Book[]) => void>();
+  subscribeToBooks(onData, vi.fn());
+  pushSnapshot(makeSnapshot([{ id: 'book-1', data }]));
+  return onData;
+}
 
 describe('subscribeToBooks', () => {
   it('queries the shared books collection and returns the unsubscribe', () => {
@@ -84,111 +102,59 @@ describe('subscribeToBooks', () => {
         id: 'book-1',
         title: 'The Left Hand of Darkness',
         author: 'Ursula K. Le Guin',
-        metadata: undefined,
-        externalIds: { openLibrary: '/works/OL455403W' },
-        createdBy: 'user-1',
-        createdAt,
+        metadata: EMPTY_METADATA,
       },
     ]);
   });
 
-  it('reads the legacy { key, enrichedAt } externalIds shape as a plain key', () => {
-    let pushSnapshot: (snap: unknown) => void = () => {};
-    mockOnSnapshot.mockImplementation(((
-      _query: unknown,
-      onNext: (snap: unknown) => void,
-    ) => {
-      pushSnapshot = onNext;
-      return vi.fn();
-    }) as never);
-
-    const onData = vi.fn<(books: Book[]) => void>();
-    subscribeToBooks(onData, vi.fn());
-
-    pushSnapshot(
-      makeSnapshot([
-        {
-          id: 'book-1',
-          data: {
-            title: 'The Left Hand of Darkness',
-            author: 'Ursula K. Le Guin',
-            externalIds: {
-              openLibrary: {
-                key: '/works/OL455403W',
-                enrichedAt: ts(new Date('2026-01-02T00:00:00Z')),
-              },
-            },
-          },
-        },
-      ]),
-    );
-
-    const [books] = onData.mock.calls[0]!;
-    expect(books[0]!.externalIds).toEqual({
-      openLibrary: '/works/OL455403W',
+  // The required-metadata invariant: legacy documents predate it, so the read
+  // path backfills rather than dropping them.
+  it('backfills empty metadata for a document with no metadata field', () => {
+    const onData = pushOneBook({
+      title: 'The Left Hand of Darkness',
+      author: 'Ursula K. Le Guin',
     });
-  });
-
-  it('leaves createdAt undefined while it is a pending serverTimestamp (null)', () => {
-    let pushSnapshot: (snap: unknown) => void = () => {};
-    mockOnSnapshot.mockImplementation(((
-      _query: unknown,
-      onNext: (snap: unknown) => void,
-    ) => {
-      pushSnapshot = onNext;
-      return vi.fn();
-    }) as never);
-
-    const onData = vi.fn<(books: Book[]) => void>();
-    subscribeToBooks(onData, vi.fn());
-
-    pushSnapshot(
-      makeSnapshot([
-        {
-          id: 'book-1',
-          data: {
-            title: 'Untitled',
-            author: 'Unknown',
-            createdBy: 'user-1',
-            createdAt: null,
-          },
-        },
-      ]),
-    );
 
     const [books] = onData.mock.calls[0]!;
-    expect(books[0]!.createdAt).toBeUndefined();
+    expect(books[0]!.metadata).toEqual(EMPTY_METADATA);
   });
 
-  it('leaves externalIds undefined when the field is absent', () => {
-    let pushSnapshot: (snap: unknown) => void = () => {};
-    mockOnSnapshot.mockImplementation(((
-      _query: unknown,
-      onNext: (snap: unknown) => void,
-    ) => {
-      pushSnapshot = onNext;
-      return vi.fn();
-    }) as never);
-
-    const onData = vi.fn<(books: Book[]) => void>();
-    subscribeToBooks(onData, vi.fn());
-
-    pushSnapshot(
-      makeSnapshot([
-        {
-          id: 'book-1',
-          data: {
-            title: 'Untitled',
-            author: 'Unknown',
-            createdBy: 'user-1',
-            createdAt: ts(new Date('2026-01-01T00:00:00Z')),
-          },
-        },
-      ]),
-    );
+  it('backfills empty metadata for a document storing metadata as null', () => {
+    const onData = pushOneBook({
+      title: 'Dune',
+      author: 'Frank Herbert',
+      metadata: null,
+    });
 
     const [books] = onData.mock.calls[0]!;
-    expect(books[0]!.externalIds).toBeUndefined();
+    expect(books[0]!.metadata).toEqual(EMPTY_METADATA);
+  });
+
+  // Per-field recovery is the point: one bad field must not cost the others.
+  it('keeps the surviving metadata fields when individual fields are invalid', () => {
+    const onData = pushOneBook({
+      title: 'Dune',
+      author: 'Frank Herbert',
+      metadata: {
+        pageCount: 412,
+        publishedDate: '1965',
+        categories: ['Science Fiction'],
+        language: 'en',
+        isbn: -1,
+        thumbnailUrl: '',
+      },
+    });
+
+    const [books] = onData.mock.calls[0]!;
+    expect(books).toHaveLength(1);
+    expect(books[0]!.metadata).toEqual({
+      pageCount: 412,
+      publishedDate: '1965',
+      categories: ['Science Fiction'],
+      language: 'en',
+      isbn: null,
+      thumbnailUrl: null,
+    });
   });
 
   it('forwards listener errors to onError', () => {
@@ -257,7 +223,7 @@ describe('subscribeToBooks', () => {
     consoleError.mockRestore();
   });
 
-  it('skips a document with an unknown externalIds provider key', () => {
+  it('delivers a document with an unknown externalIds provider key', () => {
     const consoleError = vi
       .spyOn(console, 'error')
       .mockImplementation(() => {});
@@ -288,9 +254,13 @@ describe('subscribeToBooks', () => {
       ]),
     );
 
+    // `externalIds` is write-only provenance that no reader consumes, so
+    // BookDocSchema does not validate it and an unrecognized provider key
+    // cannot cost the user a book.
     const [books] = onData.mock.calls[0]!;
-    expect(books).toHaveLength(0);
-    expect(consoleError).toHaveBeenCalled();
+    expect(books).toHaveLength(1);
+    expect(books[0]!.id).toBe('book-1');
+    expect(consoleError).not.toHaveBeenCalled();
     consoleError.mockRestore();
   });
 });

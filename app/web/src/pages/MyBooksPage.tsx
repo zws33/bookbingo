@@ -10,8 +10,7 @@ import { Dialog } from '../components/ui/index.js';
 import { BookForm, type BookFormData } from '../components/BookForm';
 import { getScoreBreakdown } from '@bookbingo/lib-core';
 import { log } from '@bookbingo/lib-util';
-import type { BookLookupResult } from '../lib/bookSearch';
-import { ReadingForm } from '../components/ReadingForm';
+import { ReadingFormForBook } from '../components/ReadingFormForBook';
 import { createManualBook } from '../lib/createManualBook';
 
 interface MyBooksPageProps {
@@ -20,14 +19,12 @@ interface MyBooksPageProps {
 
 type DialogState =
   | { kind: 'search' }
-  | { kind: 'readingForm' }
+  | { kind: 'readingForm'; bookId: string }
   | { kind: 'manualEntry' }
   | null;
 
 export function MyBooksPage({ userId }: MyBooksPageProps) {
   const [dialog, setDialog] = useState<DialogState>(null);
-  const [pendingEnrichment, setPendingEnrichment] =
-    useState<BookLookupResult | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { showSuccess, showError } = useToast();
   const {
@@ -45,14 +42,12 @@ export function MyBooksPage({ userId }: MyBooksPageProps) {
     return getScoreBreakdown(readings);
   }, [readings]);
 
-  const handleBookSelected = useCallback((data: BookLookupResult) => {
-    setPendingEnrichment(data);
-    setDialog({ kind: 'readingForm' });
+  const handleBookSelected = useCallback((bookId: string) => {
+    setDialog({ kind: 'readingForm', bookId });
   }, []);
 
   const handleAddModalClose = useCallback(() => {
     setDialog(null);
-    setPendingEnrichment(null);
   }, []);
 
   // Failsafe path: only reached when catalog search doesn't find the book, so
@@ -77,22 +72,17 @@ export function MyBooksPage({ userId }: MyBooksPageProps) {
     }
   };
 
-  // Happy path: the book was already written to /books by the enrichBook
-  // 'lookup' callable (see functions/src/books/handler.ts createBook), which
-  // is also who derives bookId — the client only records the reading.
+  // Happy path: the book was already written to /books by the fetchBookDetails
+  // callable (see functions/src/books/handler.ts createBook), which is also
+  // who derives bookId — the client only records the reading.
   const submitReadingData = async (data: {
     tiles: string[];
     isFreebie: boolean;
   }) => {
-    if (!pendingEnrichment) return;
+    if (dialog?.kind !== 'readingForm') return;
     setIsSubmitting(true);
     try {
-      await createReading(
-        userId,
-        pendingEnrichment.bookId,
-        data.tiles,
-        data.isFreebie,
-      );
+      await createReading(userId, dialog.bookId, data.tiles, data.isFreebie);
       showSuccess('Book added successfully');
       handleAddModalClose();
     } catch (err) {
@@ -149,14 +139,10 @@ export function MyBooksPage({ userId }: MyBooksPageProps) {
             onManualEntry={() => setDialog({ kind: 'manualEntry' })}
           />
         )}
-        {dialog?.kind === 'readingForm' && pendingEnrichment && (
-          <ReadingForm
-            initialData={{
-              title: pendingEnrichment.title,
-              author: pendingEnrichment.author,
-              tiles: [],
-              isFreebie: false,
-            }}
+        {dialog?.kind === 'readingForm' && (
+          <ReadingFormForBook
+            book={booksById.get(dialog.bookId)}
+            error={booksError}
             onSubmit={submitReadingData}
             onCancel={handleAddModalClose}
             isSubmitting={isSubmitting}

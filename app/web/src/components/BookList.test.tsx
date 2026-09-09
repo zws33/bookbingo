@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { Book, Reading } from '@bookbingo/lib-types';
+import { EMPTY_METADATA } from '@bookbingo/lib-types';
 import { render } from '../testing/test-utils';
 import { BookList } from './BookList';
 
@@ -22,8 +23,7 @@ const BOOK: Book = {
   id: 'book-1',
   title: 'Dune',
   author: 'Frank Herbert',
-  createdBy: 'user-1',
-  createdAt: new Date('2026-01-01'),
+  metadata: EMPTY_METADATA,
 };
 
 const READING: Reading = {

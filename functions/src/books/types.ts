@@ -1,19 +1,28 @@
-import type {
-  BookSearchResult,
-  BookEnrichmentResult,
-  BookLookupResult,
-} from '@bookbingo/lib-types';
+export type ProviderBookDetails = {
+  externalId: string;
+  title: string;
+  author: string;
+  pageCount: number | null;
+  publishedDate: string | null;
+  categories: string[];
+  language: string | null;
+  isbn: string | null;
+  thumbnailUrl: string | null;
+};
 
-export type { BookSearchResult, BookEnrichmentResult, BookLookupResult };
-
+export type ProviderSearchResult = {
+  externalId: string;
+  title: string;
+  author: string;
+  thumbnailUrl: string | null;
+  publishedDate: string | null;
+};
 /**
  * A failed upstream provider call, carrying enough to classify it without the
  * handler knowing which provider threw.
  *
  * `status` is the upstream HTTP status, or `null` when the request never got a
- * response (DNS, connect timeout, reset socket). That distinction is the whole
- * point of the type: a 404 means the book is absent, while `null` or a 5xx
- * means the provider is having a bad minute and the caller should retry.
+ * response (DNS, connect timeout, reset socket).
  */
 export class ProviderError extends Error {
   readonly status: number | null;
@@ -35,8 +44,8 @@ export class ProviderError extends Error {
  */
 export interface BookProvider {
   /** Search for books by title/author query */
-  search(query: string): Promise<BookSearchResult[]>;
+  search(query: string): Promise<ProviderSearchResult[]>;
 
   /** Fetch full metadata for a specific external ID */
-  getDetails(externalId: string): Promise<BookEnrichmentResult>;
+  getDetails(externalId: string): Promise<ProviderBookDetails>;
 }

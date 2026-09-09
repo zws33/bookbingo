@@ -11,13 +11,12 @@ import {
   promoteTBREntry,
 } from '../data/tbr';
 import { BookForm, type BookFormData } from '../components/BookForm.js';
-import { ReadingForm } from '../components/ReadingForm';
+import { ReadingFormForBook } from '../components/ReadingFormForBook';
 import { BookSearch } from '../components/BookSearch';
 import { BookCard } from '../components/BookCard';
 import { PageStatus } from '../components/PageStatus';
 import { Dialog, AlertDialog, Button } from '../components/ui/index.js';
 import { log } from '@bookbingo/lib-util';
-import type { BookLookupResult } from '../lib/bookSearch';
 
 interface ReadingListPageProps {
   userId: string;
@@ -25,7 +24,7 @@ interface ReadingListPageProps {
 
 type DialogState =
   | { kind: 'search' }
-  | { kind: 'add'; enrichment: BookLookupResult }
+  | { kind: 'add'; bookId: string }
   | { kind: 'manual' }
   | { kind: 'edit'; entry: TBREntry; book: Book }
   | { kind: 'promote'; entry: TBREntry; book: Book }
@@ -37,17 +36,14 @@ export function ReadingListPage({ userId }: ReadingListPageProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const { entries, loading, error } = useTBR(userId);
-  const { booksById } = useBooks();
+  const { booksById, error: booksError } = useBooks();
   const { showSuccess, showError } = useToast();
 
   const closeDialog = useCallback(() => setDialog(null), []);
 
-  const handleBookSelectedForAdd = useCallback(
-    (enrichment: BookLookupResult) => {
-      setDialog({ kind: 'add', enrichment });
-    },
-    [],
-  );
+  const handleBookSelectedForAdd = useCallback((bookId: string) => {
+    setDialog({ kind: 'add', bookId });
+  }, []);
 
   const handleOpenManual = useCallback(() => {
     setDialog({ kind: 'manual' });
@@ -58,7 +54,7 @@ export function ReadingListPage({ userId }: ReadingListPageProps) {
       if (dialog?.kind !== 'add') return;
       setIsSubmitting(true);
       try {
-        await createTBREntry(userId, dialog.enrichment.bookId, data.tiles);
+        await createTBREntry(userId, dialog.bookId, data.tiles);
         showSuccess('Added to reading list');
         closeDialog();
       } catch (err) {
@@ -229,13 +225,9 @@ export function ReadingListPage({ userId }: ReadingListPageProps) {
           />
         )}
         {dialog?.kind === 'add' && (
-          <ReadingForm
-            initialData={{
-              title: dialog.enrichment.title,
-              author: dialog.enrichment.author,
-              tiles: [],
-              isFreebie: false,
-            }}
+          <ReadingFormForBook
+            book={booksById.get(dialog.bookId)}
+            error={booksError}
             onSubmit={handleAdd}
             onCancel={closeDialog}
             isSubmitting={isSubmitting}

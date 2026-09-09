@@ -1,9 +1,9 @@
 import { useState, useCallback, type SubmitEvent } from 'react';
 import { httpsCallable } from 'firebase/functions';
-import { SubmitFeedbackResponseSchema } from '@bookbingo/lib-types';
 import { functions } from '../lib/firebase';
 import { useToast } from '../lib/ToastContext';
 import { Input, Label, Button, Dialog, Textarea } from './ui/index.js';
+import { SubmitFeedbackResponseSchema } from 'src/types/schemas.js';
 
 type FeedbackType = 'bug' | 'feature';
 

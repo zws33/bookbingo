@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import type { Book } from '@bookbingo/lib-types';
+import { EMPTY_METADATA } from '@bookbingo/lib-types';
 import { useBooks } from './useBooks';
 
 // The hook depends only on the repository seam; Firebase never enters the test.
@@ -46,8 +47,7 @@ function makeBook(overrides: Partial<Book> = {}): Book {
     id: 'book-0',
     title: 'The Left Hand of Darkness',
     author: 'Ursula K. Le Guin',
-    createdBy: 'user-1',
-    createdAt: new Date('2026-01-01'),
+    metadata: EMPTY_METADATA,
     ...overrides,
   };
 }

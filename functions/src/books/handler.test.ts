@@ -1,11 +1,13 @@
 import { test, describe, before, after } from 'node:test';
 import assert from 'node:assert';
-import { enrichBookHandler } from './handler.js';
+import { fetchBookDetailsHandler, searchBooksHandler } from './handler.js';
 import type { CallableRequest } from 'firebase-functions/v2/https';
 
 type MockAuth =
   | { uid: string; token: Record<string, unknown>; rawToken: string }
   | undefined;
+
+const AUTH: MockAuth = { uid: 'user-1', token: {}, rawToken: 'test' };
 
 function makeRequest(auth: MockAuth, data: unknown): CallableRequest<unknown> {
   return {
@@ -16,11 +18,19 @@ function makeRequest(auth: MockAuth, data: unknown): CallableRequest<unknown> {
   } as CallableRequest<unknown>;
 }
 
-describe('enrichBookHandler', () => {
+function respondWith(status: number, statusText: string) {
+  global.fetch = (async () =>
+    ({
+      ok: false,
+      status,
+      statusText,
+    }) as unknown as Response) as typeof fetch;
+}
+
+describe('searchBooksHandler', () => {
   const originalFetch = global.fetch;
 
   before(() => {
-    // Mock global fetch
     global.fetch = (async (_: string | URL) => {
       return { ok: false, statusText: 'Not Found' } as unknown as Response;
     }) as typeof fetch;
@@ -32,43 +42,61 @@ describe('enrichBookHandler', () => {
 
   test('throws unauthenticated when request has no auth', async () => {
     await assert.rejects(
-      enrichBookHandler(makeRequest(undefined, { action: 'search' })),
+      searchBooksHandler(makeRequest(undefined, { q: 'dune' })),
       { code: 'unauthenticated' },
     );
   });
 
-  test('throws invalid-argument for missing action', async () => {
+  test('throws invalid-argument when q is missing', async () => {
+    await assert.rejects(searchBooksHandler(makeRequest(AUTH, {})), {
+      code: 'invalid-argument',
+    });
+  });
+
+  test('throws invalid-argument for a whitespace-only query', async () => {
+    await assert.rejects(searchBooksHandler(makeRequest(AUTH, { q: '  ' })), {
+      code: 'invalid-argument',
+    });
+  });
+
+  test('throws invalid-argument for a non-string query', async () => {
+    await assert.rejects(searchBooksHandler(makeRequest(AUTH, { q: 42 })), {
+      code: 'invalid-argument',
+    });
+  });
+});
+
+describe('fetchBookDetailsHandler', () => {
+  const originalFetch = global.fetch;
+
+  before(() => {
+    global.fetch = (async (_: string | URL) => {
+      return { ok: false, statusText: 'Not Found' } as unknown as Response;
+    }) as typeof fetch;
+  });
+
+  after(() => {
+    global.fetch = originalFetch;
+  });
+
+  test('throws unauthenticated when request has no auth', async () => {
     await assert.rejects(
-      enrichBookHandler(
-        makeRequest(
-          { uid: 'user-1', token: {}, rawToken: 'test' },
-          { action: 'invalid' as unknown as 'search' },
-        ),
+      fetchBookDetailsHandler(
+        makeRequest(undefined, { externalId: '/works/OL1W' }),
       ),
-      { code: 'invalid-argument' },
+      { code: 'unauthenticated' },
     );
   });
 
-  test('throws invalid-argument for a whitespace-only search query', async () => {
-    await assert.rejects(
-      enrichBookHandler(
-        makeRequest(
-          { uid: 'user-1', token: {}, rawToken: 'test' },
-          { action: 'search', query: '  ' },
-        ),
-      ),
-      { code: 'invalid-argument' },
-    );
+  test('throws invalid-argument when externalId is missing', async () => {
+    await assert.rejects(fetchBookDetailsHandler(makeRequest(AUTH, {})), {
+      code: 'invalid-argument',
+    });
   });
 
-  test('throws invalid-argument for an unrecognised action', async () => {
+  test('throws invalid-argument for a whitespace-only externalId', async () => {
     await assert.rejects(
-      enrichBookHandler(
-        makeRequest(
-          { uid: 'user-1', token: {}, rawToken: 'test' },
-          { action: 'bogus' },
-        ),
-      ),
+      fetchBookDetailsHandler(makeRequest(AUTH, { externalId: '  ' })),
       { code: 'invalid-argument' },
     );
   });
@@ -77,21 +105,9 @@ describe('enrichBookHandler', () => {
   // "Open Library is down, retry" — a distinction the caller acts on.
   describe('upstream failure classification', () => {
     function lookup() {
-      return enrichBookHandler(
-        makeRequest(
-          { uid: 'user-1', token: {}, rawToken: 'test' },
-          { action: 'lookup', externalId: '/works/OL1W' },
-        ),
+      return fetchBookDetailsHandler(
+        makeRequest(AUTH, { externalId: '/works/OL1W' }),
       );
-    }
-
-    function respondWith(status: number, statusText: string) {
-      global.fetch = (async () =>
-        ({
-          ok: false,
-          status,
-          statusText,
-        }) as unknown as Response) as typeof fetch;
     }
 
     test('maps an upstream 404 to not-found', async () => {

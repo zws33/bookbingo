@@ -2,14 +2,12 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 vi.mock('./firebase', () => ({ functions: {} }));
 
-// vi.hoisted ensures mockHttpsCallable is initialized before the module-level
-// httpsCallable(functions, 'enrichBook') call in bookSearch.ts runs.
 const mockHttpsCallable = vi.hoisted(() => vi.fn());
 vi.mock('firebase/functions', () => ({
   httpsCallable: () => mockHttpsCallable,
 }));
 
-import { searchBooks, lookupBook } from './bookSearch';
+import { searchBooks, resolveBookId } from './bookSearch';
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -47,8 +45,8 @@ describe('searchBooks', () => {
   });
 });
 
-describe('lookupBook', () => {
-  it('parses a valid response into BookLookupResult, including bookId', async () => {
+describe('resolveBookId', () => {
+  it('returns only the bookId from the callable response', async () => {
     mockHttpsCallable.mockResolvedValue({
       data: {
         bookId: 'abc123',
@@ -66,10 +64,9 @@ describe('lookupBook', () => {
       },
     });
 
-    const result = await lookupBook('/works/OL1W');
+    const result = await resolveBookId('/works/OL1W');
 
-    expect(result.bookId).toBe('abc123');
-    expect(result.title).toBe('Dune');
+    expect(result).toBe('abc123');
   });
 
   it('rejects a callable response missing bookId', async () => {
@@ -89,12 +86,12 @@ describe('lookupBook', () => {
       },
     });
 
-    await expect(lookupBook('/works/OL1W')).rejects.toThrow();
+    await expect(resolveBookId('/works/OL1W')).rejects.toThrow();
   });
 
   it('rejects a malformed callable response', async () => {
     mockHttpsCallable.mockResolvedValue({ data: { title: 'Missing fields' } });
 
-    await expect(lookupBook('/works/OL1W')).rejects.toThrow();
+    await expect(resolveBookId('/works/OL1W')).rejects.toThrow();
   });
 });
