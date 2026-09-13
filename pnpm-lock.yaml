@@ -7,13 +7,6 @@ settings:
 importers:
 
   .:
-    dependencies:
-      '@bookbingo/lib-core':
-        specifier: workspace:*
-        version: link:lib/core
-      firebase-admin:
-        specifier: ^13.7.0
-        version: 13.7.0(supports-color@8.1.1)
     devDependencies:
       '@eslint/js':
         specifier: ^9.39.2
@@ -33,6 +26,9 @@ importers:
       eslint-plugin-react-hooks:
         specifier: ^7.1.1
         version: 7.1.1(eslint@9.39.2(jiti@2.6.1)(supports-color@8.1.1))(supports-color@8.1.1)
+      firebase-admin:
+        specifier: ^13.7.0
+        version: 13.7.0(supports-color@8.1.1)
       firebase-tools:
         specifier: ^15.26.0
         version: 15.26.0(@types/node@22.20.1)(supports-color@8.1.1)
@@ -195,6 +191,18 @@ importers:
       '@bookbingo/tsconfig':
         specifier: workspace:*
         version: link:../tsconfig
+
+  scripts:
+    dependencies:
+      '@bookbingo/lib-core':
+        specifier: workspace:*
+        version: link:../lib/core
+      firebase-admin:
+        specifier: ^13.7.0
+        version: 13.7.0(supports-color@8.1.1)
+      zod:
+        specifier: ^4.4.2
+        version: 4.4.2
 
 packages:
 

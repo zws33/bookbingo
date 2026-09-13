@@ -2,6 +2,7 @@ packages:
   - app/*
   - lib/*
   - functions
+  - scripts
 
 allowBuilds:
   '@firebase/util': false
