@@ -141,8 +141,22 @@ test('derived id is a legal Firestore document id', () => {
     }),
     deriveBookId({ title: 'The Hobbit', author: 'Tolkien' }),
   ]) {
-    assert.match(id, /^[0-9a-z]+$/);
-    assert.ok(!id.includes('/'));
-    assert.ok(id.length > 0 && id.length <= 1500);
+    assert.match(id, /^[0-9a-f]{32}$/);
   }
+});
+
+// Property tests above pass for any deterministic hash; these pin the algorithm.
+test('derived ids match the frozen sha256 vectors', () => {
+  assert.equal(
+    deriveBookId({ title: 'The Hobbit', author: 'Tolkien' }),
+    'a8a9ff08193d058850281adfc711afe2',
+  );
+  assert.equal(
+    deriveBookId({
+      openLibraryKey: '/works/OL166894W',
+      title: 't',
+      author: 'a',
+    }),
+    '348aae56a792a525eac8cea8460e770e',
+  );
 });

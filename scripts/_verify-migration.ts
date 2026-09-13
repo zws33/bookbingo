@@ -22,9 +22,7 @@ const bookIds = new Set(booksSnap.docs.map((d) => d.id));
 console.log('=== Books in /books/ ===');
 for (const doc of booksSnap.docs) {
   const d = doc.data();
-  console.log(
-    `  ${doc.id}: "${d.title}" by ${d.author} (createdBy: ${d.createdBy})`,
-  );
+  console.log(`  ${doc.id}: "${d.title}" by ${d.author}`);
 }
 
 console.log('\n=== Readings ===');

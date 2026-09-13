@@ -1,16 +1,17 @@
 /**
- * Book Identity Migration: re-key /books/ to deterministic document IDs.
+ * Book Identity Migration: re-key /books/ to the ids `deriveBookId` produces.
  *
- * Bridges the legacy book schema (random doc IDs, singular `externalId`,
- * `titleLower`/`authorLower`) to the deterministic-ID model
- * (see docs/decisions/book-identity-and-deduplication.md):
+ * Moves any doc not at its derived id: legacy random ids, and every doc after a
+ * change to the id hash (see docs/book-id-sha256-migration-plan.md).
  *
  *   1. For each /books/{oldId}, compute its deterministic id via the SAME
  *      `deriveBookId` the functions use (imported from functions/src/books — no
  *      hand-duplicated normalization).
  *   2. Collapse docs that share a derived id into one canonical /books/{newId}
- *      (prefer the OL-bearing doc's metadata, keep the earliest createdAt,
- *      carry the external reference as the new `externalIds` map).
+ *      (OL-bearing doc wins title/author, first non-empty metadata wins, the
+ *      external reference is carried as the `externalIds` map). Only current
+ *      schema fields are written; legacy fields such as `createdBy`/`createdAt`
+ *      are dropped.
  *   3. Re-point every reference — `users/*\/readings/*.bookId` AND
  *      `users/*\/tbr/*.bookId` — from old id to new id.
  *
@@ -22,9 +23,9 @@
  * key from either the legacy `externalId` or the migrated `externalIds`), so
  * already-migrated docs are no-ops.
  *
- * MIGRATION-FIRST: run this against an environment BEFORE deploying the
- * deterministic `getOrCreateBook`. Deploying first opens a window where adding
- * an existing (legacy-id) book mints a fresh duplicate.
+ * DEPLOY-FIRST: deploy functions with the new `deriveBookId` before running
+ * this. A book added in between lands at its new id and is collapsed here;
+ * migrating first leaves the old functions minting old-id docs.
  *
  * Usage:
  *   tsx scripts/migrate-book-identity.ts --project <project-id> [--dry-run]
@@ -39,8 +40,6 @@
 import { initializeApp } from 'firebase-admin/app';
 import {
   getFirestore,
-  FieldValue,
-  Timestamp,
   type Firestore,
   type DocumentData,
   type QueryDocumentSnapshot,
@@ -92,9 +91,10 @@ function targetIdOf(data: DocumentData): string {
   });
 }
 
-function millis(data: DocumentData): number {
-  const ts = data.createdAt;
-  return ts instanceof Timestamp ? ts.toMillis() : Number.MAX_SAFE_INTEGER;
+function isEmptyMetadata(metadata: DocumentData): boolean {
+  return Object.values(metadata).every(
+    (value) => value == null || (Array.isArray(value) && value.length === 0),
+  );
 }
 
 /**
@@ -156,21 +156,21 @@ async function runRekey() {
   let ops = 0;
 
   for (const [newId, docs] of groups) {
-    // Earliest createdAt wins provenance; OL-bearing doc wins canonical fields.
-    docs.sort((a, b) => millis(a.data()) - millis(b.data()));
-    const earliest = docs[0]!.data();
     const olDoc = docs.find((d) => olKeyOf(d.data()) !== null)?.data();
-    const canonical = olDoc ?? earliest;
+    const canonical = olDoc ?? docs[0]!.data();
 
     const newDoc: DocumentData = {
       title: canonical.title ?? '',
       author: canonical.author ?? '',
-      createdBy: earliest.createdBy ?? 'system-migration',
-      createdAt: earliest.createdAt ?? FieldValue.serverTimestamp(),
     };
 
+    // EMPTY_METADATA is truthy, so a plain find(Boolean) could pick it over a
+    // sibling doc's real metadata.
+    const candidates = [olDoc, ...docs.map((d) => d.data())]
+      .map((data) => data?.metadata)
+      .filter(Boolean);
     const metadata =
-      olDoc?.metadata ?? docs.map((d) => d.data().metadata).find(Boolean);
+      candidates.find((m) => !isEmptyMetadata(m)) ?? candidates[0];
     if (metadata) newDoc.metadata = metadata;
 
     const olKey = olDoc ? olKeyOf(olDoc) : null;

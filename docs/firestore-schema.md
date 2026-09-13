@@ -30,22 +30,21 @@ tiles by these string IDs.
 One document per unique book, shared across all users. Multiple users reference the same
 book through their readings.
 
-`bookId` is **deterministic**, a hash of the book's identity (not random):
+`bookId` is **deterministic**, the first 32 hex chars of a sha256 of the book's identity
+(not random):
 
-- Catalog book: `hash("openLibrary:" + openLibraryWorkKey)`
-- Manual book: `hash("manual:" + normalizedTitle + "|" + normalizedAuthor)`
+- Catalog book: `sha256("openLibrary:" + openLibraryWorkKey)`
+- Manual book: `sha256("manual:" + normalizedTitle + "|" + normalizedAuthor)`
 
 This makes dedup a point read on the computed ID rather than a query; concurrent creates
 of the same book converge on one document.
 
-| Field         | Type                | Notes                                                           |
-| ------------- | ------------------- | --------------------------------------------------------------- |
-| `title`       | string              |                                                                 |
-| `author`      | string              |                                                                 |
-| `createdBy`   | string \| absent    | UID of first adder; absent on books the enrich function created |
-| `createdAt`   | Timestamp \| absent | absent on books the enrich function created                     |
-| `metadata`    | map \| absent       | see below; absent for bare manual entries                       |
-| `externalIds` | map \| absent       | provenance only, keyed by provider; absent for manual entries   |
+| Field         | Type          | Notes                                                         |
+| ------------- | ------------- | ------------------------------------------------------------- |
+| `title`       | string        |                                                               |
+| `author`      | string        |                                                               |
+| `metadata`    | map \| absent | see below; absent for bare manual entries                     |
+| `externalIds` | map \| absent | provenance only, keyed by provider; absent for manual entries |
 
 `metadata` map:
 
