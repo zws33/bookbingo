@@ -183,4 +183,30 @@ describe.sequential('createManualBook integration (emulator)', () => {
       },
     });
   });
+
+  it('returns the existing book for a case/punctuation variant without overwriting it', async () => {
+    await signInAnonymously(auth);
+
+    const first = await createManualBookCallable()({
+      title: 'Les Misérables',
+      author: 'Victor Hugo',
+      metadata: makeMetadata(),
+    });
+    createdBookIds.push(first.data.bookId);
+
+    const second = await createManualBookCallable()({
+      title: 'les miserables',
+      author: 'victor  hugo!',
+      metadata: { ...makeMetadata(), pageCount: 1 },
+    });
+
+    expect(second.data.bookId).toBe(first.data.bookId);
+
+    const snap = await getDoc(doc(db, 'books', first.data.bookId));
+    expect(snap.data()).toMatchObject({
+      title: 'Les Misérables',
+      author: 'Victor Hugo',
+      metadata: { pageCount: 412 },
+    });
+  });
 });

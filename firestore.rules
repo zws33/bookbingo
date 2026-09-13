@@ -4,7 +4,7 @@ service cloud.firestore {
   match /databases/{database}/documents {
     // Shared books collection. Provenance is not tracked, so there is no owner
     // to gate updates on: any signed-in user may create or amend a book. The
-    // deterministic doc id (lib-core deriveBookId) is what prevents duplicates,
+    // deterministic doc id (functions deriveBookId) is what prevents duplicates,
     // and merge-writes from the enrich function land as updates on docs it
     // created without a createdBy.
     match /books/{bookId} {

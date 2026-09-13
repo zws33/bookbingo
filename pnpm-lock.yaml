@@ -352,9 +352,6 @@ importers:
 
   scripts:
     dependencies:
-      '@bookbingo/lib-core':
-        specifier: workspace:*
-        version: link:../lib/core
       firebase-admin:
         specifier: ^13.7.0
         version: 13.7.0(supports-color@8.1.1)

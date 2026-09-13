@@ -7,7 +7,8 @@ import type {
 } from './types.js';
 import { ProviderError } from './types.js';
 import { OpenLibraryProvider } from './providers/open-library.js';
-import { db } from '../firebase.js';
+import { deriveBookId } from './bookIdentity.js';
+import { createBookIfAbsent } from './store.js';
 import { logEvent, logFailure } from '../observability.js';
 import {
   BookSearchQuerySchema,
@@ -92,7 +93,14 @@ export async function fetchBookDetailsHandler(
 
   let written: { bookId: string; created: boolean };
   try {
-    written = await createBook(bookDetails);
+    written = await createBookIfAbsent(
+      deriveBookId({
+        openLibraryKey: bookDetails.externalId,
+        title: bookDetails.title,
+        author: bookDetails.author,
+      }),
+      toBookData(bookDetails),
+    );
   } catch (error) {
     logFailure('book.fetch', error, {
       uid,
@@ -165,44 +173,4 @@ function toBookData(details: ProviderBookDetails) {
   };
 
   return bookData;
-}
-
-async function createBook(
-  details: ProviderBookDetails,
-): Promise<{ bookId: string; created: boolean }> {
-  const bookId = createId(details.externalId);
-  const bookRef = db.collection('books').doc(bookId);
-
-  let created = false;
-  await db.runTransaction(async (transaction) => {
-    const existingBook = await transaction.get(bookRef);
-
-    if (!existingBook.exists) {
-      const bookData = toBookData(details);
-      transaction.set(bookRef, bookData, { merge: true });
-      created = true;
-    }
-  });
-
-  return { bookId, created };
-}
-
-function createId(externalId: string): string {
-  return hashKey(`openLibrary:${externalId.trim()}`);
-}
-
-function hashKey(input: string): string {
-  let h1 = 0xdeadbeef;
-  let h2 = 0x41c6ce57;
-  for (let i = 0; i < input.length; i++) {
-    const ch = input.charCodeAt(i);
-    h1 = Math.imul(h1 ^ ch, 2654435761);
-    h2 = Math.imul(h2 ^ ch, 1597334677);
-  }
-  h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507);
-  h1 ^= Math.imul(h2 ^ (h2 >>> 13), 3266489909);
-  h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507);
-  h2 ^= Math.imul(h1 ^ (h1 >>> 13), 3266489909);
-  const value = 4294967296 * (2097151 & h2) + (h1 >>> 0);
-  return value.toString(36);
 }

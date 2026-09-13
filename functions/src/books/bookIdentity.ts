@@ -45,11 +45,8 @@ export function normalizeForKey(value: string): string {
 }
 
 /**
- * cyrb53 — a fast, well-distributed 53-bit hash, rendered base36 (~11 chars of
- * [0-9a-z], always a legal Firestore doc id). Synchronous and dependency-free
- * so the app (browser) and the migration script (Node) derive identical ids,
- * unlike async SubtleCrypto. 53 bits makes collisions negligible at this
- * catalog's scale; a collision would silently merge two distinct books.
+ * cyrb53, rendered base36 (always a legal Firestore doc id). Frozen: changing
+ * it changes every book id and requires a data migration.
  */
 function hashKey(input: string): string {
   let h1 = 0xdeadbeef;

@@ -3,7 +3,6 @@
   "private": true,
   "type": "module",
   "dependencies": {
-    "@bookbingo/lib-core": "workspace:*",
     "firebase-admin": "^13.7.0",
     "zod": "^4.4.2"
   }

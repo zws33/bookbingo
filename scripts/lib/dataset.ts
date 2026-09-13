@@ -2,13 +2,13 @@
  * Declarative synthetic dataset for staging.
  *
  * Books are referenced by a local `handle`; their Firestore id is derived with
- * the SAME `deriveBookId` the app uses, so two personas that share a handle
+ * the SAME `deriveBookId` the functions use, so two personas that share a handle
  * converge to one `/books/{id}` doc — exercising dedup and the community library
  * exactly as real usage would. Tiles use real ids from `lib/core` constants
  * (`t01`–`t43`, `m01`–`m06`).
  */
 
-import { deriveBookId } from '@bookbingo/lib-core';
+import { deriveBookId } from '../../functions/src/books/bookIdentity.js';
 import type { BookMetadata } from '@bookbingo/lib-types';
 
 export interface SeedBook {

@@ -6,7 +6,7 @@
  * (see docs/decisions/book-identity-and-deduplication.md):
  *
  *   1. For each /books/{oldId}, compute its deterministic id via the SAME
- *      `deriveBookId` the app uses (imported from @bookbingo/lib-core — no
+ *      `deriveBookId` the functions use (imported from functions/src/books — no
  *      hand-duplicated normalization).
  *   2. Collapse docs that share a derived id into one canonical /books/{newId}
  *      (prefer the OL-bearing doc's metadata, keep the earliest createdAt,
@@ -45,7 +45,7 @@ import {
   type DocumentData,
   type QueryDocumentSnapshot,
 } from 'firebase-admin/firestore';
-import { deriveBookId } from '@bookbingo/lib-core';
+import { deriveBookId } from '../functions/src/books/bookIdentity.js';
 
 const args = process.argv.slice(2);
 const projectFlagIndex = args.indexOf('--project');

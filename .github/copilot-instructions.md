@@ -72,7 +72,7 @@ Firebase Hosting serves `app/web/dist`. Firebase Functions predeploy builds the 
 ## Key conventions
 
 - Keep domain logic in `lib/core` and shared data contracts in `lib/types`. Do **not** import React, Firebase client SDKs, or browser-only code into `lib/*`.
-- Treat `deriveBookId()` in `@bookbingo/lib-core` as a **frozen identity contract**. Reuse it everywhere; do not reimplement the normalization/hash logic in app code, functions, or scripts. Changing it is a data-migration event.
+- Treat `deriveBookId()` in `functions/src/books/bookIdentity.ts` as a **frozen identity contract**. Do not reimplement it; changing it requires a data migration.
 - `/books` is a shared catalog, not a per-user record. Editing an existing reading or TBR entry should usually update the user-owned document or repoint `bookId`, not overwrite shared book identity fields in place. `BookForm`'s `identityLocked` flow exists for this reason.
 - Reads and writes are separated on the web side: new read/subscription code should usually live in `app/web/src/data/*` + `app/web/src/hooks/*`, while writes and callable wrappers belong in `app/web/src/lib/*`.
 - Promoting a TBR entry to a completed reading should use `promoteTBREntry()` so the create+delete happens in a single batch write.

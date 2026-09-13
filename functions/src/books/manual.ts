@@ -1,8 +1,9 @@
 import { HttpsError, type CallableRequest } from 'firebase-functions/v2/https';
 import z from 'zod/v4';
-import { db } from '../firebase.js';
 import { logEvent, logFailure } from '../observability.js';
+import { deriveBookId, normalizeForKey } from './bookIdentity.js';
 import { CreateManualBookRequestSchema } from './schema.js';
+import { createBookIfAbsent } from './store.js';
 
 export async function createManualBookHandler(
   request: CallableRequest<unknown>,
@@ -16,15 +17,28 @@ export async function createManualBookHandler(
     throw new HttpsError('invalid-argument', z.prettifyError(parsed.error));
   }
 
+  const { title, author } = parsed.data;
+  // Punctuation-only input normalizes to an empty key shared by every such book.
+  if (normalizeForKey(title) === '' || normalizeForKey(author) === '') {
+    throw new HttpsError(
+      'invalid-argument',
+      'Title and author must contain at least one letter or digit.',
+    );
+  }
+
   const uid = request.auth.uid;
   const startedAt = Date.now();
 
   try {
-    const created = await db.collection('books').add(parsed.data);
+    const written = await createBookIfAbsent(
+      deriveBookId({ title, author }),
+      parsed.data,
+    );
     logEvent('book.manual', {
       uid,
       outcome: 'ok',
-      bookId: created.id,
+      bookId: written.bookId,
+      bookCreated: written.created,
       hasPageCount: parsed.data.metadata.pageCount !== null,
       hasPublishedDate: parsed.data.metadata.publishedDate !== null,
       hasCategories: parsed.data.metadata.categories.length > 0,
@@ -32,7 +46,7 @@ export async function createManualBookHandler(
       hasThumbnailUrl: parsed.data.metadata.thumbnailUrl !== null,
       durationMs: Date.now() - startedAt,
     });
-    return { bookId: created.id };
+    return { bookId: written.bookId };
   } catch (error) {
     logFailure('book.manual', error, {
       uid,
