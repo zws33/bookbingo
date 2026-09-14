@@ -31,13 +31,14 @@ export function Dialog({
           aria-describedby={undefined}
           className={cn(
             'fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2',
-            'w-[calc(100%-2rem)] max-w-md',
+            'w-[calc(100%-2rem)] max-w-md max-h-[calc(100%-2rem)]',
             'z-50 bg-surface-container-lowest rounded-lg shadow-xl overflow-hidden focus:outline-none',
+            'flex flex-col',
             'scale-95 opacity-0 transition-all duration-200 data-[state=open]:scale-100 data-[state=open]:opacity-100',
             contentClassName,
           )}
         >
-          <div className="flex items-center justify-between px-4 py-3 border-b border-outline-variant">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-outline-variant shrink-0">
             <RadixDialog.Title className="font-display text-lg font-semibold text-on-surface">
               {title}
             </RadixDialog.Title>
@@ -60,7 +61,7 @@ export function Dialog({
               </svg>
             </RadixDialog.Close>
           </div>
-          <div className="p-4">{children}</div>
+          <div className="p-4 overflow-y-auto">{children}</div>
         </RadixDialog.Content>
       </RadixDialog.Portal>
     </RadixDialog.Root>
