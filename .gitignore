@@ -125,6 +125,9 @@ dist
 # Firebase emulator exported data (machine-local, can be large)
 emulator-data/
 
+# Local dataset dumps (machine-local, can exceed GitHub's 100MB file limit)
+data/*.parquet
+
 # TernJS port file
 .tern-port
 
