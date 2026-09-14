@@ -45,6 +45,7 @@ import {
   type QueryDocumentSnapshot,
 } from 'firebase-admin/firestore';
 import { deriveBookId } from '../functions/src/books/bookIdentity.js';
+import { isEmptyMetadata } from './lib/matching.js';
 
 const args = process.argv.slice(2);
 const projectFlagIndex = args.indexOf('--project');
@@ -89,12 +90,6 @@ function targetIdOf(data: DocumentData): string {
     title: data.title ?? '',
     author: data.author ?? '',
   });
-}
-
-function isEmptyMetadata(metadata: DocumentData): boolean {
-  return Object.values(metadata).every(
-    (value) => value == null || (Array.isArray(value) && value.length === 0),
-  );
 }
 
 /**

@@ -2,6 +2,9 @@
   "name": "@bookbingo/scripts",
   "private": true,
   "type": "module",
+  "scripts": {
+    "test": "node --import tsx --test \"**/*.test.ts\""
+  },
   "dependencies": {
     "firebase-admin": "^13.7.0",
     "zod": "^4.4.2"

@@ -13,6 +13,7 @@
 import { initializeApp, type App } from 'firebase-admin/app';
 import { getFirestore, type Firestore } from 'firebase-admin/firestore';
 import { getAuth, type Auth } from 'firebase-admin/auth';
+import readline from 'node:readline/promises';
 
 /** Project ids resolved from `.firebaserc`. Keep in sync if those change. */
 export const PROD_PROJECT_ID = 'bookbingo-3fdb1';
@@ -68,6 +69,39 @@ export function guardWriteTarget(projectId: string): void {
       `Note: FIRESTORE_EMULATOR_HOST=${process.env.FIRESTORE_EMULATOR_HOST} is set ` +
         '— writing to the local emulator, not the cloud project.',
     );
+  }
+}
+
+/**
+ * A one-off, explicit escape hatch from `guardWriteTarget`'s prod ban — for
+ * `backfill-book-metadata.ts apply` only, which writes reviewed report
+ * entries and is meant to eventually reach prod. Requires `--allow-prod` AND
+ * typing the project id back, so a stray flag alone can't trigger the write.
+ */
+export async function guardOrConfirmProdWrite(
+  projectId: string,
+  allowProd: boolean,
+): Promise<void> {
+  if (projectId !== PROD_PROJECT_ID) return;
+  if (!allowProd) {
+    console.error(
+      `Refusing to run: ${projectId} is PRODUCTION.\n` +
+        'Review the report first, then pass --allow-prod to write here.',
+    );
+    process.exit(1);
+  }
+
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
+  });
+  const answer = await rl.question(
+    `Type the project id ("${projectId}") to confirm writing to PRODUCTION: `,
+  );
+  rl.close();
+  if (answer.trim() !== projectId) {
+    console.error('Confirmation did not match. Aborting.');
+    process.exit(1);
   }
 }
 

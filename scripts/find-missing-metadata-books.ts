@@ -1,9 +1,10 @@
 import { z } from 'zod/v4';
-import { initApp, PROD_PROJECT_ID } from './lib/admin.js';
+import { initApp, parseFlag, STAGING_PROJECT_ID } from './lib/admin.js';
+import { isEmptyMetadata } from './lib/matching.js';
 import fs from 'node:fs';
 import path from 'node:path';
 
-const PROJECT_ID = 'bookbingo-staging';
+const PROJECT_ID = parseFlag('project') ?? STAGING_PROJECT_ID;
 const { db } = initApp(PROJECT_ID);
 
 const BookMetadata = z.object({
@@ -30,7 +31,7 @@ async function main() {
   fs.mkdirSync(outDir, { recursive: true });
   const outPath = path.join(
     outDir,
-    `missing-metadata-books.${PROD_PROJECT_ID}.json`,
+    `missing-metadata-books.${PROJECT_ID}.json`,
   );
   for (const doc of snap.docs) {
     const result = BookDoc.safeParse(doc.data());
@@ -38,7 +39,7 @@ async function main() {
       throw Error(`result: ${result.error.message}`);
     }
     const book: BookDoc = result.data;
-    if (!book?.metadata) {
+    if (isEmptyMetadata(book.metadata)) {
       missingMetadataBooks.push({ title: book.title, author: book.author });
     }
   }
