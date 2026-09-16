@@ -14,10 +14,16 @@ vi.mock('../data/readings', () => ({
   deleteReading: vi.fn(),
 }));
 
+vi.mock('src/data/books.js', () => ({
+  getBooksById: vi.fn(),
+}));
+
 import { updateReading, deleteReading } from '../data/readings';
+import { getBooksById } from 'src/data/books.js';
 
 const updateReadingMock = vi.mocked(updateReading);
 const deleteReadingMock = vi.mocked(deleteReading);
+const getBooksByIdMock = vi.mocked(getBooksById);
 
 const BOOK: Book = {
   id: 'book-1',
@@ -29,6 +35,8 @@ const BOOK: Book = {
 const READING: Reading = {
   id: 'reading-1',
   bookId: 'book-1',
+  bookTitle: 'Dune',
+  bookAuthor: 'Frank Herbert',
   tiles: ['t02'], // "part of a series"
   isFreebie: false,
   readAt: new Date('2026-01-01'),
@@ -55,12 +63,13 @@ describe('BookList edit flow', () => {
     vi.clearAllMocks();
     updateReadingMock.mockResolvedValue(undefined);
     deleteReadingMock.mockResolvedValue(undefined);
+    getBooksByIdMock.mockResolvedValue([BOOK]);
   });
 
   it('opens the edit dialog with identity locked when a book is clicked', async () => {
     const { user } = renderBookList();
 
-    await user.click(screen.getByRole('button', { name: /Dune/ }));
+    await user.click(await screen.findByRole('button', { name: /Dune/ }));
 
     const dialog = editDialog();
     // Identity is shown as static text, not as editable inputs.
@@ -72,7 +81,7 @@ describe('BookList edit flow', () => {
   it("persists tile changes via updateReading, using the reading's existing bookId", async () => {
     const { user } = renderBookList();
 
-    await user.click(screen.getByRole('button', { name: /Dune/ }));
+    await user.click(await screen.findByRole('button', { name: /Dune/ }));
     // Add a second tile on top of the reading's existing "part of a series".
     await user.click(
       within(editDialog()).getByRole('button', { name: 'unfinished reread' }),
@@ -95,7 +104,7 @@ describe('BookList edit flow', () => {
   it('deletes the reading after confirming in the alert dialog', async () => {
     const { user } = renderBookList();
 
-    await user.click(screen.getByRole('button', { name: /Dune/ }));
+    await user.click(await screen.findByRole('button', { name: /Dune/ }));
     await user.click(
       screen.getByRole('button', { name: /delete this reading/i }),
     );

@@ -2,8 +2,12 @@ import type { Book } from '@bookbingo/lib-types';
 
 import {
   collection,
+  documentId,
+  getDocs,
   onSnapshot,
+  query,
   QueryDocumentSnapshot,
+  where,
 } from 'firebase/firestore';
 import { log } from '@bookbingo/lib-util';
 import { db } from '../lib/firebase';
@@ -14,6 +18,30 @@ export interface BookRepository {
     onData: (books: Book[]) => void,
     onError: (error: Error) => void,
   ): () => void;
+}
+
+// Firestore caps `documentId() in` filters at 30 values per query.
+const MAX_IN_CLAUSE_SIZE = 30;
+
+export async function getBooksById(bookIds: string[]): Promise<Book[]> {
+  const uniqueIds = [...new Set(bookIds)];
+  if (uniqueIds.length === 0) return [];
+
+  const batches: string[][] = [];
+  for (let i = 0; i < uniqueIds.length; i += MAX_IN_CLAUSE_SIZE) {
+    batches.push(uniqueIds.slice(i, i + MAX_IN_CLAUSE_SIZE));
+  }
+
+  const snapshots = await Promise.all(
+    batches.map((batch) =>
+      getDocs(query(collection(db, 'books'), where(documentId(), 'in', batch))),
+    ),
+  );
+  return mapValid(
+    'books',
+    snapshots.flatMap((snapshot) => snapshot.docs),
+    toBook,
+  );
 }
 
 /**

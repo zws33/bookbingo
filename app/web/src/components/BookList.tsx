@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import type { Reading, Book } from '@bookbingo/lib-types';
 import { BookCard } from './BookCard';
 import { BookRow } from './BookRow';
@@ -10,6 +10,7 @@ import { useToast } from '../lib/ToastContext';
 import { updateReading, deleteReading } from '../data/readings';
 import { log } from '@bookbingo/lib-util';
 import { PageStatus } from './PageStatus';
+import { getBooksById } from 'src/data/books.js';
 
 interface BookListProps {
   userId: string;
@@ -37,14 +38,40 @@ export function BookList({
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const { showSuccess, showError: showErrorToast } = useToast();
 
+  const [readingsWithBook, setReadingsWithBook] = useState<
+    (Reading & { bookThumbnailUrl: string | null })[]
+  >([]);
+
+  useEffect(() => {
+    let ignore = false;
+    async function getBooks() {
+      const bookIds = readings.map((reading) => reading.bookId);
+      const books = await getBooksById(bookIds);
+      const booksMap = new Map(books.map((b) => [b.id, b]));
+      if (!ignore) {
+        setReadingsWithBook(
+          readings.map((r) => ({
+            ...r,
+            bookThumbnailUrl:
+              booksMap.get(r.bookId)?.metadata.thumbnailUrl ?? null,
+          })),
+        );
+      }
+    }
+    getBooks();
+
+    return () => {
+      ignore = true;
+    };
+  }, [readings]);
+
   const filteredReadings = useMemo(() => {
-    if (!authorFilter.trim()) return readings;
+    if (!authorFilter.trim()) return readingsWithBook;
     const filter = authorFilter.toLowerCase();
-    return readings.filter((r) => {
-      const book = booksById.get(r.bookId) ?? UNKNOWN_BOOK;
-      return book.author.toLowerCase().includes(filter);
+    return readingsWithBook.filter((r) => {
+      return r.bookAuthor?.toLowerCase().includes(filter);
     });
-  }, [readings, authorFilter, booksById]);
+  }, [readingsWithBook, authorFilter]);
 
   const handleEdit = async (data: BookFormData) => {
     if (!selectedReading) return;
@@ -159,13 +186,12 @@ export function BookList({
       ) : viewMode === 'cards' ? (
         <div className="grid gap-4 sm:grid-cols-2">
           {filteredReadings.map((reading) => {
-            const book = booksById.get(reading.bookId);
             return (
               <BookCard
                 key={reading.id}
-                bookTitle={book?.title ?? 'Unknown Book'}
-                bookAuthor={book?.author ?? 'Unknown Author'}
-                metadata={book?.metadata}
+                bookTitle={reading?.bookTitle ?? 'Unknown Book'}
+                bookAuthor={reading?.bookAuthor ?? 'Unknown Author'}
+                thumbnailUrl={reading.bookThumbnailUrl}
                 tiles={reading.tiles}
                 onClick={() => setSelectedReading(reading)}
                 readOnly={readOnly}
@@ -193,113 +219,45 @@ export function BookList({
         </div>
       )}
 
-      {readOnly ? (
+      <>
         <Dialog
-          isOpen={!!selectedReading}
+          isOpen={!!selectedReading && !showDeleteConfirm}
           onClose={() => setSelectedReading(null)}
-          title={selectedBook.title}
+          title="Edit Book"
         >
-          <div className="space-y-4">
-            <div className="flex gap-4">
-              {selectedBookData?.metadata.thumbnailUrl && (
-                <img
-                  src={selectedBookData.metadata.thumbnailUrl}
-                  alt=""
-                  className="w-16 h-22 object-cover rounded-sm shrink-0"
-                  onError={(e) => {
-                    (e.currentTarget as HTMLImageElement).style.display =
-                      'none';
-                  }}
-                />
-              )}
-              <div className="space-y-1">
-                <p className="italic text-on-surface-variant">
-                  {selectedBook.author}
-                </p>
-                {selectedBookData?.metadata.publishedDate && (
-                  <p className="text-sm text-on-surface-variant">
-                    {selectedBookData.metadata.publishedDate}
-                  </p>
-                )}
-                {selectedBookData?.metadata.pageCount && (
-                  <p className="text-sm text-on-surface-variant">
-                    {selectedBookData.metadata.pageCount} pages
-                  </p>
-                )}
-              </div>
-            </div>
-            {selectedBookData &&
-              selectedBookData.metadata.categories.length > 0 && (
-                <div className="flex flex-wrap gap-1">
-                  {selectedBookData.metadata.categories.map((cat) => (
-                    <span
-                      key={cat}
-                      className="text-xs bg-surface-container-high text-on-surface-variant px-2 py-0.5 rounded-sm"
-                    >
-                      {cat}
-                    </span>
-                  ))}
-                </div>
-              )}
-            {selectedReading && selectedReading.tiles.length > 0 && (
-              <div className="pt-2 border-t border-outline-variant">
-                <p className="text-xs text-on-surface-variant mb-1">
-                  Bingo tiles
-                </p>
-                <div className="flex flex-wrap gap-1">
-                  {selectedReading.tiles.map((tile) => (
-                    <span
-                      key={tile}
-                      className="w-2 h-2 rounded-sm bg-primary inline-block"
-                      title={tile}
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
+          <BookForm
+            identityLocked
+            initialData={{
+              title: selectedBook.title,
+              author: selectedBook.author,
+              tiles: selectedReading?.tiles ?? [],
+              isFreebie: selectedReading?.isFreebie ?? false,
+            }}
+            onSubmit={handleEdit}
+            onCancel={() => setSelectedReading(null)}
+            isSubmitting={isSubmitting}
+          />
+          <div className="mt-4 pt-4 border-t border-outline-variant flex justify-center">
+            <button
+              type="button"
+              onClick={() => setShowDeleteConfirm(true)}
+              className="text-sm text-error hover:text-error/90"
+              disabled={isSubmitting}
+            >
+              Delete this reading
+            </button>
           </div>
         </Dialog>
-      ) : (
-        <>
-          <Dialog
-            isOpen={!!selectedReading && !showDeleteConfirm}
-            onClose={() => setSelectedReading(null)}
-            title="Edit Book"
-          >
-            <BookForm
-              identityLocked
-              initialData={{
-                title: selectedBook.title,
-                author: selectedBook.author,
-                tiles: selectedReading?.tiles ?? [],
-                isFreebie: selectedReading?.isFreebie ?? false,
-              }}
-              onSubmit={handleEdit}
-              onCancel={() => setSelectedReading(null)}
-              isSubmitting={isSubmitting}
-            />
-            <div className="mt-4 pt-4 border-t border-outline-variant flex justify-center">
-              <button
-                type="button"
-                onClick={() => setShowDeleteConfirm(true)}
-                className="text-sm text-error hover:text-error/90"
-                disabled={isSubmitting}
-              >
-                Delete this reading
-              </button>
-            </div>
-          </Dialog>
 
-          <AlertDialog
-            isOpen={showDeleteConfirm}
-            onClose={() => setShowDeleteConfirm(false)}
-            onConfirm={handleDelete}
-            title="Delete Book"
-            message={`Are you sure you want to delete "${selectedBook.title}"? This action cannot be undone.`}
-            confirmLabel="Delete"
-          />
-        </>
-      )}
+        <AlertDialog
+          isOpen={showDeleteConfirm}
+          onClose={() => setShowDeleteConfirm(false)}
+          onConfirm={handleDelete}
+          title="Delete Book"
+          message={`Are you sure you want to delete "${selectedBook.title}"? This action cannot be undone.`}
+          confirmLabel="Delete"
+        />
+      </>
     </div>
   );
 }

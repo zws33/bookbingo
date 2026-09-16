@@ -1,12 +1,11 @@
 import type { ReactNode } from 'react';
-import type { BookMetadata } from '@bookbingo/lib-types';
 import { TileBadge } from './ui/index.js';
 
 interface BookCardProps {
   bookTitle: string;
   bookAuthor: string;
   tiles: string[];
-  metadata?: BookMetadata | undefined;
+  thumbnailUrl: string | null;
   notes?: string | undefined;
   /** When set (and not read-only / no footer), the whole card is a button. */
   onClick?: () => void;
@@ -22,14 +21,13 @@ const MAX_BADGES = 3;
 export function BookCard({
   bookTitle,
   bookAuthor,
+  thumbnailUrl = null,
   tiles,
-  metadata,
   notes,
   onClick,
   readOnly,
   footer,
 }: BookCardProps) {
-  const thumbnailUrl = metadata?.thumbnailUrl ?? null;
   const visibleTiles = tiles.slice(0, MAX_BADGES);
   const overflow = tiles.length - MAX_BADGES;
   const interactive = !readOnly && !footer;

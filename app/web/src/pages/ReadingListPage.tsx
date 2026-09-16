@@ -1,7 +1,7 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import type { Book, TBREntry } from '@bookbingo/lib-types';
 import { useTBR } from '../hooks/useTBR';
-import { useBooks } from '../hooks/useBooks';
+import { useBooksByIds } from '../hooks/useBooksByIds';
 import { useToast } from '../lib/ToastContext';
 import { createManualBook } from '../lib/createManualBook';
 import {
@@ -36,7 +36,12 @@ export function ReadingListPage({ userId }: ReadingListPageProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const { entries, loading, error } = useTBR(userId);
-  const { booksById, error: booksError } = useBooks();
+  const bookIds = useMemo(() => {
+    const ids = entries.map((entry) => entry.bookId);
+    if (dialog?.kind === 'add') ids.push(dialog.bookId);
+    return ids;
+  }, [entries, dialog]);
+  const { booksById, error: booksError } = useBooksByIds(bookIds);
   const { showSuccess, showError } = useToast();
 
   const closeDialog = useCallback(() => setDialog(null), []);
@@ -320,7 +325,7 @@ function TBREntryCard({
       bookTitle={book?.title ?? 'Unknown title'}
       bookAuthor={book?.author ?? '—'}
       tiles={entry.plannedTiles}
-      metadata={book?.metadata}
+      thumbnailUrl={book?.metadata.thumbnailUrl ?? null}
       notes={entry.notes}
       footer={
         <div className="flex justify-end gap-2">
