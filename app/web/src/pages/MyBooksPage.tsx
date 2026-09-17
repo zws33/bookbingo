@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback } from 'react';
 import { useReadings } from '../hooks/useReadings';
-import { useBooks } from '../hooks/useBooks';
+import { useBooksByIds } from '../hooks/useBooksByIds';
 import { useToast } from '../lib/ToastContext';
 import { createReading } from '../data/readings';
 import { BookList } from '../components/BookList';
@@ -32,7 +32,16 @@ export function MyBooksPage({ userId }: MyBooksPageProps) {
     loading: readingsLoading,
     error: readingsError,
   } = useReadings(userId);
-  const { booksById, loading: booksLoading, error: booksError } = useBooks();
+  const bookIds = useMemo(() => {
+    const ids = readings.map((reading) => reading.bookId);
+    if (dialog?.kind === 'readingForm') ids.push(dialog.bookId);
+    return ids;
+  }, [readings, dialog]);
+  const {
+    booksById,
+    loading: booksLoading,
+    error: booksError,
+  } = useBooksByIds(bookIds);
 
   const loading = readingsLoading || booksLoading;
   const error = readingsError || booksError;
@@ -102,7 +111,6 @@ export function MyBooksPage({ userId }: MyBooksPageProps) {
         <BookList
           userId={userId}
           readings={readings}
-          booksById={booksById}
           loading={loading}
           error={error}
         />

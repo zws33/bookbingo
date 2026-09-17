@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { getScoreBreakdown } from '@bookbingo/lib-core';
 import { useReadings } from '../hooks/useReadings';
-import { useBooks } from '../hooks/useBooks';
+import { useBooksByIds } from '../hooks/useBooksByIds';
 import { useUserProfile } from '../hooks/useUserProfile';
 import { BookList } from '../components/BookList';
 import { ScoreDisplay } from '../components/ScoreDisplay';
@@ -19,7 +19,11 @@ export function UserBooksPage() {
     loading: readingsLoading,
     error: readingsError,
   } = useReadings(userId ?? '');
-  const { booksById, loading: booksLoading, error: booksError } = useBooks();
+  const bookIds = useMemo(
+    () => readings.map((reading) => reading.bookId),
+    [readings],
+  );
+  const { loading: booksLoading, error: booksError } = useBooksByIds(bookIds);
 
   const loading = readingsLoading || booksLoading;
   const error = readingsError || booksError;
@@ -81,7 +85,6 @@ export function UserBooksPage() {
       <BookList
         userId={userId}
         readings={readings}
-        booksById={booksById}
         loading={loading}
         error={error}
         readOnly

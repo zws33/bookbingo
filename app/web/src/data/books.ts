@@ -4,7 +4,6 @@ import {
   collection,
   documentId,
   getDocs,
-  onSnapshot,
   query,
   QueryDocumentSnapshot,
   where,
@@ -13,16 +12,10 @@ import { log } from '@bookbingo/lib-util';
 import { db } from '../lib/firebase';
 import { BookDocSchema, mapValid } from './schemas';
 
-export interface BookRepository {
-  subscribeToBooks(
-    onData: (books: Book[]) => void,
-    onError: (error: Error) => void,
-  ): () => void;
-}
-
 // Firestore caps `documentId() in` filters at 30 values per query.
 const MAX_IN_CLAUSE_SIZE = 30;
 
+/** One-shot fetch of exactly the books referenced by `bookIds`. */
 export async function getBooksById(bookIds: string[]): Promise<Book[]> {
   const uniqueIds = [...new Set(bookIds)];
   if (uniqueIds.length === 0) return [];
@@ -41,21 +34,6 @@ export async function getBooksById(bookIds: string[]): Promise<Book[]> {
     'books',
     snapshots.flatMap((snapshot) => snapshot.docs),
     toBook,
-  );
-}
-
-/**
- * Live subscription to the shared /books collection. Pushes the full list on
- * every change and returns an unsubscribe function. Primary path for UI hooks.
- */
-export function subscribeToBooks(
-  onData: (books: Book[]) => void,
-  onError: (error: Error) => void,
-): () => void {
-  return onSnapshot(
-    collection(db, 'books'),
-    (snap) => onData(mapValid('books', snap.docs, toBook)),
-    onError,
   );
 }
 

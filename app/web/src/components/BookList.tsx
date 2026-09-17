@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
-import type { Reading, Book } from '@bookbingo/lib-types';
+import type { Reading, BookMetadata } from '@bookbingo/lib-types';
 import { BookCard } from './BookCard';
 import { BookRow } from './BookRow';
 import { Dialog, AlertDialog, ToggleGroup } from './ui/index.js';
@@ -15,7 +15,6 @@ import { getBooksById } from 'src/data/books.js';
 interface BookListProps {
   userId: string;
   readings: Reading[];
-  booksById: Map<string, Book>;
   loading: boolean;
   error?: Error | undefined;
   readOnly?: boolean;
@@ -23,10 +22,16 @@ interface BookListProps {
 
 const UNKNOWN_BOOK = { title: 'Unknown Book', author: 'Unknown Author' };
 
+interface ReadingWithBook extends Reading {
+  bookTitle: string;
+  bookAuthor: string;
+  bookThumbnailUrl: string | null;
+  bookMetadata: BookMetadata | undefined;
+}
+
 export function BookList({
   userId,
   readings,
-  booksById,
   loading,
   error,
   readOnly = false,
@@ -38,9 +43,9 @@ export function BookList({
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const { showSuccess, showError: showErrorToast } = useToast();
 
-  const [readingsWithBook, setReadingsWithBook] = useState<
-    (Reading & { bookThumbnailUrl: string | null })[]
-  >([]);
+  const [readingsWithBook, setReadingsWithBook] = useState<ReadingWithBook[]>(
+    [],
+  );
 
   useEffect(() => {
     let ignore = false;
@@ -50,11 +55,19 @@ export function BookList({
       const booksMap = new Map(books.map((b) => [b.id, b]));
       if (!ignore) {
         setReadingsWithBook(
-          readings.map((r) => ({
-            ...r,
-            bookThumbnailUrl:
-              booksMap.get(r.bookId)?.metadata.thumbnailUrl ?? null,
-          })),
+          readings.map((r) => {
+            const book = booksMap.get(r.bookId);
+            return {
+              ...r,
+              // Resolved book data wins; the reading's own bookTitle/bookAuthor
+              // are legacy denormalized fields kept only as a fallback for
+              // pre-migration readings whose book doc can't be resolved.
+              bookTitle: book?.title ?? r.bookTitle ?? UNKNOWN_BOOK.title,
+              bookAuthor: book?.author ?? r.bookAuthor ?? UNKNOWN_BOOK.author,
+              bookThumbnailUrl: book?.metadata.thumbnailUrl ?? null,
+              bookMetadata: book?.metadata,
+            };
+          }),
         );
       }
     }
@@ -69,7 +82,7 @@ export function BookList({
     if (!authorFilter.trim()) return readingsWithBook;
     const filter = authorFilter.toLowerCase();
     return readingsWithBook.filter((r) => {
-      return r.bookAuthor?.toLowerCase().includes(filter);
+      return r.bookAuthor.toLowerCase().includes(filter);
     });
   }, [readingsWithBook, authorFilter]);
 
@@ -114,10 +127,13 @@ export function BookList({
     return <PageStatus loading={loading} error={error} />;
   }
 
-  const selectedBookData = selectedReading
-    ? booksById.get(selectedReading.bookId)
+  const selectedReadingWithBook = selectedReading
+    ? readingsWithBook.find((r) => r.id === selectedReading.id)
     : undefined;
-  const selectedBook = selectedBookData ?? UNKNOWN_BOOK;
+  const selectedBook = {
+    title: selectedReadingWithBook?.bookTitle ?? UNKNOWN_BOOK.title,
+    author: selectedReadingWithBook?.bookAuthor ?? UNKNOWN_BOOK.author,
+  };
 
   return (
     <div className="space-y-4">
@@ -189,8 +205,8 @@ export function BookList({
             return (
               <BookCard
                 key={reading.id}
-                bookTitle={reading?.bookTitle ?? 'Unknown Book'}
-                bookAuthor={reading?.bookAuthor ?? 'Unknown Author'}
+                bookTitle={reading.bookTitle}
+                bookAuthor={reading.bookAuthor}
                 thumbnailUrl={reading.bookThumbnailUrl}
                 tiles={reading.tiles}
                 onClick={() => setSelectedReading(reading)}
@@ -202,13 +218,12 @@ export function BookList({
       ) : (
         <div className="divide-y divide-outline-variant bg-surface-container-lowest rounded-lg shadow">
           {filteredReadings.map((reading) => {
-            const book = booksById.get(reading.bookId);
             return (
               <BookRow
                 key={reading.id}
-                bookTitle={book?.title ?? 'Unknown Book'}
-                bookAuthor={book?.author ?? 'Unknown Author'}
-                metadata={book?.metadata}
+                bookTitle={reading.bookTitle}
+                bookAuthor={reading.bookAuthor}
+                metadata={reading.bookMetadata}
                 tiles={reading.tiles}
                 isFreebie={reading.isFreebie}
                 onClick={() => setSelectedReading(reading)}

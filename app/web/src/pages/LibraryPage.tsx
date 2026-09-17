@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { useBooks } from '../hooks/useBooks';
+import { useBooksByIds } from '../hooks/useBooksByIds';
 import { useAllReadings } from '../hooks/useAllReadings';
 import { useUsers } from '../hooks/useUsers';
 import type { Book } from '@bookbingo/lib-types';
@@ -20,12 +20,20 @@ interface BookSummary {
 }
 
 export function LibraryPage() {
-  const { booksById, loading: booksLoading, error: booksError } = useBooks();
   const {
     readingsByUser,
     loading: readingsLoading,
     error: readingsError,
   } = useAllReadings();
+  const bookIds = useMemo(
+    () => [...readingsByUser.values()].flatMap((rs) => rs.map((r) => r.bookId)),
+    [readingsByUser],
+  );
+  const {
+    booksById,
+    loading: booksLoading,
+    error: booksError,
+  } = useBooksByIds(bookIds);
   const { users, loading: usersLoading, error: usersError } = useUsers();
 
   const loading = booksLoading || readingsLoading || usersLoading;

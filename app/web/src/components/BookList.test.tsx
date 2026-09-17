@@ -7,8 +7,9 @@ import { render } from '../testing/test-utils';
 import { BookList } from './BookList';
 
 // Mock only the I/O boundary — the Firestore-backed repository layer. BookList
-// is otherwise props-driven (readings + booksById are passed in), so nothing
-// else needs stubbing. We assert the contract each repository call must satisfy.
+// is otherwise props-driven (readings are passed in, books are resolved via
+// getBooksById), so nothing else needs stubbing. We assert the contract each
+// repository call must satisfy.
 vi.mock('../data/readings', () => ({
   updateReading: vi.fn(),
   deleteReading: vi.fn(),
@@ -45,14 +46,7 @@ const READING: Reading = {
 
 function renderBookList() {
   const user = userEvent.setup();
-  render(
-    <BookList
-      userId="user-1"
-      readings={[READING]}
-      booksById={new Map([[BOOK.id, BOOK]])}
-      loading={false}
-    />,
-  );
+  render(<BookList userId="user-1" readings={[READING]} loading={false} />);
   return { user };
 }
 

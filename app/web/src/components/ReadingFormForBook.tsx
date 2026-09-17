@@ -4,15 +4,16 @@ import { Button, Spinner } from './ui/index.js';
 
 interface ReadingFormForBookProps {
   /**
-   * Undefined until the `/books` snapshot carrying this book arrives. The
-   * server writes the book before the callable returns, so the listener is
-   * only ever a beat behind — but it is a beat, and the form needs a title.
+   * Undefined until the by-id fetch for this book resolves. The server
+   * writes the book before the callable returns, so the fetch (triggered by
+   * `dialog.bookId` joining the page's `bookIds`) is only ever a beat behind
+   * — but it is a beat, and the form needs a title.
    */
   book: Book | undefined;
   /**
-   * The `/books` listener's error. Without it a failed subscription leaves
-   * `book` undefined forever and the spinner never resolves; the page's own
-   * error surface is behind this dialog, so it has to be repeated here.
+   * The by-id fetch's error. Without it a failed fetch leaves `book`
+   * undefined forever and the spinner never resolves; the page's own error
+   * surface is behind this dialog, so it has to be repeated here.
    */
   error?: Error | undefined;
   onSubmit: (data: {
