@@ -15,6 +15,7 @@ export default tseslint.config(
       'functions/lib/**',
       '.gemini/**',
       '**/*.d.ts',
+      '**/.claude/worktrees/**',
     ],
   },
   {

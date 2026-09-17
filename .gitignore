@@ -163,3 +163,4 @@ pre-migration-backup/
 # Claude Code local settings (personal permission grants, not project config)
 **/.claude/settings.local.json
 firebase-export-*/
+**/.claude/worktrees/*
