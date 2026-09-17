@@ -84,7 +84,9 @@ describe.sequential('createManualBook integration (emulator)', () => {
 
     auth = getAuth(app);
     db = getFirestore(app);
-    functions = getFunctions(app);
+    // The emulator serves each callable under the region it declares, so this
+    // must track setGlobalOptions in functions/src/index.ts.
+    functions = getFunctions(app, 'northamerica-northeast1');
 
     connectAuthEmulator(auth, 'http://127.0.0.1:9099', {
       disableWarnings: true,

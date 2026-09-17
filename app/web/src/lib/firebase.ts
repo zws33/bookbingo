@@ -44,10 +44,17 @@ const firebaseConfig = {
   }),
 };
 
+/**
+ * Must match `setGlobalOptions` in functions/src/index.ts. A mismatch is not a
+ * build error — the SDK just calls a URL in the wrong region and every callable
+ * fails with `functions/not-found` at runtime.
+ */
+const FUNCTIONS_REGION = 'northamerica-northeast1';
+
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
-export const functions = getFunctions(app);
+export const functions = getFunctions(app, FUNCTIONS_REGION);
 
 const isEmulator = import.meta.env.VITE_USE_EMULATOR === 'true';
 const analytics =
