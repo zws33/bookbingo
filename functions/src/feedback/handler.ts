@@ -1,6 +1,7 @@
 import { HttpsError, type CallableRequest } from 'firebase-functions/v2/https';
 import { logger } from 'firebase-functions';
 import z from 'zod/v4';
+import { parseRequest, requireAuth } from '../callable.js';
 
 export const GITHUB_API_URL =
   'https://api.github.com/repos/zws33/bookbingo/issues';
@@ -27,18 +28,11 @@ export async function submitFeedbackHandler(
   request: CallableRequest<unknown>,
   deps: FeedbackDeps,
 ): Promise<{ issueUrl: string; issueNumber: number }> {
-  if (!request.auth) {
-    throw new HttpsError(
-      'unauthenticated',
-      'Must be signed in to submit feedback.',
-    );
-  }
-
-  const parsed = SubmitFeedbackRequestSchema.safeParse(request.data);
-  if (!parsed.success) {
-    throw new HttpsError('invalid-argument', z.prettifyError(parsed.error));
-  }
-  const { type, title, description } = parsed.data;
+  requireAuth(request, 'submit feedback');
+  const { type, title, description } = parseRequest(
+    SubmitFeedbackRequestSchema,
+    request.data,
+  );
 
   const label = type === 'bug' ? 'bug' : 'enhancement';
 

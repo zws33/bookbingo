@@ -1,5 +1,4 @@
 import { HttpsError, type CallableRequest } from 'firebase-functions/v2/https';
-import z from 'zod/v4';
 import type {
   ProviderBookDetails,
   BookProvider,
@@ -10,6 +9,7 @@ import { OpenLibraryProvider } from './providers/open-library.js';
 import { deriveBookId } from './bookIdentity.js';
 import { createBookIfAbsent } from './store.js';
 import { logEvent, logFailure } from '../observability.js';
+import { parseRequest, requireAuth } from '../callable.js';
 import {
   BookSearchQuerySchema,
   GetBookDetailsRequestSchema,
@@ -21,19 +21,8 @@ const provider: BookProvider = new OpenLibraryProvider();
 export async function searchBooksHandler(
   request: CallableRequest<unknown>,
 ): Promise<ProviderSearchResult[]> {
-  if (!request.auth) {
-    throw new HttpsError(
-      'unauthenticated',
-      'Must be signed in to search for books.',
-    );
-  }
-
-  const parsed = BookSearchQuerySchema.safeParse(request.data);
-  if (!parsed.success) {
-    throw new HttpsError('invalid-argument', z.prettifyError(parsed.error));
-  }
-  const { q } = parsed.data;
-  const uid = request.auth.uid;
+  const uid = requireAuth(request, 'search for books');
+  const { q } = parseRequest(BookSearchQuerySchema, request.data);
   const startedAt = Date.now();
 
   try {
@@ -58,20 +47,11 @@ export async function searchBooksHandler(
 export async function fetchBookDetailsHandler(
   request: CallableRequest<unknown>,
 ): Promise<{ bookId: string; title: string; author: string }> {
-  if (!request.auth) {
-    throw new HttpsError(
-      'unauthenticated',
-      'Must be signed in to fetch book details.',
-    );
-  }
-
-  const parsed = GetBookDetailsRequestSchema.safeParse(request.data);
-  if (!parsed.success) {
-    throw new HttpsError('invalid-argument', z.prettifyError(parsed.error));
-  }
-  const externalId = parsed.data.externalId;
-
-  const uid = request.auth.uid;
+  const uid = requireAuth(request, 'fetch book details');
+  const { externalId } = parseRequest(
+    GetBookDetailsRequestSchema,
+    request.data,
+  );
   const startedAt = Date.now();
 
   let bookDetails: ProviderBookDetails;
