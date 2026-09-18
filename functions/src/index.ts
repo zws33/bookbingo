@@ -22,6 +22,13 @@ import {
   listReadingsHandler,
   updateReadingHandler,
 } from './readings/handler.js';
+import {
+  createTBREntryHandler,
+  deleteTBREntryHandler,
+  listMyTBRHandler,
+  promoteTBREntryHandler,
+  updateTBREntryHandler,
+} from './tbr/handler.js';
 
 // Colocated with Firestore (firebase.json sets the database to
 // northamerica-northeast1). The default, us-central1, puts a cross-region hop
@@ -87,4 +94,22 @@ export const updateReading = onCall(
 export const deleteReading = onCall(
   { invoker: 'public' },
   deleteReadingHandler,
+);
+
+export const listMyTBR = onCall({ invoker: 'public' }, listMyTBRHandler);
+export const createTBREntry = onCall(
+  { invoker: 'public' },
+  createTBREntryHandler,
+);
+export const updateTBREntry = onCall(
+  { invoker: 'public' },
+  updateTBREntryHandler,
+);
+export const deleteTBREntry = onCall(
+  { invoker: 'public' },
+  deleteTBREntryHandler,
+);
+export const promoteTBREntry = onCall(
+  { invoker: 'public' },
+  promoteTBREntryHandler,
 );
