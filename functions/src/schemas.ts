@@ -79,8 +79,6 @@ export const BookDocSchema = z.object({
 
 export const ReadingDocSchema = z.object({
   bookId: z.string().min(1),
-  bookTitle: z.string().optional(),
-  bookAuthor: z.string().optional(),
   tiles: z.array(z.string()),
   isFreebie: z.boolean(),
   readAt: ServerInstant,

@@ -8,10 +8,13 @@ import { mapValid } from '../schemas.js';
 import { listUserProfiles } from '../users/store.js';
 import {
   allReadingsQuery,
+  MissingBookError,
   newReadingFields,
   readingDoc,
   readingsCollection,
   toReading,
+  withBooks,
+  type Reading,
   type ReadingDTO,
 } from './store.js';
 import { scoreOf, validateTiles, type ScoreDTO } from './validate.js';
@@ -52,29 +55,20 @@ export async function listReadingsHandler(
     .get();
   const readings = mapValid('readings', snapshot.docs, toReading);
 
-  return { readings, score: scoreOf(readings) };
-}
-
-/** Every user's readings, keyed by owner. Feeds the library view. */
-export async function listAllReadingsHandler(
-  request: CallableRequest<unknown>,
-): Promise<Record<string, ReadingDTO[]>> {
-  requireAuth(request, 'load readings');
-
-  const snapshot = await allReadingsQuery().get();
-  const byUser: Record<string, ReadingDTO[]> = {};
-
-  for (const doc of snapshot.docs) {
-    const userId = doc.ref.parent.parent?.id;
-    if (!userId) continue;
-
-    const [reading] = mapValid('readings', [doc], toReading);
-    if (!reading) continue;
-
-    (byUser[userId] ??= []).push(reading);
+  try {
+    return { readings: await withBooks(readings), score: scoreOf(readings) };
+  } catch (error) {
+    if (error instanceof MissingBookError) {
+      logFailure('reading.list', error, {
+        userId,
+        outcome: 'error',
+        stage: 'join',
+        bookIds: error.bookIds,
+      });
+      throw new HttpsError('internal', 'Could not load those readings.');
+    }
+    throw error;
   }
-
-  return byUser;
 }
 
 export interface LeaderboardRow {
@@ -101,7 +95,7 @@ export async function getLeaderboardHandler(
     allReadingsQuery().get(),
   ]);
 
-  const byUser = new Map<string, ReadingDTO[]>();
+  const byUser = new Map<string, Reading[]>();
   for (const doc of readingsSnapshot.docs) {
     const userId = doc.ref.parent.parent?.id;
     if (!userId) continue;

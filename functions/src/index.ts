@@ -18,10 +18,10 @@ import {
   createReadingHandler,
   deleteReadingHandler,
   getLeaderboardHandler,
-  listAllReadingsHandler,
   listReadingsHandler,
   updateReadingHandler,
 } from './readings/handler.js';
+import { getLibraryHandler } from './library/handler.js';
 import {
   createTBREntryHandler,
   deleteTBREntryHandler,
@@ -75,10 +75,7 @@ export const syncMyProfile = onCall(
 );
 
 export const listReadings = onCall({ invoker: 'public' }, listReadingsHandler);
-export const listAllReadings = onCall(
-  { invoker: 'public' },
-  listAllReadingsHandler,
-);
+export const getLibrary = onCall({ invoker: 'public' }, getLibraryHandler);
 export const getLeaderboard = onCall(
   { invoker: 'public' },
   getLeaderboardHandler,

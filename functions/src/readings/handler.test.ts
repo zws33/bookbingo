@@ -149,19 +149,28 @@ describe('toReading', () => {
     assert.equal(reading.updatedAt, undefined);
   });
 
-  test('keeps the legacy denormalized title and author when present', () => {
+  // 49 of prod's 104 readings still carry bookTitle/bookAuthor from the
+  // pre-bookId era. Every one of them resolves through bookId, so the stored
+  // copies are ignored and the book document is the only source of a title.
+  test('ignores the stale denormalized title and author', () => {
     const reading = toReading(
       makeDoc('r1', {
         bookId: 'book-1',
-        bookTitle: 'Dune',
-        bookAuthor: 'Herbert',
+        bookTitle: 'Stale Title',
+        bookAuthor: 'Stale Author',
         tiles: [],
         isFreebie: false,
         readAt: timestamp(READ_AT),
         createdAt: timestamp(READ_AT),
       }),
     );
-    assert.equal(reading.bookTitle, 'Dune');
-    assert.equal(reading.bookAuthor, 'Herbert');
+    assert.deepEqual(Object.keys(reading).sort(), [
+      'bookId',
+      'createdAt',
+      'id',
+      'isFreebie',
+      'readAt',
+      'tiles',
+    ]);
   });
 });
