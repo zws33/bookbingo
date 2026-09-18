@@ -21,7 +21,7 @@ const provider: BookProvider = new OpenLibraryProvider();
 export async function searchBooksHandler(
   request: CallableRequest<unknown>,
 ): Promise<ProviderSearchResult[]> {
-  const uid = requireAuth(request, 'search for books');
+  const { uid } = requireAuth(request, 'search for books');
   const { q } = parseRequest(BookSearchQuerySchema, request.data);
   const startedAt = Date.now();
 
@@ -47,7 +47,7 @@ export async function searchBooksHandler(
 export async function fetchBookDetailsHandler(
   request: CallableRequest<unknown>,
 ): Promise<{ bookId: string; title: string; author: string }> {
-  const uid = requireAuth(request, 'fetch book details');
+  const { uid } = requireAuth(request, 'fetch book details');
   const { externalId } = parseRequest(
     GetBookDetailsRequestSchema,
     request.data,

@@ -9,6 +9,11 @@ import {
 import { createManualBookHandler } from './books/manual.js';
 import { getBooksHandler } from './books/catalog.js';
 import { getBoardConfigHandler } from './config/handler.js';
+import {
+  getUserProfileHandler,
+  listUsersHandler,
+  syncMyProfileHandler,
+} from './users/handler.js';
 
 // Colocated with Firestore (firebase.json sets the database to
 // northamerica-northeast1). The default, us-central1, puts a cross-region hop
@@ -43,3 +48,13 @@ export const getBoardConfig = onCall(
   getBoardConfigHandler,
 );
 export const getBooks = onCall({ invoker: 'public' }, getBooksHandler);
+
+export const listUsers = onCall({ invoker: 'public' }, listUsersHandler);
+export const getUserProfile = onCall(
+  { invoker: 'public' },
+  getUserProfileHandler,
+);
+export const syncMyProfile = onCall(
+  { invoker: 'public' },
+  syncMyProfileHandler,
+);

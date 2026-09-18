@@ -8,7 +8,7 @@ import { createBookIfAbsent } from './store.js';
 export async function createManualBookHandler(
   request: CallableRequest<unknown>,
 ): Promise<{ bookId: string }> {
-  const uid = requireAuth(request, 'add a book');
+  const { uid } = requireAuth(request, 'add a book');
   const book = parseRequest(CreateManualBookRequestSchema, request.data);
 
   const { title, author, metadata } = book;

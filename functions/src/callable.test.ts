@@ -19,8 +19,19 @@ function makeRequest(
 }
 
 describe('requireAuth', () => {
-  test('returns the uid from the verified token', () => {
-    assert.equal(requireAuth(makeRequest(AUTH, {}), 'add a book'), 'user-1');
+  test('returns the verified auth, uid included', () => {
+    assert.equal(
+      requireAuth(makeRequest(AUTH, {}), 'add a book').uid,
+      'user-1',
+    );
+  });
+
+  test('returns the token so callers can read profile claims', () => {
+    const auth = { ...AUTH, token: { name: 'Ada', picture: null } };
+    assert.equal(
+      requireAuth(makeRequest(auth, {}), 'add a book').token.name,
+      'Ada',
+    );
   });
 
   test('throws unauthenticated naming the action', () => {

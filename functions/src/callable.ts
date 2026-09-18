@@ -1,22 +1,27 @@
 import { HttpsError, type CallableRequest } from 'firebase-functions/v2/https';
 import z from 'zod/v4';
 
+type AuthData = NonNullable<CallableRequest<unknown>['auth']>;
+
 /**
- * The caller's uid, or `unauthenticated`.
+ * The caller's verified auth, or `unauthenticated`.
  *
- * Every endpoint derives the acting user from the verified token rather than
- * from the payload: a client-supplied userId is a claim, not an identity, and
- * once the security rules deny direct access this is the only thing standing
- * between a caller and someone else's documents.
+ * Every endpoint derives the acting user from the token rather than from the
+ * payload: a client-supplied userId is a claim, not an identity, and once the
+ * security rules deny direct access this is the only thing standing between a
+ * caller and someone else's documents.
+ *
+ * Returns the whole `auth` rather than the uid so callers that need the
+ * profile claims get them already narrowed to non-null.
  */
 export function requireAuth(
   request: CallableRequest<unknown>,
   action: string,
-): string {
+): AuthData {
   if (!request.auth) {
     throw new HttpsError('unauthenticated', `Must be signed in to ${action}.`);
   }
-  return request.auth.uid;
+  return request.auth;
 }
 
 /**
