@@ -1,51 +1,23 @@
+import { createCallable } from '../lib/callable';
 import {
-  doc,
-  setDoc,
-  serverTimestamp,
-  onSnapshot,
-  type DocumentSnapshot,
-} from 'firebase/firestore';
-import { db } from '../lib/firebase';
-import { toUserProfile } from './users';
+  GetUserProfileResponseSchema,
+  UserProfileResponseSchema,
+} from '../types/schemas';
 import type { UserProfile } from '../types';
-import type { AuthUser } from '../lib/auth';
 
-export interface UserProfileRepository {
-  subscribeToUserProfile(
-    userId: string,
-    onData: (profile: UserProfile | undefined) => void,
-    onError: (error: Error) => void,
-  ): () => void;
-}
+/** null when the id has no profile document — normal, not an error. */
+export const getUserProfile = createCallable<
+  { userId: string },
+  UserProfile | null
+>('getUserProfile', GetUserProfileResponseSchema);
 
-export async function saveUserProfile(user: AuthUser): Promise<void> {
-  await setDoc(
-    doc(db, 'users', user.uid),
-    {
-      name: user.displayName ?? 'User',
-      photoURL: user.photoURL ?? null,
-      updatedAt: serverTimestamp(),
-    },
-    { merge: true },
-  );
-}
 /**
- * Live subscription to a single /users/{id} document. Pushes the mapped
- * profile on every change and returns an unsubscribe function.
+ * Writes the signed-in user's profile.
  *
- * A user id that has no document is a normal outcome, not an error — the
- * leaderboard links to any id that appears in the readings collection group,
- * including one whose profile was never written. Those pushes carry undefined.
+ * Takes no argument: the server reads the name and photo from the ID token, so
+ * the client cannot claim someone else's.
  */
-export function subscribeToUserProfile(
-  userId: string,
-  onData: (profile: UserProfile | undefined) => void,
-  onError: (error: Error) => void,
-): () => void {
-  return onSnapshot(
-    doc(db, 'users', userId),
-    (snap: DocumentSnapshot) =>
-      onData(snap.exists() ? toUserProfile(snap) : undefined),
-    onError,
-  );
-}
+export const syncMyProfile = createCallable<void, UserProfile>(
+  'syncMyProfile',
+  UserProfileResponseSchema,
+);

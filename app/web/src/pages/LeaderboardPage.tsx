@@ -1,36 +1,15 @@
-import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { getScoreBreakdown } from '@bookbingo/lib-core';
-import { useUsers } from '../hooks/useUsers';
-import { useAllReadings } from '../hooks/useAllReadings';
+import { useLeaderboard } from '../hooks/useLeaderboard';
 import { PageStatus } from '../components/PageStatus';
 import { Avatar } from '../components/ui';
 
 export function LeaderboardPage() {
-  const { users, loading: usersLoading, error: usersError } = useUsers();
-  const {
-    readingsByUser,
-    loading: readingsLoading,
-    error: readingsError,
-  } = useAllReadings();
-
-  const loading = usersLoading || readingsLoading;
-  const error = usersError ?? readingsError;
-
-  const rankedUsers = useMemo(() => {
-    return users
-      .map((user) => {
-        const readings = readingsByUser.get(user.id) ?? [];
-        const breakdown = getScoreBreakdown(readings);
-        return { user, score: breakdown.score, bookCount: readings.length };
-      })
-      .sort((a, b) => b.score - a.score);
-  }, [users, readingsByUser]);
+  const { rows, loading, error } = useLeaderboard();
 
   if (loading || error) {
     return <PageStatus loading={loading} error={error} />;
   }
-  if (rankedUsers.length === 0) {
+  if (rows.length === 0) {
     return (
       <div className="text-center py-8 text-on-surface-variant">
         No participants yet.
@@ -50,9 +29,9 @@ export function LeaderboardPage() {
           </tr>
         </thead>
         <tbody className="divide-y divide-outline-variant">
-          {rankedUsers.map(({ user, score, bookCount }, index) => (
+          {rows.map(({ userId, name, photoURL, score, bookCount }, index) => (
             <tr
-              key={user.id}
+              key={userId}
               className="hover:bg-surface-container transition-colors"
             >
               <td className="px-4 py-3 text-on-surface-variant font-medium">
@@ -60,16 +39,11 @@ export function LeaderboardPage() {
               </td>
               <td className="px-4 py-3">
                 <Link
-                  to={`/users/${user.id}`}
+                  to={`/users/${userId}`}
                   className="flex items-center gap-3 hover:text-primary"
                 >
-                  <Avatar
-                    name={user.name}
-                    photoURL={user.photoURL ?? undefined}
-                  />
-                  <span className="font-medium text-on-surface">
-                    {user.name}
-                  </span>
+                  <Avatar name={name} photoURL={photoURL ?? undefined} />
+                  <span className="font-medium text-on-surface">{name}</span>
                 </Link>
               </td>
               <td className="px-4 py-3 text-right text-on-surface-variant">

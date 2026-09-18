@@ -58,3 +58,26 @@ export const BookResponseSchema = z.object({
 });
 
 export const GetBooksResponseSchema = z.array(BookResponseSchema);
+
+export const UserProfileResponseSchema = z.object({
+  id: z.string().min(1),
+  name: z.string(),
+  photoURL: z.string().nullable().catch(null),
+});
+
+export const ListUsersResponseSchema = z.array(UserProfileResponseSchema);
+
+/** A profile that was never written is a normal outcome, not an error. */
+export const GetUserProfileResponseSchema =
+  UserProfileResponseSchema.nullable();
+
+export const LeaderboardRowSchema = z.object({
+  userId: z.string().min(1),
+  name: z.string(),
+  photoURL: z.string().nullable().catch(null),
+  score: z.number(),
+  bookCount: z.number().int().nonnegative(),
+});
+
+export const GetLeaderboardResponseSchema = z.array(LeaderboardRowSchema);
+export type LeaderboardRow = z.infer<typeof LeaderboardRowSchema>;

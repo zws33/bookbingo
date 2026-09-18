@@ -1,7 +1,7 @@
 import { NavLink, Routes, Route, Navigate } from 'react-router-dom';
 import { CatalogPage } from './pages/CatalogPage';
 import { signInWithGoogle, signOutUser } from './lib/auth';
-import { saveUserProfile } from './data/userProfile';
+import { syncMyProfile } from './data/userProfile';
 import { useAuth } from './hooks/useAuth';
 import { useReadings } from './hooks/useReadings';
 import { useBooksByIds } from './hooks/useBooksByIds';
@@ -49,7 +49,9 @@ function App() {
 
   useEffect(() => {
     if (user) {
-      saveUserProfile(user).catch((err) => {
+      // Fire-and-forget: the profile is written from the ID token, so there is
+      // nothing to send and nothing on this screen waits for the result.
+      syncMyProfile().catch((err) => {
         log.error('save user error:', err);
       });
     }

@@ -34,3 +34,5 @@ function customRender(ui: ReactNode, options?: RenderOptions): RenderResult {
 
 export * from '@testing-library/react';
 export { customRender as render };
+/** For renderHook: a query hook needs the same providers a component gets. */
+export { AllProviders as Providers };

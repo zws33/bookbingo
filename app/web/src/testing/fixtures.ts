@@ -64,6 +64,7 @@ export function makeUserProfile(
   return {
     id: 'user-1',
     name: 'Test User',
+    photoURL: null,
     ...overrides,
   };
 }

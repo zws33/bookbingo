@@ -1,31 +1,19 @@
-import { useEffect, useState } from 'react';
-import { log } from '@bookbingo/lib-util';
-import { subscribeToUsers } from '../data/users';
+import { useQuery } from '@tanstack/react-query';
+import { listUsers } from '../data/users';
+import { queryKeys } from '../lib/queryClient';
 import type { UserProfile } from '../types';
 
+const NO_USERS: UserProfile[] = [];
+
 export function useUsers() {
-  const [users, setUsers] = useState<UserProfile[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<Error>();
+  const { data, isPending, error } = useQuery({
+    queryKey: queryKeys.users,
+    queryFn: () => listUsers(),
+  });
 
-  useEffect(() => {
-    setLoading(true);
-    const unsubscribe = subscribeToUsers(
-      (next) => {
-        log.debug('useUsers', 'snapshot received', { count: next.length });
-        setUsers(next);
-        setError(undefined);
-        setLoading(false);
-      },
-      (err) => {
-        log.error('useUsers', err);
-        setError(err);
-        setLoading(false);
-      },
-    );
-
-    return unsubscribe;
-  }, []);
-
-  return { users, loading, error };
+  return {
+    users: data ?? NO_USERS,
+    loading: isPending,
+    error: error ?? undefined,
+  };
 }

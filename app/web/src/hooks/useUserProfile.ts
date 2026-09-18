@@ -1,40 +1,24 @@
-import { useEffect, useState } from 'react';
-import { log } from '@bookbingo/lib-util';
-import { subscribeToUserProfile } from '../data/userProfile';
-import type { UserProfile } from '../types';
+import { useQuery } from '@tanstack/react-query';
+import { getUserProfile } from '../data/userProfile';
+import { queryKeys } from '../lib/queryClient';
 
+/**
+ * One user's profile.
+ *
+ * `profile` is undefined both while loading and when the user has no profile
+ * document, so callers must check `loading` first — the same contract the
+ * subscription-based hook had.
+ */
 export function useUserProfile(userId: string) {
-  const [profile, setProfile] = useState<UserProfile>();
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<Error>();
+  const { data, isPending, error } = useQuery({
+    queryKey: queryKeys.userProfile(userId),
+    queryFn: () => getUserProfile({ userId }),
+    enabled: userId !== '',
+  });
 
-  useEffect(() => {
-    if (!userId) {
-      setProfile(undefined);
-      setLoading(false);
-      setError(undefined);
-      return;
-    }
-
-    setLoading(true);
-    const unsubscribe = subscribeToUserProfile(
-      userId,
-      (next) => {
-        // undefined here means the document does not exist, which reads the
-        // same as "not loaded yet". Callers must check loading first.
-        setProfile(next);
-        setError(undefined);
-        setLoading(false);
-      },
-      (err) => {
-        log.error('useUserProfile', err);
-        setError(err);
-        setLoading(false);
-      },
-    );
-
-    return unsubscribe;
-  }, [userId]);
-
-  return { profile, loading, error };
+  return {
+    profile: data ?? undefined,
+    loading: userId === '' ? false : isPending,
+    error: error ?? undefined,
+  };
 }
