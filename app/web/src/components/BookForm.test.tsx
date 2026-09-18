@@ -4,19 +4,16 @@ import userEvent from '@testing-library/user-event';
 import { render } from '../testing/test-utils';
 import { BookForm } from './BookForm';
 
-// BookForm is presentational + local state only. It touches no Firebase and no
-// hooks, and its children (TileSelector, FreebieToggle) read from framework-
-// agnostic lib/core. So this whole file needs ZERO mocks — see CONVENTIONS.md.
+// BookForm is presentational + local state only. Its one I/O seam is the tile
+// catalog, which TileSelector now fetches through a callable — stubbed here so
+// the form's own behavior is what's under test. See CONVENTIONS.md.
+vi.mock('../hooks/useTileCatalog', async () => ({
+  useTileCatalog: (await import('../testing/fixtures')).tileCatalogStub,
+}));
+
+import { TILE } from '../testing/fixtures';
 
 type BookFormProps = Parameters<typeof BookForm>[0];
-
-// Tile display names come from lib/core TILES; the form emits their ids.
-const TILE = {
-  reread: { id: 't01', name: 'unfinished reread' },
-  series: { id: 't02', name: 'part of a series' },
-  long: { id: 't03', name: '1000+ pages' },
-  short: { id: 't04', name: 'under 100 pages' },
-} as const;
 
 function renderBookForm(overrides: Partial<BookFormProps> = {}) {
   const onSubmit = vi.fn();

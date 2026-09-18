@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
-import { TILES, getTileById } from '@bookbingo/lib-core';
 import type { Reading, Book } from '@bookbingo/lib-types';
+import { useTileCatalog } from '../hooks/useTileCatalog';
 import { BoardCell } from './BoardCell';
 import { Dialog } from './ui';
 
@@ -13,6 +13,7 @@ const UNKNOWN_BOOK = { title: 'Unknown Book', author: 'Unknown Author' };
 
 export function BingoBoard({ readings, booksById }: BingoBoardProps) {
   const [selectedTileId, setSelectedTileId] = useState<string | null>(null);
+  const { tiles, getTileById } = useTileCatalog();
 
   const tileReadingCounts = useMemo(() => {
     const map = new Map<string, number>();
@@ -34,7 +35,7 @@ export function BingoBoard({ readings, booksById }: BingoBoardProps) {
     <>
       <div className="overflow-x-auto p-1 sm:p-2 mx-auto bg-surface-container-high rounded-lg shadow-inner">
         <div className="grid grid-cols-3 sm:grid-cols-7 gap-1 sm:gap-2">
-          {TILES.map((tile) => (
+          {tiles.map((tile) => (
             <BoardCell
               key={tile.id}
               tileName={tile.name}

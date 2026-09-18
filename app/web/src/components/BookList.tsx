@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import type { Reading, BookMetadata } from '@bookbingo/lib-types';
 import { BookCard } from './BookCard';
 import { BookRow } from './BookRow';
@@ -10,7 +10,7 @@ import { useToast } from '../lib/ToastContext';
 import { updateReading, deleteReading } from '../data/readings';
 import { log } from '@bookbingo/lib-util';
 import { PageStatus } from './PageStatus';
-import { getBooksById } from 'src/data/books.js';
+import { useBooksByIds } from '../hooks/useBooksByIds';
 
 interface BookListProps {
   userId: string;
@@ -43,40 +43,26 @@ export function BookList({
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const { showSuccess, showError: showErrorToast } = useToast();
 
-  const [readingsWithBook, setReadingsWithBook] = useState<ReadingWithBook[]>(
-    [],
+  const bookIds = useMemo(
+    () => readings.map((reading) => reading.bookId),
+    [readings],
   );
+  const { booksById } = useBooksByIds(bookIds);
 
-  useEffect(() => {
-    let ignore = false;
-    async function getBooks() {
-      const bookIds = readings.map((reading) => reading.bookId);
-      const books = await getBooksById(bookIds);
-      const booksMap = new Map(books.map((b) => [b.id, b]));
-      if (!ignore) {
-        setReadingsWithBook(
-          readings.map((r) => {
-            const book = booksMap.get(r.bookId);
-            return {
-              ...r,
-              // Resolved book data wins; the reading's own bookTitle/bookAuthor
-              // are legacy denormalized fields kept only as a fallback for
-              // pre-migration readings whose book doc can't be resolved.
-              bookTitle: book?.title ?? r.bookTitle ?? UNKNOWN_BOOK.title,
-              bookAuthor: book?.author ?? r.bookAuthor ?? UNKNOWN_BOOK.author,
-              bookThumbnailUrl: book?.metadata.thumbnailUrl ?? null,
-              bookMetadata: book?.metadata,
-            };
-          }),
-        );
-      }
-    }
-    getBooks();
-
-    return () => {
-      ignore = true;
-    };
-  }, [readings]);
+  const readingsWithBook = useMemo<ReadingWithBook[]>(
+    () =>
+      readings.map((r) => {
+        const book = booksById.get(r.bookId);
+        return {
+          ...r,
+          bookTitle: book?.title ?? r.bookTitle ?? UNKNOWN_BOOK.title,
+          bookAuthor: book?.author ?? r.bookAuthor ?? UNKNOWN_BOOK.author,
+          bookThumbnailUrl: book?.metadata.thumbnailUrl ?? null,
+          bookMetadata: book?.metadata,
+        };
+      }),
+    [readings, booksById],
+  );
 
   const filteredReadings = useMemo(() => {
     if (!authorFilter.trim()) return readingsWithBook;

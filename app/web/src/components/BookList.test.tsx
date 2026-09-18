@@ -6,25 +6,38 @@ import { EMPTY_METADATA } from '@bookbingo/lib-types';
 import { render } from '../testing/test-utils';
 import { BookList } from './BookList';
 
-// Mock only the I/O boundary — the Firestore-backed repository layer. BookList
-// is otherwise props-driven (readings are passed in, books are resolved via
-// getBooksById), so nothing else needs stubbing. We assert the contract each
-// repository call must satisfy.
+// Mock only the I/O seams: the reading writes, and the two hooks that fetch
+// through callables. BookList is otherwise props-driven (readings are passed
+// in), so nothing else needs stubbing. We assert the contract each call must
+// satisfy.
 vi.mock('../data/readings', () => ({
   updateReading: vi.fn(),
   deleteReading: vi.fn(),
 }));
 
-vi.mock('src/data/books.js', () => ({
-  getBooksById: vi.fn(),
+vi.mock('../hooks/useBooksByIds', () => ({
+  useBooksByIds: vi.fn(),
+}));
+
+vi.mock('../hooks/useTileCatalog', async () => ({
+  useTileCatalog: (await import('../testing/fixtures')).tileCatalogStub,
 }));
 
 import { updateReading, deleteReading } from '../data/readings';
-import { getBooksById } from 'src/data/books.js';
+import { useBooksByIds } from '../hooks/useBooksByIds';
 
 const updateReadingMock = vi.mocked(updateReading);
 const deleteReadingMock = vi.mocked(deleteReading);
-const getBooksByIdMock = vi.mocked(getBooksById);
+const useBooksByIdsMock = vi.mocked(useBooksByIds);
+
+/** Matches the hook's shape: books keyed by id, plus query status. */
+function stubBooks(books: Book[]) {
+  useBooksByIdsMock.mockReturnValue({
+    booksById: new Map(books.map((book) => [book.id, book])),
+    loading: false,
+    error: undefined,
+  });
+}
 
 const BOOK: Book = {
   id: 'book-1',
@@ -57,7 +70,7 @@ describe('BookList edit flow', () => {
     vi.clearAllMocks();
     updateReadingMock.mockResolvedValue(undefined);
     deleteReadingMock.mockResolvedValue(undefined);
-    getBooksByIdMock.mockResolvedValue([BOOK]);
+    stubBooks([BOOK]);
   });
 
   it('opens the edit dialog with identity locked when a book is clicked', async () => {

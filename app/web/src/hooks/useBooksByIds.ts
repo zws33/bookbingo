@@ -1,40 +1,28 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import type { Book } from '@bookbingo/lib-types';
-import { getBooksById } from '../data/books.js';
+import { getBooksById } from '../data/books';
+import { queryKeys } from '../lib/queryClient';
+
+const NO_BOOKS: Book[] = [];
 
 /**
  * Fetches only the books referenced by `bookIds`, keyed by id.
- * Keyed on a sorted/deduped join of the ids rather than the array reference,
- * so passing a freshly-mapped array each render doesn't refire the fetch.
+ *
+ * The query key sorts and dedupes the ids, so passing a freshly-mapped array
+ * each render hits the same cache entry instead of refetching, and two views
+ * asking for the same books share one request.
  */
 export function useBooksByIds(bookIds: string[]) {
-  const [booksById, setBooksById] = useState<Map<string, Book>>(new Map());
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<Error>();
+  const { data, isPending, error } = useQuery({
+    queryKey: queryKeys.books(bookIds),
+    queryFn: () => getBooksById(bookIds),
+  });
 
-  const key = useMemo(() => [...new Set(bookIds)].sort().join(','), [bookIds]);
+  const booksById = useMemo(
+    () => new Map((data ?? NO_BOOKS).map((book) => [book.id, book])),
+    [data],
+  );
 
-  useEffect(() => {
-    const ids = key === '' ? [] : key.split(',');
-    let ignore = false;
-    setLoading(true);
-    getBooksById(ids)
-      .then((books) => {
-        if (ignore) return;
-        setBooksById(new Map(books.map((book) => [book.id, book])));
-        setError(undefined);
-      })
-      .catch((err: Error) => {
-        if (!ignore) setError(err);
-      })
-      .finally(() => {
-        if (!ignore) setLoading(false);
-      });
-
-    return () => {
-      ignore = true;
-    };
-  }, [key]);
-
-  return { booksById, loading, error };
+  return { booksById, loading: isPending, error: error ?? undefined };
 }

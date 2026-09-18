@@ -1,4 +1,4 @@
-import { getTileById } from '@bookbingo/lib-core';
+import { useTileCatalog } from '../../hooks/useTileCatalog';
 import { cn } from '../../lib/cn.js';
 
 interface TileBadgeProps {
@@ -17,6 +17,7 @@ export function TileBadge({
   variant = 'primary',
   className,
 }: TileBadgeProps) {
+  const { getTileById } = useTileCatalog();
   const name = getTileById(tileId)?.name ?? tileId;
   return (
     <span
