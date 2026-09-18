@@ -14,6 +14,14 @@ import {
   listUsersHandler,
   syncMyProfileHandler,
 } from './users/handler.js';
+import {
+  createReadingHandler,
+  deleteReadingHandler,
+  getLeaderboardHandler,
+  listAllReadingsHandler,
+  listReadingsHandler,
+  updateReadingHandler,
+} from './readings/handler.js';
 
 // Colocated with Firestore (firebase.json sets the database to
 // northamerica-northeast1). The default, us-central1, puts a cross-region hop
@@ -57,4 +65,26 @@ export const getUserProfile = onCall(
 export const syncMyProfile = onCall(
   { invoker: 'public' },
   syncMyProfileHandler,
+);
+
+export const listReadings = onCall({ invoker: 'public' }, listReadingsHandler);
+export const listAllReadings = onCall(
+  { invoker: 'public' },
+  listAllReadingsHandler,
+);
+export const getLeaderboard = onCall(
+  { invoker: 'public' },
+  getLeaderboardHandler,
+);
+export const createReading = onCall(
+  { invoker: 'public' },
+  createReadingHandler,
+);
+export const updateReading = onCall(
+  { invoker: 'public' },
+  updateReadingHandler,
+);
+export const deleteReading = onCall(
+  { invoker: 'public' },
+  deleteReadingHandler,
 );
