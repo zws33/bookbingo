@@ -7,6 +7,8 @@ import {
   searchBooksHandler,
 } from './books/handler.js';
 import { createManualBookHandler } from './books/manual.js';
+import { getBooksHandler } from './books/catalog.js';
+import { getBoardConfigHandler } from './config/handler.js';
 
 // Colocated with Firestore (firebase.json sets the database to
 // northamerica-northeast1). The default, us-central1, puts a cross-region hop
@@ -35,3 +37,9 @@ export const createManualBook = onCall(
   { invoker: 'public' },
   createManualBookHandler,
 );
+
+export const getBoardConfig = onCall(
+  { invoker: 'public' },
+  getBoardConfigHandler,
+);
+export const getBooks = onCall({ invoker: 'public' }, getBooksHandler);
