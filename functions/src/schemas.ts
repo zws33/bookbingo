@@ -3,17 +3,14 @@ import z from 'zod/v4';
 import { logWarning } from './observability.js';
 
 /**
- * Read-time schemas for stored documents.
+ * Read-time schemas for stored documents. The only reader of Firestore is this
+ * package, so these describe every document the app has ever written, not just
+ * what it writes today.
  *
- * Copied from `app/web/src/data/schemas.ts`, which keeps serving the client
- * until it stops reading Firestore directly (steps 5–8 of
- * docs/functions-data-migration-plan.md) and is deleted in step 9. Two
- * differences from that file, both forced by the environment:
- *
- * - `EMPTY_METADATA` is written out here. On the client it comes from
- *   `@bookbingo/lib-types`, which functions cannot import at runtime.
- * - Bad documents are reported through Cloud Logging rather than `log` from
- *   `@bookbingo/lib-util`, for the same reason.
+ * `EMPTY_METADATA` is written out rather than imported from
+ * `@bookbingo/lib-types`: a runtime import of a workspace package fails in the
+ * deployed function (see deploy-manifest.test.ts). Bad documents go to Cloud
+ * Logging rather than `@bookbingo/lib-util` for the same reason.
  *
  * The write contract stays separate, in books/schema.ts. Restating the read
  * shape rather than deriving it from the write shape is what stops a new
