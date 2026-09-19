@@ -1,36 +1,20 @@
 rules_version = '2';
 
+// No client touches Firestore. Every read and write goes through a callable in
+// functions/, which runs with the Admin SDK and so bypasses these rules — see
+// docs/functions-data-migration-plan.md.
+//
+// This denies the client SDK, not the app: the endpoints enforce the rules that
+// used to live here (ownership from the auth token), plus the ones that never
+// could (tile catalog membership, the per-reading tile cap, one freebie per
+// user, and a book that must exist).
+//
+// A deny-all default is also what makes a new collection safe by construction:
+// there is no matcher to forget.
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Shared books collection. Provenance is not tracked, so there is no owner
-    // to gate updates on: any signed-in user may create or amend a book. The
-    // deterministic doc id (functions deriveBookId) is what prevents duplicates,
-    // and merge-writes from the enrich function land as updates on docs it
-    // created without a createdBy.
-    match /books/{bookId} {
-      allow read, list: if request.auth != null;
-      allow create, update: if request.auth != null;
-    }
-
-    // User profiles and their private readings
-    match /users/{userId} {
-      allow read, list: if request.auth != null;
-      allow write: if request.auth != null && request.auth.uid == userId;
-
-      match /readings/{readingId} {
-        allow read, list: if request.auth != null;
-        allow write: if request.auth != null && request.auth.uid == userId;
-      }
-
-      match /tbr/{tbrId} {
-        allow read, list: if request.auth != null && request.auth.uid == userId;
-        allow write:      if request.auth != null && request.auth.uid == userId;
-      }
-    }
-
-    // Required for collectionGroup('readings') queries (e.g. leaderboard).
-    match /{path=**}/readings/{readingId} {
-      allow read, list: if request.auth != null;
+    match /{document=**} {
+      allow read, write: if false;
     }
   }
 }

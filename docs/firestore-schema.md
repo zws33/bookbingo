@@ -107,19 +107,28 @@ Books the user plans to read. **Never** contributes to scoring — only `reading
 
 ## Access rules (summary)
 
-All access requires an authenticated user (`request.auth != null`).
+`firestore.rules` denies every client read and write (`allow read, write: if false`).
+Access is through the callables in `functions/`, which use the Admin SDK and so bypass
+rules entirely. `app/web/src/data/rules.int.test.ts` asserts the denial.
 
-- `/books`: any signed-in user may read and create. Update only by the doc's `createdBy`
-  (or if `createdBy == "system-migration"`).
-- `/users/{userId}`: anyone signed in may read; only the owner (`uid == userId`) may write.
-- `/users/{userId}/readings`: anyone signed in may read (needed for the leaderboard); only
-  the owner may write.
-- `/users/{userId}/tbr`: only the owner may read or write (private).
-- Collection-group `readings` reads are allowed for any signed-in user.
+What the endpoints enforce in place of the old rules:
+
+- **Identity** comes from `request.auth.uid`, never from the payload. A write lands only
+  in the caller's own subcollection.
+- `/books`: created by `fetchBookDetails` and `createManualBook` only, at a derived id
+  that is never overwritten. No other path writes a book.
+- `/users/{userId}`: written by `syncMyProfile` from the caller's ID token claims.
+  Readable by any signed-in user through `listUsers` and `getUserProfile`.
+- `/users/{userId}/readings`: readable by any signed-in user through `listReadings`,
+  `getLeaderboard` and `getLibrary`. Writes require known tile ids, no duplicates, at
+  most `MAX_TILES_PER_BOOK` tiles unless the reading is a freebie, at most one freebie
+  per user, and a book that exists.
+- `/users/{userId}/tbr`: private. `listMyTBR` takes no user id, so there is no way to
+  ask for another user's list. Writes require known tile ids and a book that exists.
 
 ## Scoring (application logic, not stored)
 
-Scores are computed client-side/in functions from a user's readings, not persisted as
-documents. Each unique tile with ≥1 book gives 1 variety point; repeat books in a tile add
+Scores are computed in `functions/src/domain/scoring.ts` from a user's readings and
+returned alongside them; they are not persisted as documents. Each unique tile with ≥1 book gives 1 variety point; repeat books in a tile add
 harmonic diminishing-returns volume points; a balance factor can scale by evenness of
-distribution. Tiles come from the fixed app constant list.
+distribution. Tiles come from the catalog `getBoardConfig` serves (`functions/src/domain/constants.ts`).
