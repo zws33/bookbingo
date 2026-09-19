@@ -33,8 +33,8 @@ pnpm --filter @bookbingo/web exec vitest run src/components/BookForm.test.tsx
 pnpm --filter @bookbingo/web exec vitest run src/components/BookForm.test.tsx -t "trims surrounding whitespace from the submitted title and author"
 
 # Shared libs / functions (node:test + tsx)
-pnpm --filter @bookbingo/lib-core exec node --import tsx --test src/scoring.test.ts
-pnpm --filter @bookbingo/lib-core exec node --import tsx --test --test-name-pattern="balanced reader should score higher than unbalanced" src/scoring.test.ts
+pnpm --filter @bookbingo/functions exec node --import tsx --test src/domain/scoring.test.ts
+pnpm --filter @bookbingo/functions exec node --import tsx --test --test-name-pattern="balanced reader should score higher than unbalanced" src/domain/scoring.test.ts
 pnpm --filter @bookbingo/functions exec node --import tsx --test src/feedback/handler.test.ts
 
 # Web integration tests (Firebase emulator-backed)
@@ -48,7 +48,7 @@ pnpm exec firebase emulators:exec --project demo-bookbingo 'pnpm --filter @bookb
 BookBingo is split into reusable domain packages plus a Firebase-backed web app:
 
 - `lib/types` defines the shared domain and API contract types: Firestore entities (`Book`, `Reading`, `TBREntry`), score breakdown types, and callable request/response shapes used by both the web app and Cloud Functions.
-- `lib/core` holds the framework-free domain logic: tile definitions, validation, statistics, scoring, and deterministic book identity. This package is reused by the web app, migration scripts, and tests.
+- `functions/src/domain` holds the domain logic: tile definitions, validation, statistics and scoring. It lives in `functions/` because `firebase deploy` uploads that directory alone and installs it with npm, which cannot resolve a `workspace:` dependency.
 - `lib/util` contains shared runtime utilities, mainly the structured logger used by the app.
 - `app/web` is the React 19 + Vite client. `src/pages` owns route-level flows, `src/hooks` turns subscriptions into loading/error state, `src/data` adapts Firestore snapshots into typed entities for reads, and `src/lib` contains Firebase bootstrap, write helpers, and callable wrappers.
 - `functions` exposes Firebase callable functions. `enrichBook` delegates to an Open Library provider for search and metadata lookup; `submitFeedback` creates GitHub issues from in-app feedback.
@@ -71,7 +71,8 @@ Firebase Hosting serves `app/web/dist`. Firebase Functions predeploy builds the 
 
 ## Key conventions
 
-- Keep domain logic in `lib/core` and shared data contracts in `lib/types`. Do **not** import React, Firebase client SDKs, or browser-only code into `lib/*`.
+- Keep domain logic in `functions/src/domain` and shared data contracts in `lib/types`. Do **not** import React, Firebase client SDKs, or browser-only code into `lib/*`. `functions/` may import `lib/types` for **types only** — a runtime import breaks the deployed function.
+- The client owns no data-source access. Every read and write goes through a callable wrapped in `app/web/src/data`; `firebase/firestore` is banned there by ESLint.
 - Treat `deriveBookId()` in `functions/src/books/bookIdentity.ts` as a **frozen identity contract**. Do not reimplement it; changing it requires a data migration.
 - `/books` is a shared catalog, not a per-user record. Editing an existing reading or TBR entry should usually update the user-owned document or repoint `bookId`, not overwrite shared book identity fields in place. `BookForm`'s `identityLocked` flow exists for this reason.
 - Reads and writes are separated on the web side: new read/subscription code should usually live in `app/web/src/data/*` + `app/web/src/hooks/*`, while writes and callable wrappers belong in `app/web/src/lib/*`.

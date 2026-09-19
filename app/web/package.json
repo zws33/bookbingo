@@ -19,7 +19,6 @@
     "lint": "eslint . --max-warnings 0"
   },
   "dependencies": {
-    "@bookbingo/lib-core": "workspace:*",
     "@bookbingo/lib-types": "workspace:*",
     "@bookbingo/lib-util": "workspace:*",
     "@fontsource-variable/inter": "^5.2.8",

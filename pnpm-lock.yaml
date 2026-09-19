@@ -211,9 +211,6 @@ importers:
 
   app/web:
     dependencies:
-      '@bookbingo/lib-core':
-        specifier: workspace:*
-        version: link:../../lib/core
       '@bookbingo/lib-types':
         specifier: workspace:*
         version: link:../../lib/types
@@ -324,16 +321,6 @@ importers:
       typescript:
         specifier: ^5.3.0
         version: 5.9.3
-
-  lib/core:
-    dependencies:
-      '@bookbingo/lib-types':
-        specifier: workspace:*
-        version: link:../types
-    devDependencies:
-      '@bookbingo/tsconfig':
-        specifier: workspace:*
-        version: link:../tsconfig
 
   lib/tsconfig: {}
 

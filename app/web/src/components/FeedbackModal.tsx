@@ -1,9 +1,8 @@
 import { useState, useCallback, type SubmitEvent } from 'react';
-import { httpsCallable } from 'firebase/functions';
-import { functions } from '../lib/firebase';
 import { useToast } from '../lib/ToastContext';
 import { Input, Label, Button, Dialog, Textarea } from './ui/index.js';
-import { SubmitFeedbackResponseSchema } from 'src/types/schemas.js';
+import { submitFeedback } from '../data/feedback';
+import { log } from '@bookbingo/lib-util';
 
 type FeedbackType = 'bug' | 'feature';
 
@@ -11,8 +10,6 @@ interface FeedbackModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
-
-const submitFeedbackCallable = httpsCallable(functions, 'submitFeedback');
 
 export function FeedbackModal({ isOpen, onClose }: FeedbackModalProps) {
   const [type, setType] = useState<FeedbackType>('bug');
@@ -41,19 +38,18 @@ export function FeedbackModal({ isOpen, onClose }: FeedbackModalProps) {
 
     setIsSubmitting(true);
     try {
-      const response = await submitFeedbackCallable({
+      await submitFeedback({
         type,
         title: title.trim(),
         description: description.trim(),
       });
-      SubmitFeedbackResponseSchema.parse(response.data);
       showSuccess(
         'Feedback submitted! Thanks for helping improve Book Bingo. 🎉',
       );
       resetForm();
       onClose();
     } catch (err) {
-      console.error('[FeedbackModal] submit error:', err);
+      log.error('FeedbackModal', err);
       showError('Failed to submit feedback. Please try again.');
     } finally {
       setIsSubmitting(false);

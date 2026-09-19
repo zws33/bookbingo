@@ -7,7 +7,6 @@
     "allowImportingTsExtensions": true,
     "baseUrl": ".",
     "paths": {
-      "@bookbingo/lib-core": ["../../lib/core/src/index.ts"],
       "@bookbingo/lib-types": ["../../lib/types/src/index.ts"],
       "@bookbingo/lib-util": ["../../lib/util/src/index.ts"]
     }
