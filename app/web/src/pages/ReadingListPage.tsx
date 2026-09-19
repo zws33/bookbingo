@@ -1,7 +1,6 @@
-import { useState, useCallback, useMemo } from 'react';
-import type { TBREntry } from '../types/schemas';
+import { useState, useCallback } from 'react';
+import type { Book, TBREntry } from '../types/schemas';
 import { useTBR } from '../hooks/useTBR';
-import { useBooksByIds } from '../hooks/useBooksByIds';
 import { useInvalidateReadings } from '../hooks/useInvalidateReadings';
 import { useToast } from '../lib/ToastContext';
 import { createManualBook } from '../lib/createManualBook';
@@ -25,7 +24,7 @@ interface ReadingListPageProps {
 
 type DialogState =
   | { kind: 'search' }
-  | { kind: 'add'; bookId: string }
+  | { kind: 'add'; book: Book }
   | { kind: 'manual' }
   | { kind: 'edit'; entry: TBREntry }
   | { kind: 'promote'; entry: TBREntry }
@@ -37,20 +36,14 @@ export function ReadingListPage({ userId }: ReadingListPageProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const { entries, loading, error } = useTBR(userId);
-  // Only the book being added needs a lookup: it was just picked from search
-  // and has no entry yet. Entries arrive with their book already resolved.
-  const pendingBookId = useMemo(
-    () => (dialog?.kind === 'add' ? [dialog.bookId] : []),
-    [dialog],
-  );
-  const { booksById, error: booksError } = useBooksByIds(pendingBookId);
   const { showSuccess, showError } = useToast();
   const invalidate = useInvalidateReadings(userId);
 
   const closeDialog = useCallback(() => setDialog(null), []);
 
-  const handleBookSelectedForAdd = useCallback((bookId: string) => {
-    setDialog({ kind: 'add', bookId });
+  // The search callable returns the whole book, so the form renders at once.
+  const handleBookSelectedForAdd = useCallback((book: Book) => {
+    setDialog({ kind: 'add', book });
   }, []);
 
   const handleOpenManual = useCallback(() => {
@@ -63,7 +56,7 @@ export function ReadingListPage({ userId }: ReadingListPageProps) {
       setIsSubmitting(true);
       try {
         await createTBREntry({
-          bookId: dialog.bookId,
+          bookId: dialog.book.id,
           plannedTiles: data.tiles,
         });
         await invalidate();
@@ -87,12 +80,12 @@ export function ReadingListPage({ userId }: ReadingListPageProps) {
       if (dialog?.kind !== 'manual') return;
       setIsSubmitting(true);
       try {
-        const bookId = await createManualBook(
+        const book = await createManualBook(
           data.title,
           data.author,
           data.metadata,
         );
-        await createTBREntry({ bookId, plannedTiles: data.tiles });
+        await createTBREntry({ bookId: book.id, plannedTiles: data.tiles });
         await invalidate();
         showSuccess('Added to reading list');
         closeDialog();
@@ -151,7 +144,6 @@ export function ReadingListPage({ userId }: ReadingListPageProps) {
       try {
         await promoteTBREntry({
           tbrId: dialog.entry.id,
-          bookId: dialog.entry.bookId,
           tiles: data.tiles,
           isFreebie: data.isFreebie,
         });
@@ -238,8 +230,7 @@ export function ReadingListPage({ userId }: ReadingListPageProps) {
         )}
         {dialog?.kind === 'add' && (
           <ReadingFormForBook
-            book={booksById.get(dialog.bookId)}
-            error={booksError}
+            book={dialog.book}
             onSubmit={handleAdd}
             onCancel={closeDialog}
             isSubmitting={isSubmitting}

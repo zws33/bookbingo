@@ -31,9 +31,12 @@ export const deleteTBREntry = createCallable<{ tbrId: string }, undefined>(
 
 /**
  * Turns a planned entry into a reading and removes the entry, atomically.
- * The new reading keeps the entry's id.
+ *
+ * The new reading keeps the entry's id, so retrying after a lost response
+ * returns the same reading rather than failing. The book is not a parameter:
+ * the stored entry already names it.
  */
 export const promoteTBREntry = createCallable<
-  { tbrId: string; bookId: string; tiles: string[]; isFreebie: boolean },
+  { tbrId: string; tiles: string[]; isFreebie: boolean },
   { readingId: string }
 >('promoteTBREntry', z.object({ readingId: z.string().min(1) }));

@@ -1,11 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Input } from './ui/index.js';
 import { useToast } from '../lib/ToastContext.js';
-import { searchBooks, resolveBookId } from '../lib/bookSearch.js';
-import type { BookSearchResult } from 'src/types/schemas.js';
+import { searchBooks, resolveBook } from '../lib/bookSearch.js';
+import type { Book, BookSearchResult } from 'src/types/schemas.js';
 
 interface BookSearchProps {
-  onBookSelected: (bookId: string) => void;
+  /** The resolved book, not just its id: the caller renders it immediately. */
+  onBookSelected: (book: Book) => void;
   onManualEntry: () => void;
 }
 
@@ -43,8 +44,7 @@ export function BookSearch({ onBookSelected, onManualEntry }: BookSearchProps) {
       if (isSelecting) return;
       setIsSelecting(true);
       try {
-        const bookId = await resolveBookId(result.externalId);
-        onBookSelected(bookId);
+        onBookSelected(await resolveBook(result.externalId));
       } catch {
         showError('Could not load book details. Please try again.');
       } finally {

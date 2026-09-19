@@ -7,13 +7,13 @@ import { getScoreBreakdown } from '../domain/scoring.js';
 const TILE_IDS = new Set(TILES.map((tile) => tile.id));
 
 /**
- * The tile rules, enforced here rather than in the form.
+ * Tiles must be real and distinct. Applies to any tile list, planned or read.
  *
- * The client disables a fourth tile and only offers catalog tiles, but that is
- * a convenience for the person typing. Once the security rules deny direct
- * writes, this is the only thing that decides what a reading may contain.
+ * The client only offers catalog tiles, but that is a convenience for the
+ * person typing. Once the security rules deny direct writes, this is the only
+ * thing that decides what a tile list may contain.
  */
-export function validateTiles(tiles: string[], isFreebie: boolean): void {
+export function validateTileIds(tiles: string[]): void {
   const unknown = tiles.filter((tile) => !TILE_IDS.has(tile));
   if (unknown.length > 0) {
     throw new HttpsError(
@@ -25,9 +25,23 @@ export function validateTiles(tiles: string[], isFreebie: boolean): void {
   if (new Set(tiles).size !== tiles.length) {
     throw new HttpsError(
       'invalid-argument',
-      'A reading cannot use the same tile twice.',
+      'A tile list cannot use the same tile twice.',
     );
   }
+}
+
+/**
+ * The rules for a reading: real, distinct tiles, and at most
+ * `MAX_TILES_PER_BOOK` of them unless the reading is a freebie.
+ *
+ * A planned TBR entry uses `validateTileIds` instead — the cap applies when
+ * the plan becomes a reading, not while it is still a plan.
+ */
+export function validateReadingTiles(
+  tiles: string[],
+  isFreebie: boolean,
+): void {
+  validateTileIds(tiles);
 
   if (!isFreebie && tiles.length > MAX_TILES_PER_BOOK) {
     throw new HttpsError(

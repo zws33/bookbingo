@@ -14,7 +14,7 @@ import {
   BookSearchQuerySchema,
   GetBookDetailsRequestSchema,
 } from './schema.js';
-import type { BookMetadata } from '@bookbingo/lib-types';
+import type { Book, BookMetadata } from '@bookbingo/lib-types';
 
 const provider: BookProvider = new OpenLibraryProvider();
 
@@ -44,9 +44,16 @@ export async function searchBooksHandler(
   }
 }
 
+/**
+ * Ensures the catalog book exists in `/books` and returns it whole.
+ *
+ * The client renders the book straight from this response — the add form needs
+ * a title, author and thumbnail, and this call already has all three. Returning
+ * only an id would mean a second round trip to read back what was just written.
+ */
 export async function fetchBookDetailsHandler(
   request: CallableRequest<unknown>,
-): Promise<{ bookId: string; title: string; author: string }> {
+): Promise<Book> {
   const { uid } = requireAuth(request, 'fetch book details');
   const { externalId } = parseRequest(
     GetBookDetailsRequestSchema,
@@ -102,10 +109,12 @@ export async function fetchBookDetailsHandler(
     hasPageCount: bookDetails.pageCount !== null,
     durationMs: Date.now() - startedAt,
   });
+  const { metadata } = toBookData(bookDetails);
   return {
-    bookId: written.bookId,
-    title: bookDetails.title,
-    author: bookDetails.author,
+    id: written.bookId,
+    title: bookDetails.title.trim(),
+    author: bookDetails.author.trim(),
+    metadata,
   };
 }
 

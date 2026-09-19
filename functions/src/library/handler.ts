@@ -1,11 +1,10 @@
 import { HttpsError, type CallableRequest } from 'firebase-functions/v2/https';
 import type { Book } from '@bookbingo/lib-types';
 import { requireAuth } from '../callable.js';
-import { db } from '../firebase.js';
-import { BookDocSchema, mapValid } from '../schemas.js';
-import { logWarning } from '../observability.js';
+import { logFailure, logWarning } from '../observability.js';
 import { listUserProfiles } from '../users/store.js';
-import { allReadingsQuery, toReading } from '../readings/store.js';
+import { allReadingsQuery, readingsByUser } from '../readings/store.js';
+import { fetchBooks, MissingBookError } from '../books/join.js';
 
 export interface LibraryReader {
   userId: string;
@@ -48,67 +47,61 @@ export async function getLibraryHandler(
     { readCount: number; tiles: Set<string>; readers: LibraryReader[] }
   >();
 
-  for (const doc of snapshot.docs) {
-    const userId = doc.ref.parent.parent?.id;
-    if (!userId) continue;
-
-    const [reading] = mapValid('readings', [doc], toReading);
-    if (!reading) continue;
-
+  for (const [userId, readings] of readingsByUser(snapshot.docs)) {
     const profile = profilesById.get(userId);
     if (!profile) {
+      // A reader with no profile document: they signed in but the profile
+      // write never landed. Their readings still count toward a book's tiles,
+      // but there is no name to show, so the row is left out.
       logWarning('library.reader', new Error('No profile for reader'), {
         userId,
-        readingId: reading.id,
+        readingCount: readings.length,
       });
       continue;
     }
 
-    const entry = stats.get(reading.bookId) ?? {
-      readCount: 0,
-      tiles: new Set<string>(),
-      readers: [],
-    };
-    entry.readCount += 1;
-    for (const tile of reading.tiles) entry.tiles.add(tile);
-    entry.readers.push({
-      userId,
-      name: profile.name,
-      photoURL: profile.photoURL,
-      tiles: reading.tiles,
-    });
-    stats.set(reading.bookId, entry);
+    for (const reading of readings) {
+      const entry = stats.get(reading.bookId) ?? {
+        readCount: 0,
+        tiles: new Set<string>(),
+        readers: [],
+      };
+      entry.readCount += 1;
+      for (const tile of reading.tiles) entry.tiles.add(tile);
+      entry.readers.push({
+        userId,
+        name: profile.name,
+        photoURL: profile.photoURL,
+        tiles: reading.tiles,
+      });
+      stats.set(reading.bookId, entry);
+    }
   }
 
-  const bookIds = [...stats.keys()];
-  if (bookIds.length === 0) return [];
-
-  const books = await db.getAll(
-    ...bookIds.map((id) => db.collection('books').doc(id)),
-  );
-
-  const missing = books.filter((snap) => !snap.exists).map((snap) => snap.id);
-  if (missing.length > 0) {
-    logWarning('library.books', new Error('No book document'), {
-      bookIds: missing,
-    });
-    throw new HttpsError('internal', 'Could not load the library.');
+  let booksById: Map<string, Book>;
+  try {
+    booksById = await fetchBooks([...stats.keys()]);
+  } catch (error) {
+    if (error instanceof MissingBookError) {
+      logFailure('library.list', error, {
+        outcome: 'error',
+        stage: 'join',
+        bookIds: error.bookIds,
+      });
+      throw new HttpsError('internal', 'Could not load the library.');
+    }
+    throw error;
   }
 
-  return books
-    .map((snap) => {
-      const data = BookDocSchema.parse(snap.data());
-      const entry = stats.get(snap.id);
+  return [...stats]
+    .map(([bookId, entry]) => {
+      const book = booksById.get(bookId);
+      if (!book) throw new MissingBookError([bookId]);
       return {
-        book: {
-          id: snap.id,
-          title: data.title,
-          author: data.author,
-          metadata: data.metadata,
-        },
-        readCount: entry?.readCount ?? 0,
-        uniqueTiles: entry ? [...entry.tiles] : [],
-        readers: entry?.readers ?? [],
+        book,
+        readCount: entry.readCount,
+        uniqueTiles: [...entry.tiles],
+        readers: entry.readers,
       };
     })
     .sort((a, b) => a.book.title.localeCompare(b.book.title));

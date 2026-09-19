@@ -1,4 +1,5 @@
 import { HttpsError, type CallableRequest } from 'firebase-functions/v2/https';
+import type { Book } from '@bookbingo/lib-types';
 import { logEvent, logFailure } from '../observability.js';
 import { parseRequest, requireAuth } from '../callable.js';
 import { deriveBookId, normalizeForKey } from './bookIdentity.js';
@@ -7,7 +8,7 @@ import { createBookIfAbsent } from './store.js';
 
 export async function createManualBookHandler(
   request: CallableRequest<unknown>,
-): Promise<{ bookId: string }> {
+): Promise<Book> {
   const { uid } = requireAuth(request, 'add a book');
   const book = parseRequest(CreateManualBookRequestSchema, request.data);
 
@@ -39,7 +40,7 @@ export async function createManualBookHandler(
       hasThumbnailUrl: metadata.thumbnailUrl !== null,
       durationMs: Date.now() - startedAt,
     });
-    return { bookId: written.bookId };
+    return { id: written.bookId, title, author, metadata };
   } catch (error) {
     logFailure('book.manual', error, {
       uid,

@@ -1,7 +1,7 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useCallback } from 'react';
+import type { Book } from '../types/schemas';
 import { useReadings } from '../hooks/useReadings';
 import { useInvalidateReadings } from '../hooks/useInvalidateReadings';
-import { useBooksByIds } from '../hooks/useBooksByIds';
 import { useToast } from '../lib/ToastContext';
 import { createReading } from '../data/readings';
 import { BookList } from '../components/BookList';
@@ -19,7 +19,7 @@ interface MyBooksPageProps {
 
 type DialogState =
   | { kind: 'search' }
-  | { kind: 'readingForm'; bookId: string }
+  | { kind: 'readingForm'; book: Book }
   | { kind: 'manualEntry' }
   | null;
 
@@ -33,21 +33,15 @@ export function MyBooksPage({ userId }: MyBooksPageProps) {
     loading: readingsLoading,
     error: readingsError,
   } = useReadings(userId);
-  // Only the book being logged needs a lookup: it was just picked from search
-  // and has no reading yet. Readings arrive with their book already resolved.
-  const pendingBookId = useMemo(
-    () => (dialog?.kind === 'readingForm' ? [dialog.bookId] : []),
-    [dialog],
-  );
-  const { booksById, error: booksError } = useBooksByIds(pendingBookId);
   const invalidate = useInvalidateReadings(userId);
 
   const loading = readingsLoading;
   const error = readingsError;
   const scoreBreakdown = readings.length > 0 ? score : null;
 
-  const handleBookSelected = useCallback((bookId: string) => {
-    setDialog({ kind: 'readingForm', bookId });
+  // The search callable returns the whole book, so the form renders at once.
+  const handleBookSelected = useCallback((book: Book) => {
+    setDialog({ kind: 'readingForm', book });
   }, []);
 
   const handleAddModalClose = useCallback(() => {
@@ -60,13 +54,13 @@ export function MyBooksPage({ userId }: MyBooksPageProps) {
   const handleAddBook = async (data: BookFormData) => {
     setIsSubmitting(true);
     try {
-      const bookId = await createManualBook(
+      const book = await createManualBook(
         data.title,
         data.author,
         data.metadata,
       );
       await createReading({
-        bookId,
+        bookId: book.id,
         tiles: data.tiles,
         isFreebie: data.isFreebie,
       });
@@ -92,7 +86,7 @@ export function MyBooksPage({ userId }: MyBooksPageProps) {
     setIsSubmitting(true);
     try {
       await createReading({
-        bookId: dialog.bookId,
+        bookId: dialog.book.id,
         tiles: data.tiles,
         isFreebie: data.isFreebie,
       });
@@ -154,8 +148,7 @@ export function MyBooksPage({ userId }: MyBooksPageProps) {
         )}
         {dialog?.kind === 'readingForm' && (
           <ReadingFormForBook
-            book={booksById.get(dialog.bookId)}
-            error={booksError}
+            book={dialog.book}
             onSubmit={submitReadingData}
             onCancel={handleAddModalClose}
             isSubmitting={isSubmitting}

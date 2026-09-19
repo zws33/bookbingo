@@ -1,44 +1,51 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert';
-import { scoreOf, validateTiles } from './validate.js';
+import { scoreOf, validateReadingTiles, validateTileIds } from './validate.js';
 import { TILES } from '../domain/constants.js';
 import { MAX_TILES_PER_BOOK } from '../domain/validation.js';
 
 const [t1, t2, t3, t4] = TILES.map((tile) => tile.id);
 
-describe('validateTiles', () => {
-  test('accepts a reading at the cap', () => {
-    assert.doesNotThrow(() => validateTiles([t1!, t2!, t3!], false));
-  });
-
+describe('validateTileIds', () => {
   test('accepts an empty tile list', () => {
-    assert.doesNotThrow(() => validateTiles([], false));
+    assert.doesNotThrow(() => validateTileIds([]));
   });
 
   test('rejects a tile that is not in the catalog', () => {
-    assert.throws(() => validateTiles(['not-a-tile'], false), {
+    assert.throws(() => validateTileIds(['not-a-tile']), {
       code: 'invalid-argument',
     });
   });
 
   test('rejects the same tile twice', () => {
-    assert.throws(() => validateTiles([t1!, t1!], false), {
+    assert.throws(() => validateTileIds([t1!, t1!]), {
       code: 'invalid-argument',
     });
   });
 
+  // A plan is not a reading: the cap applies when it becomes one.
+  test('does not apply the reading cap', () => {
+    assert.doesNotThrow(() => validateTileIds([t1!, t2!, t3!, t4!]));
+  });
+});
+
+describe('validateReadingTiles', () => {
+  test('accepts a reading at the cap', () => {
+    assert.doesNotThrow(() => validateReadingTiles([t1!, t2!, t3!], false));
+  });
+
   test(`rejects tile ${MAX_TILES_PER_BOOK + 1} on a non-freebie`, () => {
-    assert.throws(() => validateTiles([t1!, t2!, t3!, t4!], false), {
+    assert.throws(() => validateReadingTiles([t1!, t2!, t3!, t4!], false), {
       code: 'invalid-argument',
     });
   });
 
   test('allows more than the cap on a freebie', () => {
-    assert.doesNotThrow(() => validateTiles([t1!, t2!, t3!, t4!], true));
+    assert.doesNotThrow(() => validateReadingTiles([t1!, t2!, t3!, t4!], true));
   });
 
   test('still rejects an unknown tile on a freebie', () => {
-    assert.throws(() => validateTiles([t1!, 'not-a-tile'], true), {
+    assert.throws(() => validateReadingTiles([t1!, 'not-a-tile'], true), {
       code: 'invalid-argument',
     });
   });

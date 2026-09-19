@@ -7,7 +7,7 @@ vi.mock('firebase/functions', () => ({
   httpsCallable: () => mockHttpsCallable,
 }));
 
-import { searchBooks, resolveBookId } from './bookSearch';
+import { searchBooks, resolveBook } from './bookSearch';
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -45,12 +45,11 @@ describe('searchBooks', () => {
   });
 });
 
-describe('resolveBookId', () => {
-  it('returns only the bookId from the callable response', async () => {
+describe('resolveBook', () => {
+  it('returns the whole book the callable resolved', async () => {
     mockHttpsCallable.mockResolvedValue({
       data: {
-        bookId: 'abc123',
-        externalId: '/works/OL1W',
+        id: 'abc123',
         title: 'Dune',
         author: 'Frank Herbert',
         metadata: {
@@ -64,34 +63,24 @@ describe('resolveBookId', () => {
       },
     });
 
-    const result = await resolveBookId('/works/OL1W');
+    const book = await resolveBook('/works/OL1W');
 
-    expect(result).toBe('abc123');
+    expect(book.id).toBe('abc123');
+    expect(book.title).toBe('Dune');
+    expect(book.metadata.pageCount).toBe(412);
   });
 
-  it('rejects a callable response missing bookId', async () => {
+  it('rejects a response with no book id', async () => {
     mockHttpsCallable.mockResolvedValue({
-      data: {
-        externalId: '/works/OL1W',
-        title: 'Dune',
-        author: 'Frank Herbert',
-        metadata: {
-          pageCount: null,
-          publishedDate: null,
-          categories: [],
-          language: null,
-          isbn: null,
-          thumbnailUrl: null,
-        },
-      },
+      data: { title: 'Dune', author: 'Frank Herbert' },
     });
 
-    await expect(resolveBookId('/works/OL1W')).rejects.toThrow();
+    await expect(resolveBook('/works/OL1W')).rejects.toThrow();
   });
 
   it('rejects a malformed callable response', async () => {
     mockHttpsCallable.mockResolvedValue({ data: { title: 'Missing fields' } });
 
-    await expect(resolveBookId('/works/OL1W')).rejects.toThrow();
+    await expect(resolveBook('/works/OL1W')).rejects.toThrow();
   });
 });

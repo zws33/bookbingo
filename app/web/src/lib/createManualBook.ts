@@ -3,7 +3,7 @@ import type { BookMetadata } from '@bookbingo/lib-types';
 import { EMPTY_METADATA } from '@bookbingo/lib-types';
 import { log } from '@bookbingo/lib-util';
 import { functions } from './firebase';
-import { CreateManualBookResponseSchema } from 'src/types/schemas';
+import { BookResponseSchema, type Book } from 'src/types/schemas';
 
 const createManualBookCallable = httpsCallable(functions, 'createManualBook');
 
@@ -25,15 +25,15 @@ export async function createManualBook(
   title: string,
   author: string,
   metadata: BookMetadata = EMPTY_METADATA,
-): Promise<string> {
+): Promise<Book> {
   const startedAt = Date.now();
   try {
     const result = await createManualBookCallable({ title, author, metadata });
-    const parsed = CreateManualBookResponseSchema.parse(result.data);
+    const parsed = BookResponseSchema.parse(result.data);
     log.event('book_manual_create', {
       duration_ms: Date.now() - startedAt,
     });
-    return parsed.bookId;
+    return parsed;
   } catch (error) {
     log.error('createManualBook', error);
     log.event('book_manual_create_error', {

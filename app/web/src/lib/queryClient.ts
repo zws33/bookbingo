@@ -7,7 +7,6 @@ import { QueryClient } from '@tanstack/react-query';
  */
 export const queryKeys = {
   boardConfig: ['boardConfig'] as const,
-  books: (ids: string[]) => ['books', [...new Set(ids)].sort()] as const,
   users: ['users'] as const,
   userProfile: (userId: string) => ['userProfile', userId] as const,
   leaderboard: ['leaderboard'] as const,

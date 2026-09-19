@@ -1,5 +1,5 @@
 import { HttpsError, type CallableRequest } from 'firebase-functions/v2/https';
-import { FieldValue, type Transaction } from 'firebase-admin/firestore';
+import { FieldValue } from 'firebase-admin/firestore';
 import z from 'zod/v4';
 import { db } from '../firebase.js';
 import { parseRequest, requireAuth } from '../callable.js';
@@ -10,13 +10,14 @@ import {
   allReadingsQuery,
   newReadingFields,
   readingDoc,
+  readingsByUser,
   readingsCollection,
   toReading,
-  type Reading,
   type ReadingDTO,
 } from './store.js';
 import { MissingBookError, withBooks } from '../books/join.js';
-import { scoreOf, validateTiles, type ScoreDTO } from './validate.js';
+import { scoreOf, validateReadingTiles, type ScoreDTO } from './validate.js';
+import { requireBook, requireNoOtherFreebie, toWriteError } from './guards.js';
 
 const ListReadingsRequestSchema = z.object({
   userId: z.string().trim().min(1),
@@ -94,18 +95,7 @@ export async function getLeaderboardHandler(
     allReadingsQuery().get(),
   ]);
 
-  const byUser = new Map<string, Reading[]>();
-  for (const doc of readingsSnapshot.docs) {
-    const userId = doc.ref.parent.parent?.id;
-    if (!userId) continue;
-
-    const [reading] = mapValid('readings', [doc], toReading);
-    if (!reading) continue;
-
-    const existing = byUser.get(userId);
-    if (existing) existing.push(reading);
-    else byUser.set(userId, [reading]);
-  }
+  const byUser = readingsByUser(readingsSnapshot.docs);
 
   return profiles
     .map((profile) => {
@@ -129,7 +119,7 @@ export async function createReadingHandler(
     ReadingFieldsSchema,
     request.data,
   );
-  validateTiles(tiles, isFreebie);
+  validateReadingTiles(tiles, isFreebie);
 
   const ref = readingsCollection(uid).doc();
 
@@ -166,7 +156,7 @@ export async function updateReadingHandler(
     UpdateReadingRequestSchema,
     request.data,
   );
-  validateTiles(tiles, isFreebie);
+  validateReadingTiles(tiles, isFreebie);
 
   const ref = readingDoc(uid, readingId);
 
@@ -215,51 +205,4 @@ export async function deleteReadingHandler(
   }
 
   logEvent('reading.delete', { uid, outcome: 'ok', readingId });
-}
-
-/**
- * Books are created by `fetchBookDetails` and `createManualBook`, never by a
- * reading write, so a reading naming a book that does not exist is a bug or a
- * forged payload rather than a race.
- */
-async function requireBook(
-  transaction: Transaction,
-  bookId: string,
-): Promise<void> {
-  const book = await transaction.get(db.collection('books').doc(bookId));
-  if (!book.exists) {
-    throw new HttpsError('not-found', 'That book is not in the catalog.');
-  }
-}
-
-/** At most one freebie per user — the rule `validateFreebie` states. */
-async function requireNoOtherFreebie(
-  transaction: Transaction,
-  uid: string,
-  readingId: string,
-): Promise<void> {
-  const freebies = await transaction.get(
-    readingsCollection(uid).where('isFreebie', '==', true).limit(2),
-  );
-  const other = freebies.docs.find((doc) => doc.id !== readingId);
-  if (other) {
-    throw new HttpsError(
-      'failed-precondition',
-      'You already have a freebie reading.',
-    );
-  }
-}
-
-/** Logs the failure and keeps a deliberate HttpsError intact. */
-function toWriteError(
-  error: unknown,
-  event: string,
-  fields: Record<string, unknown>,
-): HttpsError {
-  if (error instanceof HttpsError) {
-    logEvent(event, { ...fields, outcome: 'rejected', code: error.code });
-    return error;
-  }
-  logFailure(event, error, { ...fields, outcome: 'error', stage: 'firestore' });
-  return new HttpsError('internal', 'Failed to save your reading.');
 }

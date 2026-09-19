@@ -11,16 +11,6 @@ export type BookSearchResult = z.infer<typeof BookSearchResultSchema>;
 
 export const SearchBooksResponseSchema = z.array(BookSearchResultSchema);
 
-export const BookDetailsResultSchema = z.object({
-  bookId: z.string().min(1),
-  title: z.string(),
-  author: z.string(),
-});
-
-export const CreateManualBookResponseSchema = z.object({
-  bookId: z.string().min(1),
-});
-
 export const SubmitFeedbackResponseSchema = z.object({
   issueUrl: z.string(),
   issueNumber: z.number().int().positive(),
@@ -57,7 +47,7 @@ export const BookResponseSchema = z.object({
   metadata: BookMetadataResponseSchema,
 });
 
-export const GetBooksResponseSchema = z.array(BookResponseSchema);
+export type Book = z.infer<typeof BookResponseSchema>;
 
 export const UserProfileResponseSchema = z.object({
   id: z.string().min(1),

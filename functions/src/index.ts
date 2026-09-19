@@ -7,7 +7,6 @@ import {
   searchBooksHandler,
 } from './books/handler.js';
 import { createManualBookHandler } from './books/manual.js';
-import { getBooksHandler } from './books/catalog.js';
 import { getBoardConfigHandler } from './config/handler.js';
 import {
   getUserProfileHandler,
@@ -62,7 +61,6 @@ export const getBoardConfig = onCall(
   { invoker: 'public' },
   getBoardConfigHandler,
 );
-export const getBooks = onCall({ invoker: 'public' }, getBooksHandler);
 
 export const listUsers = onCall({ invoker: 'public' }, listUsersHandler);
 export const getUserProfile = onCall(

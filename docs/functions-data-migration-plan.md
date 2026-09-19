@@ -13,22 +13,22 @@ Moves every Firestore read and write, plus scoring, validation, and the tile cat
 7. **Caller identity comes from `request.auth.uid`.** Client functions drop `userId` for the caller's own data. `syncMyProfile` reads name and photo from ID token claims.
 8. **Responses carry instants as ISO strings.** Client zod response schemas parse them to `Date`.
 9. **End-state rules deny all client access.** The Admin SDK bypasses rules.
-10. **Responses arrive denormalized.** Reading and TBR responses carry the book fields the UI renders, joined in the handler. The client never fetches books to merge them by id — that join is the server's work, and a stored `bookTitle`/`bookAuthor` on a reading stays a fallback for pre-migration documents.
+10. **Responses arrive denormalized.** Reading and TBR responses carry the book fields the UI renders, joined in the handler. The client never fetches books to merge them by id.
+11. **A missing book is an error, not a render case.** Audited 2026-09-19: prod holds 104 readings and 23 TBR entries, staging 107 and 19, and every one resolves to an existing book. The write paths reject an unknown `bookId`, so an unresolvable reference means corruption — the endpoint fails and logs the ids rather than substituting a placeholder title. The stale `bookTitle`/`bookAuthor` on 49 prod readings are ignored.
 
 ## Endpoints
 
 | Callable                                                               | Replaces                                                           | Server enforces                                                              |
 | ---------------------------------------------------------------------- | ------------------------------------------------------------------ | ---------------------------------------------------------------------------- |
 | `getBoardConfig()`                                                     | `TILES`, `getTileById`, `MAX_TILES_PER_BOOK`                       | —                                                                            |
-| `getBooks({ ids })`                                                    | `getBooksById`                                                     | —                                                                            |
+| `fetchBookDetails`, `createManualBook` → the whole `Book`              | `getBooksById` for a just-picked book                              | —                                                                            |
 | `listReadings({ userId })` → `{ readings, score }`, book fields joined | `subscribeToReadings`, `getScoreBreakdown`, `getBooksById` + merge | —                                                                            |
-| `listAllReadings()`, book fields joined                                | `subscribeToAllReadings` (Library)                                 | —                                                                            |
 | `getLeaderboard()` → `{ userId, name, photoURL, score, bookCount }[]`  | `useUsers` + `useAllReadings` + scoring (Leaderboard)              | —                                                                            |
 | `listUsers()`, `getUserProfile({ userId })`                            | `subscribeToUsers`, `subscribeToUserProfile`                       | —                                                                            |
 | `syncMyProfile()`                                                      | `saveUserProfile`                                                  | Profile fields from token claims                                             |
 | `createReading`, `updateReading`, `deleteReading`                      | same names                                                         | Known tile ids, no duplicates, cap unless freebie, one freebie (transaction) |
-| `listMyTBR`, `createTBREntry`, `updateTBREntry`, `deleteTBREntry`      | same names                                                         | Known tile ids                                                               |
-| `promoteTBREntry`                                                      | same name                                                          | Reading rules; single batch; `readingId = tbrId`                             |
+| `listMyTBR`, `createTBREntry`, `updateTBREntry`, `deleteTBREntry`      | same names                                                         | Known tile ids; the book must exist                                          |
+| `promoteTBREntry`                                                      | same name                                                          | Reading rules; one transaction; `readingId = tbrId`; idempotent on retry     |
 
 ## Ordered steps
 
@@ -49,7 +49,7 @@ Each step is one commit that leaves the app working.
    - `MyBooksPage` and `UserBooksPage` read the score from the response.
    - `BookList` drops `useBooksByIds` and the merge; `ReadingWithBook` becomes the DTO.
    - Mutations invalidate `['readings', uid]`, `['allReadings']`, `['leaderboard']`.
-   - Check whether any view still wants books rather than readings. If none does, `getBooks`, `useBooksByIds`, and the books query key go with it.
+   - `getBooks`, `useBooksByIds` and the books query key are deleted: the only books the client fetched by id were ones `fetchBookDetails`/`createManualBook` had just returned.
 8. **Client: TBR.** Promote also invalidates reading keys.
 9. **Cleanup.**
    - Remove `db` and `connectFirestoreEmulator` from `app/web/src/lib/firebase.ts`.

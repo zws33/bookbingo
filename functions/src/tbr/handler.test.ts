@@ -95,7 +95,16 @@ describe('promoteTBREntryHandler', () => {
   test('throws invalid-argument when isFreebie is missing', async () => {
     await assert.rejects(
       promoteTBREntryHandler(
-        makeRequest(AUTH, { tbrId: 'tbr-1', bookId: 'book-1', tiles: [t1] }),
+        makeRequest(AUTH, { tbrId: 'tbr-1', tiles: [t1] }),
+      ),
+      { code: 'invalid-argument' },
+    );
+  });
+
+  test('throws invalid-argument when tbrId is missing', async () => {
+    await assert.rejects(
+      promoteTBREntryHandler(
+        makeRequest(AUTH, { tiles: [t1], isFreebie: false }),
       ),
       { code: 'invalid-argument' },
     );
@@ -108,7 +117,6 @@ describe('promoteTBREntryHandler', () => {
       promoteTBREntryHandler(
         makeRequest(AUTH, {
           tbrId: 'tbr-1',
-          bookId: 'book-1',
           tiles: [t1, t2, t3, t4],
           isFreebie: false,
         }),

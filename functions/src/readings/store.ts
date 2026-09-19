@@ -3,7 +3,7 @@ import {
   type QueryDocumentSnapshot,
 } from 'firebase-admin/firestore';
 import { db } from '../firebase.js';
-import { ReadingDocSchema } from '../schemas.js';
+import { mapValid, ReadingDocSchema } from '../schemas.js';
 import type { BookFields } from '../books/join.js';
 
 /** What the API returns: the stored reading plus its resolved book. */
@@ -53,6 +53,32 @@ export function toReading(doc: QueryDocumentSnapshot): Reading {
       updatedAt: data.updatedAt.toISOString(),
     }),
   };
+}
+
+/**
+ * Groups collection-group documents by the user id in each document's path.
+ *
+ * Invalid documents are dropped by `mapValid` rather than failing the whole
+ * read: one malformed reading must not blank a leaderboard.
+ */
+export function readingsByUser(
+  docs: QueryDocumentSnapshot[],
+): Map<string, Reading[]> {
+  const byUser = new Map<string, Reading[]>();
+
+  for (const doc of docs) {
+    const userId = doc.ref.parent.parent?.id;
+    if (!userId) continue;
+
+    const [reading] = mapValid('readings', [doc], toReading);
+    if (!reading) continue;
+
+    const existing = byUser.get(userId);
+    if (existing) existing.push(reading);
+    else byUser.set(userId, [reading]);
+  }
+
+  return byUser;
 }
 
 /** Field set for a newly created reading. Shared with the TBR promote path. */

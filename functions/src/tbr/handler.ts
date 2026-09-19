@@ -8,8 +8,13 @@ import { db } from '../firebase.js';
 import { parseRequest, requireAuth } from '../callable.js';
 import { logEvent, logFailure } from '../observability.js';
 import { TBREntryDocSchema, mapValid } from '../schemas.js';
-import { newReadingFields, readingsCollection } from '../readings/store.js';
-import { validateTiles } from '../readings/validate.js';
+import { newReadingFields, readingDoc } from '../readings/store.js';
+import { validateReadingTiles, validateTileIds } from '../readings/validate.js';
+import {
+  requireBook,
+  requireNoOtherFreebie,
+  toWriteError,
+} from '../readings/guards.js';
 import { MissingBookError, withBooks, type BookFields } from '../books/join.js';
 
 /** What the API returns: the stored entry plus its resolved book. */
@@ -43,9 +48,9 @@ const DeleteTBRRequestSchema = z.object({
   tbrId: z.string().trim().min(1),
 });
 
+/** No bookId: the entry already names its book, and that is the one promoted. */
 const PromoteTBRRequestSchema = z.object({
   tbrId: z.string().trim().min(1),
-  bookId: z.string().trim().min(1),
   tiles: z.array(z.string().trim().min(1)),
   isFreebie: z.boolean(),
 });
@@ -113,7 +118,15 @@ export async function createTBREntryHandler(
   );
   // A plan is not a reading, so the cap does not apply — but the tiles still
   // have to be real ones, or promoting the entry would fail later.
-  validateTiles(plannedTiles, true);
+  validateTileIds(plannedTiles);
+
+  // Without this an entry can point at a book that does not exist, and
+  // `listMyTBR` then fails for the whole list — which the UI cannot recover
+  // from, because the list never renders the row that would let you delete it.
+  const book = await db.collection('books').doc(bookId).get();
+  if (!book.exists) {
+    throw new HttpsError('not-found', 'That book is not in the catalog.');
+  }
 
   try {
     const ref = await tbrCollection(uid).add({
@@ -138,7 +151,7 @@ export async function updateTBREntryHandler(
     UpdateTBRRequestSchema,
     request.data,
   );
-  validateTiles(plannedTiles, true);
+  validateTileIds(plannedTiles);
 
   try {
     await tbrDoc(uid, tbrId).update({
@@ -178,73 +191,56 @@ export async function deleteTBREntryHandler(
 /**
  * Turns a planned entry into a reading, atomically.
  *
- * The reading keeps the entry's id, so a double-submit writes the same document
- * twice instead of creating two readings. The freebie rule is checked in the
- * same transaction as the write, as it is for a plain create.
+ * The reading takes the entry's id, which makes a retry safe: if the entry is
+ * already gone but a reading exists at that id, the first call succeeded and
+ * its response was lost, so this returns that reading instead of reporting an
+ * entry that "no longer exists" for a book the user did log.
+ *
+ * The book comes from the stored entry rather than the request — the entry
+ * already names it, so there is nothing for a caller to disagree with.
  */
 export async function promoteTBREntryHandler(
   request: CallableRequest<unknown>,
 ): Promise<{ readingId: string }> {
   const { uid } = requireAuth(request, 'log a reading');
-  const { tbrId, bookId, tiles, isFreebie } = parseRequest(
+  const { tbrId, tiles, isFreebie } = parseRequest(
     PromoteTBRRequestSchema,
     request.data,
   );
-  validateTiles(tiles, isFreebie);
+  validateReadingTiles(tiles, isFreebie);
 
-  const readingRef = readingsCollection(uid).doc(tbrId);
+  const readingRef = readingDoc(uid, tbrId);
   const entryRef = tbrDoc(uid, tbrId);
+  let bookId = '';
+  let alreadyLogged = false;
 
   try {
     await db.runTransaction(async (transaction) => {
       const entry = await transaction.get(entryRef);
+
       if (!entry.exists) {
-        throw new HttpsError('not-found', 'That entry no longer exists.');
-      }
-
-      const book = await transaction.get(db.collection('books').doc(bookId));
-      if (!book.exists) {
-        throw new HttpsError('not-found', 'That book is not in the catalog.');
-      }
-
-      if (isFreebie) {
-        const freebies = await transaction.get(
-          readingsCollection(uid).where('isFreebie', '==', true).limit(2),
-        );
-        if (freebies.docs.some((doc) => doc.id !== tbrId)) {
-          throw new HttpsError(
-            'failed-precondition',
-            'You already have a freebie reading.',
-          );
+        const existing = await transaction.get(readingRef);
+        if (!existing.exists) {
+          throw new HttpsError('not-found', 'That entry no longer exists.');
         }
+        alreadyLogged = true;
+        return;
       }
+
+      bookId = TBREntryDocSchema.parse(entry.data()).bookId;
+      await requireBook(transaction, bookId);
+      if (isFreebie) await requireNoOtherFreebie(transaction, uid, tbrId);
 
       transaction.set(readingRef, newReadingFields(bookId, tiles, isFreebie));
       transaction.delete(entryRef);
     });
   } catch (error) {
-    if (error instanceof HttpsError) {
-      logEvent('tbr.promote', {
-        uid,
-        tbrId,
-        outcome: 'rejected',
-        code: error.code,
-      });
-      throw error;
-    }
-    logFailure('tbr.promote', error, {
-      uid,
-      tbrId,
-      bookId,
-      outcome: 'error',
-      stage: 'firestore',
-    });
-    throw new HttpsError('internal', 'Failed to log your reading.');
+    throw toWriteError(error, 'tbr.promote', { uid, tbrId, bookId });
   }
 
   logEvent('tbr.promote', {
     uid,
-    outcome: 'ok',
+    outcome: alreadyLogged ? 'already-logged' : 'ok',
     tbrId,
     readingId: readingRef.id,
     bookId,
