@@ -1,8 +1,5 @@
-import { useMemo } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { getScoreBreakdown } from '@bookbingo/lib-core';
 import { useReadings } from '../hooks/useReadings';
-import { useBooksByIds } from '../hooks/useBooksByIds';
 import { useUserProfile } from '../hooks/useUserProfile';
 import { BookList } from '../components/BookList';
 import { ScoreDisplay } from '../components/ScoreDisplay';
@@ -16,22 +13,13 @@ export function UserBooksPage() {
   const { profile, loading: profileLoading } = useUserProfile(userId ?? '');
   const {
     readings,
+    score,
     loading: readingsLoading,
     error: readingsError,
   } = useReadings(userId ?? '');
-  const bookIds = useMemo(
-    () => readings.map((reading) => reading.bookId),
-    [readings],
-  );
-  const { loading: booksLoading, error: booksError } = useBooksByIds(bookIds);
-
-  const loading = readingsLoading || booksLoading;
-  const error = readingsError || booksError;
-
-  const scoreBreakdown = useMemo(() => {
-    if (!userId || !readings || readings.length === 0) return null;
-    return getScoreBreakdown(readings);
-  }, [userId, readings]);
+  const loading = readingsLoading;
+  const error = readingsError;
+  const scoreBreakdown = readings.length > 0 ? score : null;
 
   if (!userId) {
     return <div className="text-center py-8 text-error">Invalid user.</div>;

@@ -1,105 +1,15 @@
-import { useMemo } from 'react';
-import { useBooksByIds } from '../hooks/useBooksByIds';
-import { useAllReadings } from '../hooks/useAllReadings';
-import { useUsers } from '../hooks/useUsers';
-import type { Book } from '@bookbingo/lib-types';
-import type { UserProfile } from '../types';
+import { useLibrary } from '../hooks/useLibrary';
 import { PageStatus } from '../components/PageStatus';
 import { Accordion, Avatar, TileBadge } from '../components/ui';
 
-interface ReaderDetail {
-  user: UserProfile;
-  tiles: string[];
-}
-
-interface BookSummary {
-  book: Book;
-  readCount: number;
-  uniqueTiles: string[];
-  readers: ReaderDetail[];
-}
-
 export function LibraryPage() {
-  const {
-    readingsByUser,
-    loading: readingsLoading,
-    error: readingsError,
-  } = useAllReadings();
-  const bookIds = useMemo(
-    () => [...readingsByUser.values()].flatMap((rs) => rs.map((r) => r.bookId)),
-    [readingsByUser],
-  );
-  const {
-    booksById,
-    loading: booksLoading,
-    error: booksError,
-  } = useBooksByIds(bookIds);
-  const { users, loading: usersLoading, error: usersError } = useUsers();
-
-  const loading = booksLoading || readingsLoading || usersLoading;
-  const error = booksError ?? readingsError ?? usersError;
-
-  const bookSummaries = useMemo((): BookSummary[] => {
-    const usersById = new Map(users.map((u) => [u.id, u]));
-
-    const byBook = new Map<
-      string,
-      {
-        readCount: number;
-        tiles: Set<string>;
-        readerDetails: { userId: string; tiles: string[] }[];
-      }
-    >();
-
-    for (const [userId, readings] of readingsByUser.entries()) {
-      for (const reading of readings) {
-        if (!reading.bookId) continue;
-        const entry = byBook.get(reading.bookId);
-        if (entry) {
-          entry.readCount += 1;
-          reading.tiles.forEach((t) => entry.tiles.add(t));
-          entry.readerDetails.push({ userId, tiles: reading.tiles });
-        } else {
-          byBook.set(reading.bookId, {
-            readCount: 1,
-            tiles: new Set(reading.tiles),
-            readerDetails: [{ userId, tiles: reading.tiles }],
-          });
-        }
-      }
-    }
-
-    return (
-      [...booksById.values()]
-        .map((book) => {
-          const stats = byBook.get(book.id);
-          return {
-            book,
-            readCount: stats?.readCount ?? 0,
-            uniqueTiles: stats ? [...stats.tiles] : [],
-            readers: stats
-              ? stats.readerDetails
-                  .map(({ userId, tiles }) => ({
-                    user: usersById.get(userId),
-                    tiles,
-                  }))
-                  .filter((r): r is ReaderDetail => r.user != null)
-              : [],
-          };
-        })
-        // Exclude orphaned book docs (zero readings) — e.g. left behind when a
-        // manual title/author edit re-points a reading to a new book doc. See
-        // docs/decisions/book-identity-and-deduplication.md.
-        .filter((summary) => summary.readCount > 0)
-        .sort((a, b) => a.book.title.localeCompare(b.book.title))
-    );
-  }, [booksById, readingsByUser, users]);
+  const { books, loading, error } = useLibrary();
 
   if (loading || error) {
     return <PageStatus loading={loading} error={error} />;
   }
 
-  if (bookSummaries.length === 0) {
+  if (books.length === 0) {
     return (
       <div className="text-center py-8 text-on-surface-variant">
         No books in the library yet.
@@ -110,7 +20,7 @@ export function LibraryPage() {
   return (
     <div className="bg-surface-container-lowest rounded-lg shadow overflow-hidden">
       <Accordion.Root type="multiple">
-        {bookSummaries.map(({ book, readCount, uniqueTiles, readers }) => (
+        {books.map(({ book, readCount, uniqueTiles, readers }) => (
           <Accordion.Item key={book.id} value={book.id}>
             <Accordion.Trigger>
               <div className="flex flex-1 flex-col sm:flex-row sm:items-center sm:gap-4 min-w-0">
@@ -141,17 +51,17 @@ export function LibraryPage() {
             {readers.length > 0 && (
               <Accordion.Content>
                 <ul className="px-4 pb-3 space-y-2">
-                  {readers.map(({ user, tiles }) => (
-                    <li key={user.id} className="flex items-start gap-2">
+                  {readers.map(({ userId, name, photoURL, tiles }) => (
+                    <li key={userId} className="flex items-start gap-2">
                       <Avatar
-                        name={user.name}
-                        photoURL={user.photoURL ?? undefined}
+                        name={name}
+                        photoURL={photoURL ?? undefined}
                         size="sm"
                         className="mt-0.5"
                       />
                       <div className="min-w-0">
                         <p className="text-sm font-medium text-on-surface">
-                          {user.name}
+                          {name}
                         </p>
                         {tiles.length > 0 && (
                           <div className="flex flex-wrap gap-1 mt-0.5">

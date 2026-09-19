@@ -8,7 +8,17 @@ import {
 } from 'firebase/auth';
 import z from 'zod/v4';
 import { auth } from './firebase';
-import { AuthUserSchema } from '../data/schemas';
+
+/**
+ * The fields we take from a Firebase Auth user. Lives here rather than with
+ * the API response schemas: this is the shape the SDK hands us, not something
+ * a callable returns.
+ */
+const AuthUserSchema = z.object({
+  uid: z.string().min(1),
+  displayName: z.string().nullable(),
+  photoURL: z.string().nullable(),
+});
 
 const googleProvider = new GoogleAuthProvider();
 

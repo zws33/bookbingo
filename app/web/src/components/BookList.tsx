@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import type { Reading, BookMetadata } from '@bookbingo/lib-types';
+import type { Reading } from '../types/schemas';
 import { BookCard } from './BookCard';
 import { BookRow } from './BookRow';
 import { Dialog, AlertDialog, ToggleGroup } from './ui/index.js';
@@ -10,7 +10,7 @@ import { useToast } from '../lib/ToastContext';
 import { updateReading, deleteReading } from '../data/readings';
 import { log } from '@bookbingo/lib-util';
 import { PageStatus } from './PageStatus';
-import { useBooksByIds } from '../hooks/useBooksByIds';
+import { useInvalidateReadings } from '../hooks/useInvalidateReadings';
 
 interface BookListProps {
   userId: string;
@@ -18,15 +18,6 @@ interface BookListProps {
   loading: boolean;
   error?: Error | undefined;
   readOnly?: boolean;
-}
-
-const UNKNOWN_BOOK = { title: 'Unknown Book', author: 'Unknown Author' };
-
-interface ReadingWithBook extends Reading {
-  bookTitle: string;
-  bookAuthor: string;
-  bookThumbnailUrl: string | null;
-  bookMetadata: BookMetadata | undefined;
 }
 
 export function BookList({
@@ -43,46 +34,25 @@ export function BookList({
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const { showSuccess, showError: showErrorToast } = useToast();
 
-  const bookIds = useMemo(
-    () => readings.map((reading) => reading.bookId),
-    [readings],
-  );
-  const { booksById } = useBooksByIds(bookIds);
-
-  const readingsWithBook = useMemo<ReadingWithBook[]>(
-    () =>
-      readings.map((r) => {
-        const book = booksById.get(r.bookId);
-        return {
-          ...r,
-          bookTitle: book?.title ?? r.bookTitle ?? UNKNOWN_BOOK.title,
-          bookAuthor: book?.author ?? r.bookAuthor ?? UNKNOWN_BOOK.author,
-          bookThumbnailUrl: book?.metadata.thumbnailUrl ?? null,
-          bookMetadata: book?.metadata,
-        };
-      }),
-    [readings, booksById],
-  );
+  const invalidateReadings = useInvalidateReadings(userId);
 
   const filteredReadings = useMemo(() => {
-    if (!authorFilter.trim()) return readingsWithBook;
+    if (!authorFilter.trim()) return readings;
     const filter = authorFilter.toLowerCase();
-    return readingsWithBook.filter((r) => {
-      return r.bookAuthor.toLowerCase().includes(filter);
-    });
-  }, [readingsWithBook, authorFilter]);
+    return readings.filter((r) => r.bookAuthor.toLowerCase().includes(filter));
+  }, [readings, authorFilter]);
 
   const handleEdit = async (data: BookFormData) => {
     if (!selectedReading) return;
     setIsSubmitting(true);
     try {
-      await updateReading(
-        userId,
-        selectedReading.id,
-        selectedReading.bookId,
-        data.tiles,
-        data.isFreebie,
-      );
+      await updateReading({
+        readingId: selectedReading.id,
+        bookId: selectedReading.bookId,
+        tiles: data.tiles,
+        isFreebie: data.isFreebie,
+      });
+      await invalidateReadings();
       showSuccess('Book updated successfully');
       setSelectedReading(null);
     } catch (err) {
@@ -97,7 +67,8 @@ export function BookList({
     if (!selectedReading) return;
     setIsSubmitting(true);
     try {
-      await deleteReading(userId, selectedReading.id);
+      await deleteReading({ readingId: selectedReading.id });
+      await invalidateReadings();
       showSuccess('Book deleted successfully');
       setShowDeleteConfirm(false);
       setSelectedReading(null);
@@ -113,12 +84,9 @@ export function BookList({
     return <PageStatus loading={loading} error={error} />;
   }
 
-  const selectedReadingWithBook = selectedReading
-    ? readingsWithBook.find((r) => r.id === selectedReading.id)
-    : undefined;
   const selectedBook = {
-    title: selectedReadingWithBook?.bookTitle ?? UNKNOWN_BOOK.title,
-    author: selectedReadingWithBook?.bookAuthor ?? UNKNOWN_BOOK.author,
+    title: selectedReading?.bookTitle ?? '',
+    author: selectedReading?.bookAuthor ?? '',
   };
 
   return (
@@ -193,7 +161,7 @@ export function BookList({
                 key={reading.id}
                 bookTitle={reading.bookTitle}
                 bookAuthor={reading.bookAuthor}
-                thumbnailUrl={reading.bookThumbnailUrl}
+                thumbnailUrl={reading.bookMetadata.thumbnailUrl}
                 tiles={reading.tiles}
                 onClick={() => setSelectedReading(reading)}
                 readOnly={readOnly}

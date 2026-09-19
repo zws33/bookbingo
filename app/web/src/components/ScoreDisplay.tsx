@@ -1,8 +1,8 @@
-import type { ScoreBreakdown } from '@bookbingo/lib-types';
+import type { Score } from '../types/schemas';
 import { Tooltip } from './ui/Tooltip.js';
 
 interface ScoreDisplayProps {
-  breakdown: ScoreBreakdown;
+  breakdown: Score;
 }
 
 function InfoIcon() {

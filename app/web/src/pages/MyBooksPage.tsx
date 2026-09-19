@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback } from 'react';
 import { useReadings } from '../hooks/useReadings';
+import { useInvalidateReadings } from '../hooks/useInvalidateReadings';
 import { useBooksByIds } from '../hooks/useBooksByIds';
 import { useToast } from '../lib/ToastContext';
 import { createReading } from '../data/readings';
@@ -8,7 +9,6 @@ import { BookSearch } from '../components/BookSearch';
 import { ScoreDisplay } from '../components/ScoreDisplay';
 import { Dialog } from '../components/ui/index.js';
 import { BookForm, type BookFormData } from '../components/BookForm';
-import { getScoreBreakdown } from '@bookbingo/lib-core';
 import { log } from '@bookbingo/lib-util';
 import { ReadingFormForBook } from '../components/ReadingFormForBook';
 import { createManualBook } from '../lib/createManualBook';
@@ -29,27 +29,22 @@ export function MyBooksPage({ userId }: MyBooksPageProps) {
   const { showSuccess, showError } = useToast();
   const {
     readings,
+    score,
     loading: readingsLoading,
     error: readingsError,
   } = useReadings(userId);
-  const bookIds = useMemo(() => {
-    const ids = readings.map((reading) => reading.bookId);
-    if (dialog?.kind === 'readingForm') ids.push(dialog.bookId);
-    return ids;
-  }, [readings, dialog]);
-  const {
-    booksById,
-    loading: booksLoading,
-    error: booksError,
-  } = useBooksByIds(bookIds);
+  // Only the book being logged needs a lookup: it was just picked from search
+  // and has no reading yet. Readings arrive with their book already resolved.
+  const pendingBookId = useMemo(
+    () => (dialog?.kind === 'readingForm' ? [dialog.bookId] : []),
+    [dialog],
+  );
+  const { booksById, error: booksError } = useBooksByIds(pendingBookId);
+  const invalidate = useInvalidateReadings(userId);
 
-  const loading = readingsLoading || booksLoading;
-  const error = readingsError || booksError;
-
-  const scoreBreakdown = useMemo(() => {
-    if (!readings || readings.length === 0) return null;
-    return getScoreBreakdown(readings);
-  }, [readings]);
+  const loading = readingsLoading;
+  const error = readingsError;
+  const scoreBreakdown = readings.length > 0 ? score : null;
 
   const handleBookSelected = useCallback((bookId: string) => {
     setDialog({ kind: 'readingForm', bookId });
@@ -70,7 +65,12 @@ export function MyBooksPage({ userId }: MyBooksPageProps) {
         data.author,
         data.metadata,
       );
-      await createReading(userId, bookId, data.tiles, data.isFreebie);
+      await createReading({
+        bookId,
+        tiles: data.tiles,
+        isFreebie: data.isFreebie,
+      });
+      await invalidate();
       showSuccess('Book added successfully');
       handleAddModalClose();
     } catch (err) {
@@ -91,7 +91,12 @@ export function MyBooksPage({ userId }: MyBooksPageProps) {
     if (dialog?.kind !== 'readingForm') return;
     setIsSubmitting(true);
     try {
-      await createReading(userId, dialog.bookId, data.tiles, data.isFreebie);
+      await createReading({
+        bookId: dialog.bookId,
+        tiles: data.tiles,
+        isFreebie: data.isFreebie,
+      });
+      await invalidate();
       showSuccess('Book added successfully');
       handleAddModalClose();
     } catch (err) {

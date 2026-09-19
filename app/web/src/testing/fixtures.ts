@@ -1,6 +1,7 @@
-import type { Reading, Book, Tile } from '@bookbingo/lib-types';
+import type { Book, Tile } from '@bookbingo/lib-types';
 import { EMPTY_METADATA } from '@bookbingo/lib-types';
 import type { UserProfile } from '../types';
+import type { Reading, TBREntry } from '../types/schemas';
 
 /**
  * A four-tile stand-in for the served catalog. Ids and names match the real
@@ -36,14 +37,31 @@ export function tileCatalogStub() {
   };
 }
 
+/** A reading as the API returns it: book fields already joined. */
 export function makeReading(overrides: Partial<Reading> = {}): Reading {
   return {
     id: 'reading-1',
     bookId: 'book-1',
-    tiles: ['sci-fi'],
+    bookTitle: 'The Left Hand of Darkness',
+    bookAuthor: 'Ursula K. Le Guin',
+    bookMetadata: EMPTY_METADATA,
+    tiles: [TILE.series.id],
     isFreebie: false,
     readAt: new Date('2026-01-01'),
     createdAt: new Date('2026-01-01'),
+    ...overrides,
+  };
+}
+
+export function makeTBREntry(overrides: Partial<TBREntry> = {}): TBREntry {
+  return {
+    id: 'tbr-1',
+    bookId: 'book-1',
+    bookTitle: 'The Left Hand of Darkness',
+    bookAuthor: 'Ursula K. Le Guin',
+    bookMetadata: EMPTY_METADATA,
+    plannedTiles: [TILE.series.id],
+    addedAt: new Date('2026-01-01'),
     ...overrides,
   };
 }

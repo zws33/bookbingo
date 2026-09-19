@@ -4,7 +4,6 @@ import { signInWithGoogle, signOutUser } from './lib/auth';
 import { syncMyProfile } from './data/userProfile';
 import { useAuth } from './hooks/useAuth';
 import { useReadings } from './hooks/useReadings';
-import { useBooksByIds } from './hooks/useBooksByIds';
 import { BingoBoard } from './components/BingoBoard';
 import { MyBooksPage } from './pages/MyBooksPage';
 import { ReadingListPage } from './pages/ReadingListPage';
@@ -15,18 +14,13 @@ import { StagingBanner } from './components/StagingBanner';
 import { FeedbackModal } from './components/FeedbackModal';
 import { Button } from './components/ui/index.js';
 import { log } from '@bookbingo/lib-util';
-import { useEffect, useMemo, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 
 const isStaging = import.meta.env.MODE === 'staging';
 
 function App() {
   const { user, loading, error } = useAuth();
   const { readings } = useReadings(user?.uid ?? '');
-  const bookIds = useMemo(
-    () => readings.map((reading) => reading.bookId),
-    [readings],
-  );
-  const { booksById } = useBooksByIds(bookIds);
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
 
   const handleSignIn = async () => {
@@ -174,9 +168,7 @@ function App() {
               />
               <Route
                 path="/board"
-                element={
-                  <BingoBoard readings={readings} booksById={booksById} />
-                }
+                element={<BingoBoard readings={readings} />}
               />
               <Route
                 path="/users"

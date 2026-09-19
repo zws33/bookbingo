@@ -10,9 +10,13 @@ import { logEvent, logFailure } from '../observability.js';
 import { TBREntryDocSchema, mapValid } from '../schemas.js';
 import { newReadingFields, readingsCollection } from '../readings/store.js';
 import { validateTiles } from '../readings/validate.js';
+import { MissingBookError, withBooks, type BookFields } from '../books/join.js';
 
-/** Instants are ISO strings for the same reason as ReadingDTO. */
-export interface TBREntryDTO {
+/** What the API returns: the stored entry plus its resolved book. */
+export type TBREntryDTO = TBREntry & BookFields;
+
+/** Instants are ISO strings for the same reason as Reading. */
+export interface TBREntry {
   id: string;
   bookId: string;
   plannedTiles: string[];
@@ -55,7 +59,7 @@ function tbrDoc(userId: string, tbrId: string) {
   return tbrCollection(userId).doc(tbrId);
 }
 
-function toTBREntry(doc: QueryDocumentSnapshot): TBREntryDTO {
+function toTBREntry(doc: QueryDocumentSnapshot): TBREntry {
   const data = TBREntryDocSchema.parse(doc.data());
   return {
     id: doc.id, // ID is the key, not a stored field
@@ -81,7 +85,22 @@ export async function listMyTBRHandler(
   const { uid } = requireAuth(request, 'load your reading list');
 
   const snapshot = await tbrCollection(uid).orderBy('addedAt', 'desc').get();
-  return mapValid('tbr', snapshot.docs, toTBREntry);
+  const entries = mapValid('tbr', snapshot.docs, toTBREntry);
+
+  try {
+    return await withBooks(entries);
+  } catch (error) {
+    if (error instanceof MissingBookError) {
+      logFailure('tbr.list', error, {
+        uid,
+        outcome: 'error',
+        stage: 'join',
+        bookIds: error.bookIds,
+      });
+      throw new HttpsError('internal', 'Could not load your reading list.');
+    }
+    throw error;
+  }
 }
 
 export async function createTBREntryHandler(

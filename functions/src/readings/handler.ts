@@ -8,15 +8,14 @@ import { mapValid } from '../schemas.js';
 import { listUserProfiles } from '../users/store.js';
 import {
   allReadingsQuery,
-  MissingBookError,
   newReadingFields,
   readingDoc,
   readingsCollection,
   toReading,
-  withBooks,
   type Reading,
   type ReadingDTO,
 } from './store.js';
+import { MissingBookError, withBooks } from '../books/join.js';
 import { scoreOf, validateTiles, type ScoreDTO } from './validate.js';
 
 const ListReadingsRequestSchema = z.object({

@@ -11,6 +11,9 @@ export const queryKeys = {
   users: ['users'] as const,
   userProfile: (userId: string) => ['userProfile', userId] as const,
   leaderboard: ['leaderboard'] as const,
+  readings: (userId: string) => ['readings', userId] as const,
+  library: ['library'] as const,
+  tbr: (userId: string) => ['tbr', userId] as const,
 };
 
 /**
