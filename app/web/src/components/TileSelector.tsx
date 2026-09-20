@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { TILES, MAX_TILES_PER_BOOK } from '@bookbingo/lib-core';
+import { useTileCatalog } from '../hooks/useTileCatalog';
 import { cn } from '../lib/cn.js';
 import { Input, Label } from './ui/index.js';
 
@@ -43,18 +43,22 @@ function TileButton({ tile, onToggle }: TileButtonProps) {
   );
 }
 
-const bookAssignableTiles = TILES;
-
 export function TileSelector({
   selectedTiles,
   onChange,
   isFreebie,
 }: TileSelectorProps) {
   const [search, setSearch] = useState('');
+  const { tiles, maxTilesPerBook } = useTileCatalog();
 
-  const atLimit = !isFreebie && selectedTiles.length >= MAX_TILES_PER_BOOK;
+  // Until the catalog loads there is no cap to enforce, and no tiles to offer
+  // either — so nothing is selectable and the limit cannot be reached.
+  const atLimit =
+    !isFreebie &&
+    maxTilesPerBook !== undefined &&
+    selectedTiles.length >= maxTilesPerBook;
   const filteredTiles = useMemo<TileSelectorItem[]>(() => {
-    const items = bookAssignableTiles
+    const items = tiles
       .map((t) => {
         const isSelected = selectedTiles.includes(t.id);
         const isDisabled = atLimit && !isSelected;
@@ -69,7 +73,7 @@ export function TileSelector({
     if (!search.trim()) return items;
     const term = search.toLowerCase();
     return items.filter((t) => t.name.toLowerCase().includes(term));
-  }, [search, selectedTiles, atLimit]);
+  }, [search, selectedTiles, atLimit, tiles]);
 
   const handleToggle = (tileId: string) => {
     if (selectedTiles.includes(tileId)) {
@@ -83,7 +87,10 @@ export function TileSelector({
   return (
     <div>
       <Label className="mb-1">
-        Tiles {isFreebie ? '(unlimited)' : `(up to ${MAX_TILES_PER_BOOK})`}
+        Tiles{' '}
+        {isFreebie
+          ? '(unlimited)'
+          : maxTilesPerBook !== undefined && `(up to ${maxTilesPerBook})`}
       </Label>
       <Input
         type="text"

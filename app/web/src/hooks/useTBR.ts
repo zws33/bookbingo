@@ -1,39 +1,26 @@
-import { useEffect, useState } from 'react';
-import { log } from '@bookbingo/lib-util';
-import type { TBREntry } from '@bookbingo/lib-types';
-import { subscribeToTBR } from '../data/tbr';
+import { useQuery } from '@tanstack/react-query';
+import { listMyTBR } from '../data/tbr';
+import { queryKeys } from '../lib/queryClient';
+import type { TBREntry } from '../types/schemas';
 
+const NO_ENTRIES: TBREntry[] = [];
+
+/**
+ * The signed-in user's reading list.
+ *
+ * Takes the id only to decide whether to run: the list the server returns is
+ * always the caller's own.
+ */
 export function useTBR(userId: string) {
-  const [entries, setEntries] = useState<TBREntry[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<Error>();
+  const { data, isPending, error } = useQuery({
+    queryKey: queryKeys.tbr(userId),
+    queryFn: () => listMyTBR(),
+    enabled: userId !== '',
+  });
 
-  useEffect(() => {
-    if (!userId) {
-      setEntries([]);
-      setLoading(false);
-      setError(undefined);
-      return;
-    }
-
-    setLoading(true);
-    const unsubscribe = subscribeToTBR(
-      userId,
-      (next) => {
-        log.debug('useTBR', 'snapshot received', { count: next.length });
-        setEntries(next);
-        setError(undefined);
-        setLoading(false);
-      },
-      (err) => {
-        log.error('useTBR', err);
-        setError(err);
-        setLoading(false);
-      },
-    );
-
-    return unsubscribe;
-  }, [userId]);
-
-  return { entries, loading, error };
+  return {
+    entries: data ?? NO_ENTRIES,
+    loading: userId === '' ? false : isPending,
+    error: error ?? undefined,
+  };
 }

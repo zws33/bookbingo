@@ -1,10 +1,9 @@
 import { NavLink, Routes, Route, Navigate } from 'react-router-dom';
 import { CatalogPage } from './pages/CatalogPage';
 import { signInWithGoogle, signOutUser } from './lib/auth';
-import { saveUserProfile } from './data/userProfile';
+import { syncMyProfile } from './data/userProfile';
 import { useAuth } from './hooks/useAuth';
 import { useReadings } from './hooks/useReadings';
-import { useBooks } from './hooks/useBooks';
 import { BingoBoard } from './components/BingoBoard';
 import { MyBooksPage } from './pages/MyBooksPage';
 import { ReadingListPage } from './pages/ReadingListPage';
@@ -22,7 +21,6 @@ const isStaging = import.meta.env.MODE === 'staging';
 function App() {
   const { user, loading, error } = useAuth();
   const { readings } = useReadings(user?.uid ?? '');
-  const { booksById } = useBooks();
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
 
   const handleSignIn = async () => {
@@ -45,7 +43,9 @@ function App() {
 
   useEffect(() => {
     if (user) {
-      saveUserProfile(user).catch((err) => {
+      // Fire-and-forget: the profile is written from the ID token, so there is
+      // nothing to send and nothing on this screen waits for the result.
+      syncMyProfile().catch((err) => {
         log.error('save user error:', err);
       });
     }
@@ -168,9 +168,7 @@ function App() {
               />
               <Route
                 path="/board"
-                element={
-                  <BingoBoard readings={readings} booksById={booksById} />
-                }
+                element={<BingoBoard readings={readings} />}
               />
               <Route
                 path="/users"

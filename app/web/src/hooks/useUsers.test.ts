@@ -1,112 +1,65 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { renderHook, act } from '@testing-library/react';
+import { renderHook, waitFor } from '@testing-library/react';
+import { Providers } from '../testing/test-utils';
+import { makeUserProfile } from '../testing/fixtures';
 import { useUsers } from './useUsers';
-import type { UserProfile } from '../types';
 
-// The hook depends only on the repository seam; Firebase never enters the test.
+// The hook depends only on the data seam; Firebase never enters the test.
 vi.mock('../data/users', () => ({
-  subscribeToUsers: vi.fn(),
+  listUsers: vi.fn(),
 }));
 
-// Mock logger to prevent initialization errors in test environment
-vi.mock('@bookbingo/lib-util', () => ({
-  log: {
-    debug: vi.fn(),
-    error: vi.fn(),
-    event: vi.fn(),
-  },
-}));
+import { listUsers } from '../data/users';
 
-import { subscribeToUsers } from '../data/users';
-
-const mockSubscribe = vi.mocked(subscribeToUsers);
-
-/** Callbacks handed to subscribeToUsers by the most recent call. */
-type Handlers = {
-  onData: (users: UserProfile[]) => void;
-  onError: (error: Error) => void;
-};
-
-function captureHandlers(): {
-  handlers: Handlers;
-  unsubscribe: ReturnType<typeof vi.fn>;
-} {
-  const unsubscribe = vi.fn();
-  const handlers = {} as Handlers;
-  mockSubscribe.mockImplementation((onData, onError) => {
-    handlers.onData = onData;
-    handlers.onError = onError;
-    return unsubscribe;
-  });
-  return { handlers, unsubscribe };
-}
-
-function makeUser(overrides: Partial<UserProfile> = {}): UserProfile {
-  return { id: 'user-0', name: 'Ada', ...overrides };
-}
+const listUsersMock = vi.mocked(listUsers);
 
 beforeEach(() => {
-  mockSubscribe.mockReset();
+  listUsersMock.mockReset();
 });
 
+const render = () => renderHook(() => useUsers(), { wrapper: Providers });
+
 describe('useUsers', () => {
-  it('starts in loading state before the first snapshot', () => {
-    captureHandlers();
-    const { result } = renderHook(() => useUsers());
+  it('starts in loading state with an empty list', () => {
+    listUsersMock.mockReturnValue(new Promise(() => {}));
+
+    const { result } = render();
+
     expect(result.current.loading).toBe(true);
     expect(result.current.users).toEqual([]);
     expect(result.current.error).toBeUndefined();
   });
 
-  it('exposes users emitted by the subscription', () => {
-    const { handlers } = captureHandlers();
-    const { result } = renderHook(() => useUsers());
+  it('exposes the users the call resolved', async () => {
+    const users = [makeUserProfile(), makeUserProfile({ id: 'user-2' })];
+    listUsersMock.mockResolvedValue(users);
 
-    const user = makeUser({ id: 'user-1', name: 'Grace' });
-    act(() => handlers.onData([user]));
+    const { result } = render();
 
-    expect(result.current.loading).toBe(false);
-    expect(result.current.users).toEqual([user]);
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.users).toEqual(users);
     expect(result.current.error).toBeUndefined();
   });
 
-  it('surfaces subscription errors and stops loading', () => {
-    const { handlers } = captureHandlers();
-    const { result } = renderHook(() => useUsers());
+  it('exposes a failed call as an error and keeps the list empty', async () => {
+    listUsersMock.mockRejectedValue(new Error('functions/unavailable'));
 
-    const err = Object.assign(new Error('Permission denied'), {
-      code: 'permission-denied' as const,
-    });
-    act(() => handlers.onError(err));
+    const { result } = render();
 
-    expect(result.current.error).toBe(err);
+    await waitFor(() => expect(result.current.error).toBeDefined());
+    expect(result.current.error?.message).toBe('functions/unavailable');
     expect(result.current.users).toEqual([]);
-    expect(result.current.loading).toBe(false);
   });
 
-  it('clears a prior error once a later snapshot arrives', () => {
-    const { handlers } = captureHandlers();
-    const { result } = renderHook(() => useUsers());
+  it('calls the function once for two hooks sharing the cache', async () => {
+    listUsersMock.mockResolvedValue([]);
 
-    act(() => handlers.onError(new Error('transient')));
-    act(() => handlers.onData([makeUser()]));
+    const { result } = renderHook(
+      () => ({ first: useUsers(), second: useUsers() }),
+      { wrapper: Providers },
+    );
 
-    expect(result.current.error).toBeUndefined();
-    expect(result.current.users).toHaveLength(1);
-  });
-
-  it('unsubscribes on unmount', () => {
-    const { unsubscribe } = captureHandlers();
-    const { unmount } = renderHook(() => useUsers());
-    unmount();
-    expect(unsubscribe).toHaveBeenCalledOnce();
-  });
-
-  it('subscribes once across rerenders', () => {
-    captureHandlers();
-    const { rerender } = renderHook(() => useUsers());
-    rerender();
-    rerender();
-    expect(mockSubscribe).toHaveBeenCalledOnce();
+    await waitFor(() => expect(result.current.first.loading).toBe(false));
+    expect(listUsersMock).toHaveBeenCalledTimes(1);
   });
 });

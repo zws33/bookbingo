@@ -1,9 +1,23 @@
+import type { QueryDocumentSnapshot } from 'firebase-admin/firestore';
 import z from 'zod/v4';
-import { EMPTY_METADATA } from '@bookbingo/lib-types';
-import { log } from '@bookbingo/lib-util';
-import type { QueryDocumentSnapshot } from 'firebase/firestore';
+import { logWarning } from './observability.js';
 
-/** Structural, so no firebase type import is needed here. */
+/**
+ * Read-time schemas for stored documents. The only reader of Firestore is this
+ * package, so these describe every document the app has ever written, not just
+ * what it writes today.
+ *
+ * `EMPTY_METADATA` is written out rather than imported from
+ * `@bookbingo/lib-types`: a runtime import of a workspace package fails in the
+ * deployed function (see deploy-manifest.test.ts). Bad documents go to Cloud
+ * Logging rather than `@bookbingo/lib-util` for the same reason.
+ *
+ * The write contract stays separate, in books/schema.ts. Restating the read
+ * shape rather than deriving it from the write shape is what stops a new
+ * write field from turning every existing document into a read that throws.
+ */
+
+/** Structural, so both admin and client Timestamps satisfy it. */
 const FirestoreTimestamp = z.custom<{ toDate(): Date }>(
   (v) => typeof (v as { toDate?: unknown })?.toDate === 'function',
 );
@@ -19,21 +33,26 @@ const OptionalInstant = FirestoreTimestamp.nullish().transform((t) =>
 );
 
 /**
- * Read-time metadata: total by construction. Written out rather than derived
- * from the write contract in `functions/src/books/schema.ts`, so adding a
- * field there cannot introduce a read that throws.
- *
- * Per-field `.catch()` preserves partial data — one bad `thumbnailUrl` no
- * longer discards a good `pageCount`, where a single failing field would
- * otherwise make `mapValid` drop the whole book. toBook logs the thumbnail
- * case so those books can be found and backfilled. The object-level
- * `.default()` covers a document with no `metadata` at all, and `.catch()` on
- * top also covers a stored `null`, which `.default()` alone does not replace.
- *
  * Every fallback is a thunk. zod returns a `.catch()` value by reference and
  * only shallow-clones a `.default()` one, so a shared literal would hand the
- * same `categories` array to every recovered book and to the exported
- * EMPTY_METADATA that `createManualBook` sends as its default payload.
+ * same `categories` array to every recovered book.
+ */
+const emptyMetadata = () => ({
+  pageCount: null,
+  publishedDate: null,
+  categories: [] as string[],
+  language: null,
+  isbn: null,
+  thumbnailUrl: null,
+});
+
+/**
+ * Total by construction. Per-field `.catch()` preserves partial data — one bad
+ * `thumbnailUrl` (a legacy empty string, most commonly) must not discard a good
+ * `pageCount`, where a single failing field would otherwise make `mapValid`
+ * drop the whole book. The object-level `.default()` covers a document with no
+ * `metadata` at all, and `.catch()` on top also covers a stored `null`, which
+ * `.default()` alone does not replace.
  */
 const BookMetadataReadSchema = z
   .object({
@@ -44,8 +63,8 @@ const BookMetadataReadSchema = z
     isbn: z.string().trim().max(200).nullable().catch(null),
     thumbnailUrl: z.url().nullable().catch(null),
   })
-  .default(() => ({ ...EMPTY_METADATA, categories: [] }))
-  .catch(() => ({ ...EMPTY_METADATA, categories: [] }));
+  .default(emptyMetadata)
+  .catch(emptyMetadata);
 
 export const BookDocSchema = z.object({
   title: z.string(),
@@ -57,8 +76,6 @@ export const BookDocSchema = z.object({
 
 export const ReadingDocSchema = z.object({
   bookId: z.string().min(1),
-  bookTitle: z.string().optional(),
-  bookAuthor: z.string().optional(),
   tiles: z.array(z.string()),
   isFreebie: z.boolean(),
   readAt: ServerInstant,
@@ -76,15 +93,9 @@ export const TBREntryDocSchema = z.object({
 
 export const UserProfileDocSchema = z.object({
   // .default() alone only fires on a missing/undefined key; .catch() on top
-  // also replaces a stored `null` — the mapper it replaces used `?? 'User'`.
+  // also replaces a stored `null`.
   name: z.string().default('User').catch('User'),
   photoURL: z.string().nullish(),
-});
-
-export const AuthUserSchema = z.object({
-  uid: z.string().min(1),
-  displayName: z.string().nullable(),
-  photoURL: z.string().nullable(),
 });
 
 /**
@@ -101,7 +112,7 @@ export function mapValid<T>(
     try {
       out.push(map(doc));
     } catch (error) {
-      log.error(label, `skipped invalid document ${doc.ref.path}`, error);
+      logWarning('document.invalid', error, { label, path: doc.ref.path });
     }
   }
   return out;

@@ -2,24 +2,23 @@ import { describe, it, expect, vi } from 'vitest';
 import { useState } from 'react';
 import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { TILES, MAX_TILES_PER_BOOK } from '@bookbingo/lib-core';
 import { render } from '../testing/test-utils';
 import { TileSelector } from './TileSelector';
 
-// TileSelector is presentational: it renders framework-agnostic lib/core TILES
-// and reports selection changes through onChange. No Firebase, no hooks of its
-// own beyond local search state — so this file needs ZERO mocks. See
-// CONVENTIONS.md; BookForm.test.tsx is the reference example.
+// The catalog now arrives from the server through useTileCatalog, so that hook
+// is the one seam this file stubs. Everything else is props in, onChange out.
+// See CONVENTIONS.md; BookForm.test.tsx is the reference example.
+vi.mock('../hooks/useTileCatalog', async () => ({
+  useTileCatalog: (await import('../testing/fixtures')).tileCatalogStub,
+}));
+
+import {
+  MAX_TILES_PER_BOOK,
+  TILE,
+  TILE_CATALOG as CATALOG,
+} from '../testing/fixtures';
 
 type TileSelectorProps = Parameters<typeof TileSelector>[0];
-
-// Tile display names come from lib/core TILES; the component emits their ids.
-const TILE = {
-  reread: { id: 't01', name: 'unfinished reread' },
-  series: { id: 't02', name: 'part of a series' },
-  long: { id: 't03', name: '1000+ pages' },
-  short: { id: 't04', name: 'under 100 pages' },
-} as const;
 
 const tileButton = (name: string) => screen.getByRole('button', { name });
 
@@ -65,7 +64,7 @@ describe('TileSelector', () => {
     it('renders every assignable tile as a toggle button', () => {
       renderTileSelector();
 
-      expect(screen.getAllByRole('button')).toHaveLength(TILES.length);
+      expect(screen.getAllByRole('button')).toHaveLength(CATALOG.length);
       expect(tileButton(TILE.reread.name)).toBeInTheDocument();
       expect(tileButton(TILE.series.name)).toBeInTheDocument();
     });
@@ -195,7 +194,7 @@ describe('TileSelector', () => {
     it('moves a newly selected tile ahead of the unselected ones', async () => {
       const { user } = renderControlledTileSelector();
 
-      // TILE.short sits fourth in TILES order; selecting it should float it up.
+      // TILE.short sits fourth in catalog order; selecting it should float it up.
       await user.click(tileButton(TILE.short.name));
 
       expect(screen.getAllByRole('button')[0]).toHaveAccessibleName(

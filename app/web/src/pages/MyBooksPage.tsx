@@ -1,6 +1,7 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useCallback } from 'react';
+import type { Book } from '../types/schemas';
 import { useReadings } from '../hooks/useReadings';
-import { useBooks } from '../hooks/useBooks';
+import { useInvalidateReadings } from '../hooks/useInvalidateReadings';
 import { useToast } from '../lib/ToastContext';
 import { createReading } from '../data/readings';
 import { BookList } from '../components/BookList';
@@ -8,7 +9,6 @@ import { BookSearch } from '../components/BookSearch';
 import { ScoreDisplay } from '../components/ScoreDisplay';
 import { Dialog } from '../components/ui/index.js';
 import { BookForm, type BookFormData } from '../components/BookForm';
-import { getScoreBreakdown } from '@bookbingo/lib-core';
 import { log } from '@bookbingo/lib-util';
 import { ReadingFormForBook } from '../components/ReadingFormForBook';
 import { createManualBook } from '../lib/createManualBook';
@@ -19,7 +19,7 @@ interface MyBooksPageProps {
 
 type DialogState =
   | { kind: 'search' }
-  | { kind: 'readingForm'; bookId: string }
+  | { kind: 'readingForm'; book: Book }
   | { kind: 'manualEntry' }
   | null;
 
@@ -29,21 +29,19 @@ export function MyBooksPage({ userId }: MyBooksPageProps) {
   const { showSuccess, showError } = useToast();
   const {
     readings,
+    score,
     loading: readingsLoading,
     error: readingsError,
   } = useReadings(userId);
-  const { booksById, loading: booksLoading, error: booksError } = useBooks();
+  const invalidate = useInvalidateReadings(userId);
 
-  const loading = readingsLoading || booksLoading;
-  const error = readingsError || booksError;
+  const loading = readingsLoading;
+  const error = readingsError;
+  const scoreBreakdown = readings.length > 0 ? score : null;
 
-  const scoreBreakdown = useMemo(() => {
-    if (!readings || readings.length === 0) return null;
-    return getScoreBreakdown(readings);
-  }, [readings]);
-
-  const handleBookSelected = useCallback((bookId: string) => {
-    setDialog({ kind: 'readingForm', bookId });
+  // The search callable returns the whole book, so the form renders at once.
+  const handleBookSelected = useCallback((book: Book) => {
+    setDialog({ kind: 'readingForm', book });
   }, []);
 
   const handleAddModalClose = useCallback(() => {
@@ -56,12 +54,17 @@ export function MyBooksPage({ userId }: MyBooksPageProps) {
   const handleAddBook = async (data: BookFormData) => {
     setIsSubmitting(true);
     try {
-      const bookId = await createManualBook(
+      const book = await createManualBook(
         data.title,
         data.author,
         data.metadata,
       );
-      await createReading(userId, bookId, data.tiles, data.isFreebie);
+      await createReading({
+        bookId: book.id,
+        tiles: data.tiles,
+        isFreebie: data.isFreebie,
+      });
+      await invalidate();
       showSuccess('Book added successfully');
       handleAddModalClose();
     } catch (err) {
@@ -82,7 +85,12 @@ export function MyBooksPage({ userId }: MyBooksPageProps) {
     if (dialog?.kind !== 'readingForm') return;
     setIsSubmitting(true);
     try {
-      await createReading(userId, dialog.bookId, data.tiles, data.isFreebie);
+      await createReading({
+        bookId: dialog.book.id,
+        tiles: data.tiles,
+        isFreebie: data.isFreebie,
+      });
+      await invalidate();
       showSuccess('Book added successfully');
       handleAddModalClose();
     } catch (err) {
@@ -102,7 +110,6 @@ export function MyBooksPage({ userId }: MyBooksPageProps) {
         <BookList
           userId={userId}
           readings={readings}
-          booksById={booksById}
           loading={loading}
           error={error}
         />
@@ -141,8 +148,7 @@ export function MyBooksPage({ userId }: MyBooksPageProps) {
         )}
         {dialog?.kind === 'readingForm' && (
           <ReadingFormForBook
-            book={booksById.get(dialog.bookId)}
-            error={booksError}
+            book={dialog.book}
             onSubmit={submitReadingData}
             onCancel={handleAddModalClose}
             isSubmitting={isSubmitting}

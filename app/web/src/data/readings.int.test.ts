@@ -1,188 +1,170 @@
 /**
- * Integration tests for the readings repository against the Firestore emulator.
+ * Integration tests for the reading callables against the emulators.
  *
- * Requires the Firebase emulator to be running:
- *   pnpm --filter @bookbingo/web emulator:start
- *
- * Run with:
- *   pnpm --filter @bookbingo/web test:integration
+ * Run with: pnpm run test:integration (starts the emulators via firebase
+ * emulators:exec), or against a running emulator with
+ * pnpm --filter @bookbingo/web test:integration.
  */
-import { describe, it, expect, beforeAll, afterEach } from 'vitest';
+import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 import {
-  Timestamp,
-  collection,
-  deleteDoc,
-  doc,
-  getDoc,
-  setDoc,
-} from 'firebase/firestore';
-import { signInAnonymously } from 'firebase/auth';
-import { db, auth } from '../lib/firebase';
+  adminDb,
+  closeAdminApp,
+  deleteDocs,
+  seedBook,
+  signInTestUser,
+  signOutTestUser,
+} from '../testing/int';
 import {
   createReading,
   deleteReading,
-  getReadingsByUser,
+  listReadings,
   updateReading,
 } from './readings';
 
-// A fresh anonymous user per run keeps writes isolated from other suites.
-let TEST_USER_ID: string;
-// Ids written during a test, torn down afterward.
-const createdReadingIds: string[] = [];
+const TILE = { series: 't02', reread: 't01', long: 't03', short: 't04' };
 
-/** Write a reading doc directly, returning its generated id. */
-async function seedReading(fields: {
-  bookId: string;
-  tiles: string[];
-  isFreebie: boolean;
-  readAt: Date;
-  createdAt: Date;
-  updatedAt?: Date;
-}): Promise<string> {
-  const ref = doc(collection(db, 'users', TEST_USER_ID, 'readings'));
-  await setDoc(ref, {
-    bookId: fields.bookId,
-    tiles: fields.tiles,
-    isFreebie: fields.isFreebie,
-    readAt: Timestamp.fromDate(fields.readAt),
-    createdAt: Timestamp.fromDate(fields.createdAt),
-    ...(fields.updatedAt
-      ? { updatedAt: Timestamp.fromDate(fields.updatedAt) }
-      : {}),
-  });
-  createdReadingIds.push(ref.id);
-  return ref.id;
+let userId: string;
+const createdPaths: string[] = [];
+
+/** Tracks a reading for teardown and returns its id. */
+function track(readingId: string): string {
+  createdPaths.push(`users/${userId}/readings/${readingId}`);
+  return readingId;
 }
 
 beforeAll(async () => {
-  const cred = await signInAnonymously(auth);
-  TEST_USER_ID = cred.user.uid;
+  userId = await signInTestUser();
+  await seedBook('book-int-1');
+  await seedBook('book-int-2', { title: 'Emma', author: 'Jane Austen' });
+  createdPaths.push('books/book-int-1', 'books/book-int-2');
 });
 
 afterEach(async () => {
-  await Promise.all(
-    createdReadingIds.map((id) =>
-      deleteDoc(doc(db, 'users', TEST_USER_ID, 'readings', id)).catch(() => {}),
-    ),
-  );
-  createdReadingIds.length = 0;
+  const readings = await adminDb().collection(`users/${userId}/readings`).get();
+  await deleteDocs(readings.docs.map((doc) => doc.ref.path));
 });
 
-describe('getReadingsByUser integration (emulator)', () => {
-  it('returns readings ordered by readAt descending', async () => {
-    const older = new Date('2026-01-01T00:00:00Z');
-    const newer = new Date('2026-03-01T00:00:00Z');
-    const olderId = await seedReading({
-      bookId: 'book-older',
-      tiles: ['mystery'],
-      isFreebie: false,
-      readAt: older,
-      createdAt: older,
-    });
-    const newerId = await seedReading({
-      bookId: 'book-newer',
-      tiles: ['sci-fi'],
-      isFreebie: false,
-      readAt: newer,
-      createdAt: newer,
-    });
+afterAll(async () => {
+  await deleteDocs(['books/book-int-1', 'books/book-int-2']);
+  await signOutTestUser();
+  await closeAdminApp();
+});
 
-    const readings = await getReadingsByUser(TEST_USER_ID);
+describe.sequential('reading callables (emulator)', () => {
+  it('creates a reading and returns it with its book joined', async () => {
+    const { readingId } = await createReading({
+      bookId: 'book-int-1',
+      tiles: [TILE.series],
+      isFreebie: false,
+    });
+    track(readingId);
 
-    expect(readings.map((r) => r.id)).toEqual([newerId, olderId]);
+    const { readings, score } = await listReadings({ userId });
+
+    expect(readings).toHaveLength(1);
+    expect(readings[0]).toMatchObject({
+      id: readingId,
+      bookId: 'book-int-1',
+      bookTitle: 'Dune',
+      bookAuthor: 'Frank Herbert',
+      tiles: [TILE.series],
+      isFreebie: false,
+    });
+    expect(readings[0]?.bookMetadata.pageCount).toBe(412);
+    expect(readings[0]?.readAt).toBeInstanceOf(Date);
+    expect(score.totalBooks).toBe(1);
+    expect(score.score).toBeGreaterThan(0);
   });
 
-  it('converts Firestore Timestamps to Date and maps all fields', async () => {
-    const readAt = new Date('2026-02-15T12:00:00Z');
-    const createdAt = new Date('2026-02-10T08:00:00Z');
-    const updatedAt = new Date('2026-02-16T09:30:00Z');
-    const id = await seedReading({
-      bookId: 'book-1',
-      tiles: ['award-winner', 'debut'],
-      isFreebie: true,
-      readAt,
-      createdAt,
-      updatedAt,
-    });
-
-    const [reading] = await getReadingsByUser(TEST_USER_ID);
-
-    expect(reading).toEqual({
-      id,
-      bookId: 'book-1',
-      tiles: ['award-winner', 'debut'],
-      isFreebie: true,
-      readAt,
-      createdAt,
-      updatedAt,
-    });
-    expect(reading!.readAt).toBeInstanceOf(Date);
+  it('rejects a reading for a book that does not exist', async () => {
+    await expect(
+      createReading({ bookId: 'no-such-book', tiles: [], isFreebie: false }),
+    ).rejects.toMatchObject({ code: 'functions/not-found' });
   });
 
-  it('leaves updatedAt undefined when the field is absent', async () => {
-    await seedReading({
-      bookId: 'book-1',
+  it('rejects a fourth tile on a non-freebie', async () => {
+    await expect(
+      createReading({
+        bookId: 'book-int-1',
+        tiles: [TILE.series, TILE.reread, TILE.long, TILE.short],
+        isFreebie: false,
+      }),
+    ).rejects.toMatchObject({ code: 'functions/invalid-argument' });
+  });
+
+  it('rejects a tile that is not in the catalog', async () => {
+    await expect(
+      createReading({
+        bookId: 'book-int-1',
+        tiles: ['not-a-tile'],
+        isFreebie: false,
+      }),
+    ).rejects.toMatchObject({ code: 'functions/invalid-argument' });
+  });
+
+  // The rule lib/core stated but nothing ever enforced.
+  it('allows one freebie and rejects a second', async () => {
+    const first = await createReading({
+      bookId: 'book-int-1',
+      tiles: [TILE.series, TILE.reread, TILE.long, TILE.short],
+      isFreebie: true,
+    });
+    track(first.readingId);
+
+    await expect(
+      createReading({
+        bookId: 'book-int-2',
+        tiles: [TILE.series],
+        isFreebie: true,
+      }),
+    ).rejects.toMatchObject({ code: 'functions/failed-precondition' });
+  });
+
+  it('updates tiles and the book of an existing reading', async () => {
+    const { readingId } = await createReading({
+      bookId: 'book-int-1',
+      tiles: [TILE.series],
+      isFreebie: false,
+    });
+    track(readingId);
+
+    await updateReading({
+      readingId,
+      bookId: 'book-int-2',
+      tiles: [TILE.reread, TILE.long],
+      isFreebie: false,
+    });
+
+    const { readings } = await listReadings({ userId });
+    expect(readings[0]).toMatchObject({
+      bookId: 'book-int-2',
+      bookTitle: 'Emma',
+      tiles: [TILE.reread, TILE.long],
+    });
+    expect(readings[0]?.updatedAt).toBeInstanceOf(Date);
+  });
+
+  it('rejects an update to a reading id that is not the caller own', async () => {
+    await expect(
+      updateReading({
+        readingId: 'someone-elses-reading',
+        bookId: 'book-int-1',
+        tiles: [],
+        isFreebie: false,
+      }),
+    ).rejects.toMatchObject({ code: 'functions/not-found' });
+  });
+
+  it('deletes a reading', async () => {
+    const { readingId } = await createReading({
+      bookId: 'book-int-1',
       tiles: [],
       isFreebie: false,
-      readAt: new Date('2026-02-01T00:00:00Z'),
-      createdAt: new Date('2026-02-01T00:00:00Z'),
-      // no updatedAt
     });
 
-    const [reading] = await getReadingsByUser(TEST_USER_ID);
+    await deleteReading({ readingId });
 
-    expect(reading!.updatedAt).toBeUndefined();
-  });
-
-  it('returns an empty array when the user has no readings', async () => {
-    // A distinct, unseeded user id — no docs under its readings subcollection.
-    const readings = await getReadingsByUser(`${TEST_USER_ID}-empty`);
-    expect(readings).toEqual([]);
-  });
-});
-
-describe('reading writes integration (emulator)', () => {
-  // Readings store a bookId but Firestore does not enforce the reference, so
-  // these use literal ids rather than round-tripping through a real book write.
-  it('createReading writes the document and returns its id', async () => {
-    const id = await createReading(TEST_USER_ID, 'book-1', ['sci-fi'], false);
-    createdReadingIds.push(id);
-
-    const snap = await getDoc(doc(db, 'users', TEST_USER_ID, 'readings', id));
-    expect(snap.exists()).toBe(true);
-    const data = snap.data()!;
-    expect(data.bookId).toBe('book-1');
-    expect(data.tiles).toEqual(['sci-fi']);
-    expect(data.isFreebie).toBe(false);
-    expect(data.readAt).toBeTruthy();
-    expect(data.createdAt).toBeTruthy();
-  });
-
-  it('updateReading replaces bookId, tiles, isFreebie and sets updatedAt', async () => {
-    const id = await createReading(
-      TEST_USER_ID,
-      'book-old',
-      ['mystery'],
-      false,
-    );
-    createdReadingIds.push(id);
-
-    await updateReading(TEST_USER_ID, id, 'book-new', ['sci-fi'], true);
-
-    const snap = await getDoc(doc(db, 'users', TEST_USER_ID, 'readings', id));
-    const data = snap.data()!;
-    expect(data.bookId).toBe('book-new');
-    expect(data.tiles).toEqual(['sci-fi']);
-    expect(data.isFreebie).toBe(true);
-    expect(data.updatedAt).toBeTruthy();
-  });
-
-  it('deleteReading removes the document', async () => {
-    const id = await createReading(TEST_USER_ID, 'book-1', [], false);
-
-    await deleteReading(TEST_USER_ID, id);
-
-    const snap = await getDoc(doc(db, 'users', TEST_USER_ID, 'readings', id));
-    expect(snap.exists()).toBe(false);
+    const { readings } = await listReadings({ userId });
+    expect(readings).toHaveLength(0);
   });
 });

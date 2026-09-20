@@ -36,8 +36,9 @@ Approximates the SQL sketch in `docs/product-model-brainstorm.md` as a Firestore
 ## Files to change
 
 - `lib/types/src/index.ts` — add `Challenge`, `ChallengeConfig`, `Membership`, `Tag`; add `challengeId`, `userId` to `Reading`; keep `tiles` as a deprecated alias during migration (Parallel Change).
-- `lib/core/src/validation.ts` — `MAX_TILES_PER_BOOK` constant → cap passed in from `ChallengeConfig`; `canAssignTile` validates against the challenge's tag set, not global `TILES`.
-- `lib/core/src/scoring.ts` — **no change** (vocabulary-agnostic).
+- `functions/src/domain/validation.ts` — `MAX_TILES_PER_BOOK` constant → cap passed in from `ChallengeConfig`; `canAssignTile` validates against the challenge's tag set, not global `TILES`.
+- `functions/src/domain/scoring.ts` — **no change** (vocabulary-agnostic).
+- `functions/src/readings/`, `functions/src/tbr/` — the reading paths are server-side now, so the migration changes handlers rather than client queries.
 - `firestore.rules` — new `/challenges/**` matchers; membership-gated reads/writes; `request.resource.data.userId == request.auth.uid` on reading writes.
 - `firestore.indexes.json` — collectionGroup index on `readings.userId` (a user's readings across challenges); `challengeId` not needed (path-scoped).
 - `app/web/src/data/*` — repoint reading paths from `/users/{uid}/readings` to `/challenges/{cid}/readings`; add challenge context/selection.

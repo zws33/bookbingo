@@ -1,5 +1,5 @@
 import type { BookMetadata } from '@bookbingo/lib-types';
-import { getTileById } from '@bookbingo/lib-core';
+import { useTileCatalog } from '../hooks/useTileCatalog';
 
 interface BookRowProps {
   bookTitle: string;
@@ -22,6 +22,7 @@ export function BookRow({
   onClick,
   readOnly,
 }: BookRowProps) {
+  const { getTileById } = useTileCatalog();
   const visibleTiles = tiles.slice(0, MAX_DOTS);
   const overflow = tiles.length - MAX_DOTS;
   const thumbnailUrl = metadata?.thumbnailUrl ?? null;

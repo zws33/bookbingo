@@ -1,18 +1,16 @@
 import { useMemo, useState } from 'react';
-import { TILES, getTileById } from '@bookbingo/lib-core';
-import type { Reading, Book } from '@bookbingo/lib-types';
+import type { Reading } from '../types/schemas';
+import { useTileCatalog } from '../hooks/useTileCatalog';
 import { BoardCell } from './BoardCell';
 import { Dialog } from './ui';
 
 interface BingoBoardProps {
   readings: Reading[];
-  booksById: Map<string, Book>;
 }
 
-const UNKNOWN_BOOK = { title: 'Unknown Book', author: 'Unknown Author' };
-
-export function BingoBoard({ readings, booksById }: BingoBoardProps) {
+export function BingoBoard({ readings }: BingoBoardProps) {
   const [selectedTileId, setSelectedTileId] = useState<string | null>(null);
+  const { tiles, getTileById } = useTileCatalog();
 
   const tileReadingCounts = useMemo(() => {
     const map = new Map<string, number>();
@@ -34,7 +32,7 @@ export function BingoBoard({ readings, booksById }: BingoBoardProps) {
     <>
       <div className="overflow-x-auto p-1 sm:p-2 mx-auto bg-surface-container-high rounded-lg shadow-inner">
         <div className="grid grid-cols-3 sm:grid-cols-7 gap-1 sm:gap-2">
-          {TILES.map((tile) => (
+          {tiles.map((tile) => (
             <BoardCell
               key={tile.id}
               tileName={tile.name}
@@ -55,19 +53,16 @@ export function BingoBoard({ readings, booksById }: BingoBoardProps) {
           </p>
         ) : (
           <ul className="divide-y divide-outline-variant">
-            {selectedBooks.map((reading) => {
-              const book = booksById.get(reading.bookId) ?? UNKNOWN_BOOK;
-              return (
-                <li key={reading.id} className="py-2">
-                  <div className="font-medium text-on-surface">
-                    {book.title}
-                  </div>
-                  <div className="text-sm text-on-surface-variant">
-                    {book.author}
-                  </div>
-                </li>
-              );
-            })}
+            {selectedBooks.map((reading) => (
+              <li key={reading.id} className="py-2">
+                <div className="font-medium text-on-surface">
+                  {reading.bookTitle}
+                </div>
+                <div className="text-sm text-on-surface-variant">
+                  {reading.bookAuthor}
+                </div>
+              </li>
+            ))}
           </ul>
         )}
       </Dialog>

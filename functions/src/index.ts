@@ -1,3 +1,4 @@
+import { setGlobalOptions } from 'firebase-functions/v2';
 import { onCall } from 'firebase-functions/v2/https';
 import { defineSecret } from 'firebase-functions/params';
 import { submitFeedbackHandler, GITHUB_API_URL } from './feedback/handler.js';
@@ -6,6 +7,33 @@ import {
   searchBooksHandler,
 } from './books/handler.js';
 import { createManualBookHandler } from './books/manual.js';
+import { getBoardConfigHandler } from './config/handler.js';
+import {
+  getUserProfileHandler,
+  listUsersHandler,
+  syncMyProfileHandler,
+} from './users/handler.js';
+import {
+  createReadingHandler,
+  deleteReadingHandler,
+  getLeaderboardHandler,
+  listReadingsHandler,
+  updateReadingHandler,
+} from './readings/handler.js';
+import { getLibraryHandler } from './library/handler.js';
+import {
+  createTBREntryHandler,
+  deleteTBREntryHandler,
+  listMyTBRHandler,
+  promoteTBREntryHandler,
+  updateTBREntryHandler,
+} from './tbr/handler.js';
+
+// Colocated with Firestore (firebase.json sets the database to
+// northamerica-northeast1). The default, us-central1, puts a cross-region hop
+// on every document read a callable makes. The client must ask for the same
+// region — see FUNCTIONS_REGION in app/web/src/lib/firebase.ts.
+setGlobalOptions({ region: 'northamerica-northeast1' });
 
 const githubPat = defineSecret('GITHUB_PAT');
 
@@ -27,4 +55,56 @@ export const searchBooks = onCall({ invoker: 'public' }, searchBooksHandler);
 export const createManualBook = onCall(
   { invoker: 'public' },
   createManualBookHandler,
+);
+
+export const getBoardConfig = onCall(
+  { invoker: 'public' },
+  getBoardConfigHandler,
+);
+
+export const listUsers = onCall({ invoker: 'public' }, listUsersHandler);
+export const getUserProfile = onCall(
+  { invoker: 'public' },
+  getUserProfileHandler,
+);
+export const syncMyProfile = onCall(
+  { invoker: 'public' },
+  syncMyProfileHandler,
+);
+
+export const listReadings = onCall({ invoker: 'public' }, listReadingsHandler);
+export const getLibrary = onCall({ invoker: 'public' }, getLibraryHandler);
+export const getLeaderboard = onCall(
+  { invoker: 'public' },
+  getLeaderboardHandler,
+);
+export const createReading = onCall(
+  { invoker: 'public' },
+  createReadingHandler,
+);
+export const updateReading = onCall(
+  { invoker: 'public' },
+  updateReadingHandler,
+);
+export const deleteReading = onCall(
+  { invoker: 'public' },
+  deleteReadingHandler,
+);
+
+export const listMyTBR = onCall({ invoker: 'public' }, listMyTBRHandler);
+export const createTBREntry = onCall(
+  { invoker: 'public' },
+  createTBREntryHandler,
+);
+export const updateTBREntry = onCall(
+  { invoker: 'public' },
+  updateTBREntryHandler,
+);
+export const deleteTBREntry = onCall(
+  { invoker: 'public' },
+  deleteTBREntryHandler,
+);
+export const promoteTBREntry = onCall(
+  { invoker: 'public' },
+  promoteTBREntryHandler,
 );

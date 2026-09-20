@@ -16,12 +16,36 @@ beforeEach(() => {
 });
 
 describe('createManualBook', () => {
-  it('returns the bookId from a valid response', async () => {
-    mockHttpsCallable.mockResolvedValue({ data: { bookId: 'abc123' } });
+  it('returns the created book', async () => {
+    mockHttpsCallable.mockResolvedValue({
+      data: {
+        id: 'abc123',
+        title: 'Dune',
+        author: 'Frank Herbert',
+        metadata: {
+          pageCount: 412,
+          publishedDate: '1965',
+          categories: [],
+          language: 'en',
+          isbn: null,
+          thumbnailUrl: null,
+        },
+      },
+    });
 
-    await expect(createManualBook('Dune', 'Frank Herbert')).resolves.toBe(
-      'abc123',
-    );
+    await expect(createManualBook('Dune', 'Frank Herbert')).resolves.toEqual({
+      id: 'abc123',
+      title: 'Dune',
+      author: 'Frank Herbert',
+      metadata: {
+        pageCount: 412,
+        publishedDate: '1965',
+        categories: [],
+        language: 'en',
+        isbn: null,
+        thumbnailUrl: null,
+      },
+    });
     expect(mockHttpsCallable).toHaveBeenCalledWith({
       title: 'Dune',
       author: 'Frank Herbert',
@@ -37,7 +61,21 @@ describe('createManualBook', () => {
   });
 
   it('passes through explicit metadata when provided', async () => {
-    mockHttpsCallable.mockResolvedValue({ data: { bookId: 'abc123' } });
+    mockHttpsCallable.mockResolvedValue({
+      data: {
+        id: 'abc123',
+        title: 'Dune',
+        author: 'Frank Herbert',
+        metadata: {
+          pageCount: 412,
+          publishedDate: '1965',
+          categories: [],
+          language: 'en',
+          isbn: null,
+          thumbnailUrl: null,
+        },
+      },
+    });
     const metadata = {
       pageCount: 412,
       publishedDate: '1965',
@@ -57,7 +95,7 @@ describe('createManualBook', () => {
   });
 
   it('rejects a malformed callable response', async () => {
-    mockHttpsCallable.mockResolvedValue({ data: {} });
+    mockHttpsCallable.mockResolvedValue({ data: { title: 'no id' } });
 
     await expect(createManualBook('Dune', 'Frank Herbert')).rejects.toThrow();
   });

@@ -1,105 +1,172 @@
 /**
- * Integration tests for the TBR repository against the Firestore emulator.
+ * Integration tests for the TBR callables against the emulators.
  *
- * Requires the Firebase emulator to be running:
- *   pnpm --filter @bookbingo/web emulator:start
- *
- * Run with:
- *   pnpm --filter @bookbingo/web test:integration
+ * Run with: pnpm run test:integration.
  */
-import { describe, it, expect, beforeAll, afterEach } from 'vitest';
+import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 import {
-  deleteDoc,
-  doc,
-  getDoc,
-  getDocs,
-  collection,
-} from 'firebase/firestore';
-import { signInAnonymously } from 'firebase/auth';
-import { db, auth } from '../lib/firebase';
+  adminDb,
+  closeAdminApp,
+  deleteDocs,
+  seedBook,
+  signInTestUser,
+  signOutTestUser,
+} from '../testing/int';
 import {
   createTBREntry,
   deleteTBREntry,
+  listMyTBR,
   promoteTBREntry,
   updateTBREntry,
 } from './tbr';
+import { listReadings } from './readings';
 
-// A fresh anonymous user per run keeps writes isolated from other suites.
-let TEST_USER_ID: string;
+const TILE = { series: 't02', reread: 't01', long: 't03', short: 't04' };
+
+let userId: string;
 
 beforeAll(async () => {
-  const cred = await signInAnonymously(auth);
-  TEST_USER_ID = cred.user.uid;
+  userId = await signInTestUser();
+  await seedBook('book-tbr-1');
 });
 
-// Both subcollections are cleared wholesale — promoteTBREntry generates a
-// reading id the test never sees until it returns, and a failed batch would
-// leave either side behind.
 afterEach(async () => {
-  for (const name of ['tbr', 'readings']) {
-    const snap = await getDocs(collection(db, 'users', TEST_USER_ID, name));
-    await Promise.all(snap.docs.map((d) => deleteDoc(d.ref).catch(() => {})));
+  for (const path of [`users/${userId}/tbr`, `users/${userId}/readings`]) {
+    const docs = await adminDb().collection(path).get();
+    await deleteDocs(docs.docs.map((doc) => doc.ref.path));
   }
 });
 
-describe('TBR writes integration (emulator)', () => {
-  it('createTBREntry writes the entry and omits blank notes', async () => {
-    const id = await createTBREntry(TEST_USER_ID, 'book-1', ['sci-fi'], '  ');
+afterAll(async () => {
+  await deleteDocs(['books/book-tbr-1']);
+  await signOutTestUser();
+  await closeAdminApp();
+});
 
-    const snap = await getDoc(doc(db, 'users', TEST_USER_ID, 'tbr', id));
-    expect(snap.exists()).toBe(true);
-    const data = snap.data()!;
-    expect(data.bookId).toBe('book-1');
-    expect(data.plannedTiles).toEqual(['sci-fi']);
-    expect(data.notes).toBeUndefined();
-    expect(data.addedAt).toBeTruthy();
+describe.sequential('TBR callables (emulator)', () => {
+  it('creates an entry and returns it with its book joined', async () => {
+    const { tbrId } = await createTBREntry({
+      bookId: 'book-tbr-1',
+      plannedTiles: [TILE.series],
+      notes: 'borrowed from the library',
+    });
+
+    const entries = await listMyTBR();
+
+    expect(entries).toHaveLength(1);
+    expect(entries[0]).toMatchObject({
+      id: tbrId,
+      bookId: 'book-tbr-1',
+      bookTitle: 'Dune',
+      bookAuthor: 'Frank Herbert',
+      plannedTiles: [TILE.series],
+      notes: 'borrowed from the library',
+    });
+    expect(entries[0]?.addedAt).toBeInstanceOf(Date);
   });
 
-  it('updateTBREntry removes the notes field when cleared', async () => {
-    const id = await createTBREntry(TEST_USER_ID, 'book-1', [], 'a note');
-
-    await updateTBREntry(TEST_USER_ID, id, ['mystery'], '');
-
-    const snap = await getDoc(doc(db, 'users', TEST_USER_ID, 'tbr', id));
-    const data = snap.data()!;
-    expect(data.plannedTiles).toEqual(['mystery']);
-    // deleteField() removes the key rather than storing null.
-    expect('notes' in data).toBe(false);
-    expect(data.updatedAt).toBeTruthy();
+  // Without this check the entry would be written, and listMyTBR would then
+  // fail for the whole list with no way to delete the row from the UI.
+  it('rejects an entry for a book that does not exist', async () => {
+    await expect(
+      createTBREntry({ bookId: 'no-such-book', plannedTiles: [] }),
+    ).rejects.toMatchObject({ code: 'functions/not-found' });
   });
 
-  it('deleteTBREntry removes the document', async () => {
-    const id = await createTBREntry(TEST_USER_ID, 'book-1', []);
+  // A plan is not a reading, so the three-tile cap does not apply yet.
+  it('accepts more planned tiles than a reading may carry', async () => {
+    const { tbrId } = await createTBREntry({
+      bookId: 'book-tbr-1',
+      plannedTiles: [TILE.series, TILE.reread, TILE.long, TILE.short],
+    });
 
-    await deleteTBREntry(TEST_USER_ID, id);
-
-    const snap = await getDoc(doc(db, 'users', TEST_USER_ID, 'tbr', id));
-    expect(snap.exists()).toBe(false);
+    expect(tbrId).toMatch(/\S+/);
   });
 
-  it('promoteTBREntry creates the reading and removes the entry atomically', async () => {
-    const tbrId = await createTBREntry(TEST_USER_ID, 'book-1', ['sci-fi']);
+  it('rejects a planned tile that is not in the catalog', async () => {
+    await expect(
+      createTBREntry({ bookId: 'book-tbr-1', plannedTiles: ['not-a-tile'] }),
+    ).rejects.toMatchObject({ code: 'functions/invalid-argument' });
+  });
 
-    const readingId = await promoteTBREntry(
-      TEST_USER_ID,
+  it('clears the note when an update omits it', async () => {
+    const { tbrId } = await createTBREntry({
+      bookId: 'book-tbr-1',
+      plannedTiles: [],
+      notes: 'to remove',
+    });
+
+    await updateTBREntry({ tbrId, plannedTiles: [TILE.reread] });
+
+    const [entry] = await listMyTBR();
+    expect(entry?.notes).toBeUndefined();
+    expect(entry?.plannedTiles).toEqual([TILE.reread]);
+  });
+
+  it('deletes an entry', async () => {
+    const { tbrId } = await createTBREntry({
+      bookId: 'book-tbr-1',
+      plannedTiles: [],
+    });
+
+    await deleteTBREntry({ tbrId });
+
+    expect(await listMyTBR()).toHaveLength(0);
+  });
+
+  it('promotes an entry into a reading that keeps its id', async () => {
+    const { tbrId } = await createTBREntry({
+      bookId: 'book-tbr-1',
+      plannedTiles: [TILE.series],
+    });
+
+    const { readingId } = await promoteTBREntry({
       tbrId,
-      'book-1',
-      ['sci-fi'],
-      true,
-    );
+      tiles: [TILE.series],
+      isFreebie: false,
+    });
 
-    const reading = await getDoc(
-      doc(db, 'users', TEST_USER_ID, 'readings', readingId),
-    );
-    expect(reading.exists()).toBe(true);
-    const data = reading.data()!;
-    expect(data.bookId).toBe('book-1');
-    expect(data.tiles).toEqual(['sci-fi']);
-    expect(data.isFreebie).toBe(true);
-    expect(data.readAt).toBeTruthy();
-    expect(data.createdAt).toBeTruthy();
+    expect(readingId).toBe(tbrId);
+    expect(await listMyTBR()).toHaveLength(0);
 
-    const entry = await getDoc(doc(db, 'users', TEST_USER_ID, 'tbr', tbrId));
-    expect(entry.exists()).toBe(false);
+    const { readings } = await listReadings({ userId });
+    expect(readings).toHaveLength(1);
+    expect(readings[0]).toMatchObject({
+      id: tbrId,
+      bookId: 'book-tbr-1',
+      bookTitle: 'Dune',
+      tiles: [TILE.series],
+    });
+  });
+
+  // A promote whose response is lost leaves the user retrying. The retry must
+  // return the reading that was already written, not "entry no longer exists".
+  it('returns the same reading when a promote is retried', async () => {
+    const { tbrId } = await createTBREntry({
+      bookId: 'book-tbr-1',
+      plannedTiles: [TILE.series],
+    });
+
+    const first = await promoteTBREntry({
+      tbrId,
+      tiles: [TILE.series],
+      isFreebie: false,
+    });
+    const retry = await promoteTBREntry({
+      tbrId,
+      tiles: [TILE.series],
+      isFreebie: false,
+    });
+
+    expect(retry.readingId).toBe(first.readingId);
+
+    const { readings } = await listReadings({ userId });
+    expect(readings).toHaveLength(1);
+  });
+
+  it('reports a promote of an id that never existed as not-found', async () => {
+    await expect(
+      promoteTBREntry({ tbrId: 'never-existed', tiles: [], isFreebie: false }),
+    ).rejects.toMatchObject({ code: 'functions/not-found' });
   });
 });

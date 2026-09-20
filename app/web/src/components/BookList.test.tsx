@@ -1,58 +1,39 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import type { Book, Reading } from '@bookbingo/lib-types';
-import { EMPTY_METADATA } from '@bookbingo/lib-types';
 import { render } from '../testing/test-utils';
+import { makeReading, TILE } from '../testing/fixtures';
 import { BookList } from './BookList';
 
-// Mock only the I/O boundary — the Firestore-backed repository layer. BookList
-// is otherwise props-driven (readings + booksById are passed in), so nothing
-// else needs stubbing. We assert the contract each repository call must satisfy.
+// Mock only the I/O seams: the reading writes, and the two hooks that fetch
+// through callables. BookList is otherwise props-driven (readings are passed
+// in), so nothing else needs stubbing. We assert the contract each call must
+// satisfy.
 vi.mock('../data/readings', () => ({
   updateReading: vi.fn(),
   deleteReading: vi.fn(),
 }));
 
-vi.mock('src/data/books.js', () => ({
-  getBooksById: vi.fn(),
+vi.mock('../hooks/useTileCatalog', async () => ({
+  useTileCatalog: (await import('../testing/fixtures')).tileCatalogStub,
 }));
 
 import { updateReading, deleteReading } from '../data/readings';
-import { getBooksById } from 'src/data/books.js';
 
 const updateReadingMock = vi.mocked(updateReading);
 const deleteReadingMock = vi.mocked(deleteReading);
-const getBooksByIdMock = vi.mocked(getBooksById);
 
-const BOOK: Book = {
-  id: 'book-1',
-  title: 'Dune',
-  author: 'Frank Herbert',
-  metadata: EMPTY_METADATA,
-};
-
-const READING: Reading = {
-  id: 'reading-1',
-  bookId: 'book-1',
+// Readings arrive with their book already joined, so the list needs no book
+// lookup of its own.
+const READING = makeReading({
   bookTitle: 'Dune',
   bookAuthor: 'Frank Herbert',
-  tiles: ['t02'], // "part of a series"
-  isFreebie: false,
-  readAt: new Date('2026-01-01'),
-  createdAt: new Date('2026-01-01'),
-};
+  tiles: [TILE.series.id],
+});
 
 function renderBookList() {
   const user = userEvent.setup();
-  render(
-    <BookList
-      userId="user-1"
-      readings={[READING]}
-      booksById={new Map([[BOOK.id, BOOK]])}
-      loading={false}
-    />,
-  );
+  render(<BookList userId="user-1" readings={[READING]} loading={false} />);
   return { user };
 }
 
@@ -63,7 +44,6 @@ describe('BookList edit flow', () => {
     vi.clearAllMocks();
     updateReadingMock.mockResolvedValue(undefined);
     deleteReadingMock.mockResolvedValue(undefined);
-    getBooksByIdMock.mockResolvedValue([BOOK]);
   });
 
   it('opens the edit dialog with identity locked when a book is clicked', async () => {
@@ -91,13 +71,12 @@ describe('BookList edit flow', () => {
     );
 
     await waitFor(() => {
-      expect(updateReadingMock).toHaveBeenCalledWith(
-        'user-1',
-        'reading-1',
-        'book-1',
-        ['t02', 't01'],
-        false,
-      );
+      expect(updateReadingMock).toHaveBeenCalledWith({
+        readingId: 'reading-1',
+        bookId: 'book-1',
+        tiles: [TILE.series.id, TILE.reread.id],
+        isFreebie: false,
+      });
     });
   });
 
@@ -112,7 +91,9 @@ describe('BookList edit flow', () => {
     await user.click(screen.getByRole('button', { name: 'Delete' }));
 
     await waitFor(() => {
-      expect(deleteReadingMock).toHaveBeenCalledWith('user-1', 'reading-1');
+      expect(deleteReadingMock).toHaveBeenCalledWith({
+        readingId: 'reading-1',
+      });
     });
   });
 });

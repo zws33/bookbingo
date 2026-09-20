@@ -1,5 +1,5 @@
-import { useState, useMemo, useEffect } from 'react';
-import type { Reading, Book } from '@bookbingo/lib-types';
+import { useState, useMemo } from 'react';
+import type { Reading } from '../types/schemas';
 import { BookCard } from './BookCard';
 import { BookRow } from './BookRow';
 import { Dialog, AlertDialog, ToggleGroup } from './ui/index.js';
@@ -10,23 +10,19 @@ import { useToast } from '../lib/ToastContext';
 import { updateReading, deleteReading } from '../data/readings';
 import { log } from '@bookbingo/lib-util';
 import { PageStatus } from './PageStatus';
-import { getBooksById } from 'src/data/books.js';
+import { useInvalidateReadings } from '../hooks/useInvalidateReadings';
 
 interface BookListProps {
   userId: string;
   readings: Reading[];
-  booksById: Map<string, Book>;
   loading: boolean;
   error?: Error | undefined;
   readOnly?: boolean;
 }
 
-const UNKNOWN_BOOK = { title: 'Unknown Book', author: 'Unknown Author' };
-
 export function BookList({
   userId,
   readings,
-  booksById,
   loading,
   error,
   readOnly = false,
@@ -38,52 +34,25 @@ export function BookList({
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const { showSuccess, showError: showErrorToast } = useToast();
 
-  const [readingsWithBook, setReadingsWithBook] = useState<
-    (Reading & { bookThumbnailUrl: string | null })[]
-  >([]);
-
-  useEffect(() => {
-    let ignore = false;
-    async function getBooks() {
-      const bookIds = readings.map((reading) => reading.bookId);
-      const books = await getBooksById(bookIds);
-      const booksMap = new Map(books.map((b) => [b.id, b]));
-      if (!ignore) {
-        setReadingsWithBook(
-          readings.map((r) => ({
-            ...r,
-            bookThumbnailUrl:
-              booksMap.get(r.bookId)?.metadata.thumbnailUrl ?? null,
-          })),
-        );
-      }
-    }
-    getBooks();
-
-    return () => {
-      ignore = true;
-    };
-  }, [readings]);
+  const invalidateReadings = useInvalidateReadings(userId);
 
   const filteredReadings = useMemo(() => {
-    if (!authorFilter.trim()) return readingsWithBook;
+    if (!authorFilter.trim()) return readings;
     const filter = authorFilter.toLowerCase();
-    return readingsWithBook.filter((r) => {
-      return r.bookAuthor?.toLowerCase().includes(filter);
-    });
-  }, [readingsWithBook, authorFilter]);
+    return readings.filter((r) => r.bookAuthor.toLowerCase().includes(filter));
+  }, [readings, authorFilter]);
 
   const handleEdit = async (data: BookFormData) => {
     if (!selectedReading) return;
     setIsSubmitting(true);
     try {
-      await updateReading(
-        userId,
-        selectedReading.id,
-        selectedReading.bookId,
-        data.tiles,
-        data.isFreebie,
-      );
+      await updateReading({
+        readingId: selectedReading.id,
+        bookId: selectedReading.bookId,
+        tiles: data.tiles,
+        isFreebie: data.isFreebie,
+      });
+      await invalidateReadings();
       showSuccess('Book updated successfully');
       setSelectedReading(null);
     } catch (err) {
@@ -98,7 +67,8 @@ export function BookList({
     if (!selectedReading) return;
     setIsSubmitting(true);
     try {
-      await deleteReading(userId, selectedReading.id);
+      await deleteReading({ readingId: selectedReading.id });
+      await invalidateReadings();
       showSuccess('Book deleted successfully');
       setShowDeleteConfirm(false);
       setSelectedReading(null);
@@ -114,10 +84,10 @@ export function BookList({
     return <PageStatus loading={loading} error={error} />;
   }
 
-  const selectedBookData = selectedReading
-    ? booksById.get(selectedReading.bookId)
-    : undefined;
-  const selectedBook = selectedBookData ?? UNKNOWN_BOOK;
+  const selectedBook = {
+    title: selectedReading?.bookTitle ?? '',
+    author: selectedReading?.bookAuthor ?? '',
+  };
 
   return (
     <div className="space-y-4">
@@ -189,9 +159,9 @@ export function BookList({
             return (
               <BookCard
                 key={reading.id}
-                bookTitle={reading?.bookTitle ?? 'Unknown Book'}
-                bookAuthor={reading?.bookAuthor ?? 'Unknown Author'}
-                thumbnailUrl={reading.bookThumbnailUrl}
+                bookTitle={reading.bookTitle}
+                bookAuthor={reading.bookAuthor}
+                thumbnailUrl={reading.bookMetadata.thumbnailUrl}
                 tiles={reading.tiles}
                 onClick={() => setSelectedReading(reading)}
                 readOnly={readOnly}
@@ -202,13 +172,12 @@ export function BookList({
       ) : (
         <div className="divide-y divide-outline-variant bg-surface-container-lowest rounded-lg shadow">
           {filteredReadings.map((reading) => {
-            const book = booksById.get(reading.bookId);
             return (
               <BookRow
                 key={reading.id}
-                bookTitle={book?.title ?? 'Unknown Book'}
-                bookAuthor={book?.author ?? 'Unknown Author'}
-                metadata={book?.metadata}
+                bookTitle={reading.bookTitle}
+                bookAuthor={reading.bookAuthor}
+                metadata={reading.bookMetadata}
                 tiles={reading.tiles}
                 isFreebie={reading.isFreebie}
                 onClick={() => setSelectedReading(reading)}

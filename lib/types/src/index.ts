@@ -54,50 +54,6 @@ export interface Book {
 }
 
 // =============================================================================
-// Reading Types
-// =============================================================================
-
-/**
- * A user's reading of a book (Firestore: /users/{userId}/readings/{readingId}).
- * Links a user to a book with user-specific tile assignments.
- */
-export interface Reading {
-  id: string;
-  bookId: string;
-  /** Legacy field for Parallel Change migration */
-  bookTitle?: string;
-  /** Legacy field for Parallel Change migration */
-  bookAuthor?: string;
-  /** Tile IDs assigned to this reading (max 3 unless freebie) */
-  tiles: string[];
-  /** Freebie readings can have unlimited tile assignments */
-  isFreebie: boolean;
-  readAt: Date;
-  createdAt: Date;
-  updatedAt?: Date;
-}
-
-// =============================================================================
-// TBR Types
-// =============================================================================
-
-/**
- * A planned reading entry (Firestore: /users/{userId}/tbr/{tbrId}).
- * Represents a book the user intends to read, with optional planned tile assignments.
- * Never contributes to scoring — only completed Readings do.
- */
-export interface TBREntry {
-  id: string;
-  bookId: string;
-  /** Tile IDs the user plans to assign when they log this as read */
-  plannedTiles: string[];
-  /** Optional personal note */
-  notes?: string;
-  addedAt: Date;
-  updatedAt?: Date;
-}
-
-// =============================================================================
 // Scoring Types
 // =============================================================================
 

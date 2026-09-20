@@ -1,5 +1,4 @@
 import { HttpsError, type CallableRequest } from 'firebase-functions/v2/https';
-import z from 'zod/v4';
 import type {
   ProviderBookDetails,
   BookProvider,
@@ -10,30 +9,20 @@ import { OpenLibraryProvider } from './providers/open-library.js';
 import { deriveBookId } from './bookIdentity.js';
 import { createBookIfAbsent } from './store.js';
 import { logEvent, logFailure } from '../observability.js';
+import { parseRequest, requireAuth } from '../callable.js';
 import {
   BookSearchQuerySchema,
   GetBookDetailsRequestSchema,
 } from './schema.js';
-import type { BookMetadata } from '@bookbingo/lib-types';
+import type { Book, BookMetadata } from '@bookbingo/lib-types';
 
 const provider: BookProvider = new OpenLibraryProvider();
 
 export async function searchBooksHandler(
   request: CallableRequest<unknown>,
 ): Promise<ProviderSearchResult[]> {
-  if (!request.auth) {
-    throw new HttpsError(
-      'unauthenticated',
-      'Must be signed in to search for books.',
-    );
-  }
-
-  const parsed = BookSearchQuerySchema.safeParse(request.data);
-  if (!parsed.success) {
-    throw new HttpsError('invalid-argument', z.prettifyError(parsed.error));
-  }
-  const { q } = parsed.data;
-  const uid = request.auth.uid;
+  const { uid } = requireAuth(request, 'search for books');
+  const { q } = parseRequest(BookSearchQuerySchema, request.data);
   const startedAt = Date.now();
 
   try {
@@ -55,23 +44,21 @@ export async function searchBooksHandler(
   }
 }
 
+/**
+ * Ensures the catalog book exists in `/books` and returns it whole.
+ *
+ * The client renders the book straight from this response — the add form needs
+ * a title, author and thumbnail, and this call already has all three. Returning
+ * only an id would mean a second round trip to read back what was just written.
+ */
 export async function fetchBookDetailsHandler(
   request: CallableRequest<unknown>,
-): Promise<{ bookId: string; title: string; author: string }> {
-  if (!request.auth) {
-    throw new HttpsError(
-      'unauthenticated',
-      'Must be signed in to fetch book details.',
-    );
-  }
-
-  const parsed = GetBookDetailsRequestSchema.safeParse(request.data);
-  if (!parsed.success) {
-    throw new HttpsError('invalid-argument', z.prettifyError(parsed.error));
-  }
-  const externalId = parsed.data.externalId;
-
-  const uid = request.auth.uid;
+): Promise<Book> {
+  const { uid } = requireAuth(request, 'fetch book details');
+  const { externalId } = parseRequest(
+    GetBookDetailsRequestSchema,
+    request.data,
+  );
   const startedAt = Date.now();
 
   let bookDetails: ProviderBookDetails;
@@ -122,10 +109,12 @@ export async function fetchBookDetailsHandler(
     hasPageCount: bookDetails.pageCount !== null,
     durationMs: Date.now() - startedAt,
   });
+  const { metadata } = toBookData(bookDetails);
   return {
-    bookId: written.bookId,
-    title: bookDetails.title,
-    author: bookDetails.author,
+    id: written.bookId,
+    title: bookDetails.title.trim(),
+    author: bookDetails.author.trim(),
+    metadata,
   };
 }
 

@@ -1,133 +1,59 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { renderHook, act } from '@testing-library/react';
-import type { TBREntry } from '@bookbingo/lib-types';
+import { renderHook, waitFor } from '@testing-library/react';
+import { Providers } from '../testing/test-utils';
+import { makeTBREntry } from '../testing/fixtures';
 import { useTBR } from './useTBR';
 
-// The hook depends only on the repository seam; Firebase never enters the test.
 vi.mock('../data/tbr', () => ({
-  subscribeToTBR: vi.fn(),
+  listMyTBR: vi.fn(),
 }));
 
-// Mock logger to prevent initialization errors in test environment
-vi.mock('@bookbingo/lib-util', () => ({
-  log: {
-    debug: vi.fn(),
-    error: vi.fn(),
-    event: vi.fn(),
-  },
-}));
+import { listMyTBR } from '../data/tbr';
 
-import { subscribeToTBR } from '../data/tbr';
-
-const mockSubscribe = vi.mocked(subscribeToTBR);
-
-/** Callbacks handed to subscribeToTBR by the most recent call. */
-type Handlers = {
-  onData: (entries: TBREntry[]) => void;
-  onError: (error: Error) => void;
-};
-
-function captureHandlers(): {
-  handlers: Handlers;
-  unsubscribe: ReturnType<typeof vi.fn>;
-} {
-  const unsubscribe = vi.fn();
-  const handlers = {} as Handlers;
-  mockSubscribe.mockImplementation((_userId, onData, onError) => {
-    handlers.onData = onData;
-    handlers.onError = onError;
-    return unsubscribe;
-  });
-  return { handlers, unsubscribe };
-}
-
-function makeEntry(overrides: Partial<TBREntry> = {}): TBREntry {
-  return {
-    id: 'tbr-0',
-    bookId: 'book-1',
-    plannedTiles: ['sci-fi'],
-    addedAt: new Date('2026-02-01'),
-    ...overrides,
-  };
-}
+const listMyTBRMock = vi.mocked(listMyTBR);
 
 beforeEach(() => {
-  mockSubscribe.mockReset();
+  listMyTBRMock.mockReset();
 });
 
+const render = (userId: string) =>
+  renderHook(() => useTBR(userId), { wrapper: Providers });
+
 describe('useTBR', () => {
-  it('starts in loading state before the first snapshot', () => {
-    captureHandlers();
-    const { result } = renderHook(() => useTBR('user-1'));
-    expect(result.current.loading).toBe(true);
-    expect(result.current.entries).toEqual([]);
-    expect(result.current.error).toBeUndefined();
+  it('exposes the entries the call resolved', async () => {
+    const entries = [makeTBREntry(), makeTBREntry({ id: 'tbr-2' })];
+    listMyTBRMock.mockResolvedValue(entries);
+
+    const { result } = render('user-1');
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.entries).toEqual(entries);
   });
 
-  it('exposes entries emitted by the subscription', () => {
-    const { handlers } = captureHandlers();
-    const { result } = renderHook(() => useTBR('user-1'));
+  // The list is always the caller's own; the id only gates the request.
+  it('sends no arguments to the callable', async () => {
+    listMyTBRMock.mockResolvedValue([]);
 
-    const entry = makeEntry({ id: 'tbr-1', bookId: 'book-1' });
-    act(() => handlers.onData([entry]));
+    const { result } = render('user-1');
 
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(listMyTBRMock).toHaveBeenCalledWith();
+  });
+
+  it('does not call the function for an empty user id', () => {
+    const { result } = render('');
+
+    expect(listMyTBRMock).not.toHaveBeenCalled();
     expect(result.current.loading).toBe(false);
-    expect(result.current.entries).toEqual([entry]);
-    expect(result.current.error).toBeUndefined();
-  });
-
-  it('surfaces subscription errors and stops loading', () => {
-    const { handlers } = captureHandlers();
-    const { result } = renderHook(() => useTBR('user-1'));
-
-    const err = Object.assign(new Error('Permission denied'), {
-      code: 'permission-denied' as const,
-    });
-    act(() => handlers.onError(err));
-
-    expect(result.current.error).toBe(err);
     expect(result.current.entries).toEqual([]);
-    expect(result.current.loading).toBe(false);
   });
 
-  it('clears a prior error once a later snapshot arrives', () => {
-    const { handlers } = captureHandlers();
-    const { result } = renderHook(() => useTBR('user-1'));
+  it('exposes a failed call as an error', async () => {
+    listMyTBRMock.mockRejectedValue(new Error('functions/unavailable'));
 
-    act(() => handlers.onError(new Error('transient')));
-    act(() => handlers.onData([makeEntry()]));
+    const { result } = render('user-1');
 
-    expect(result.current.error).toBeUndefined();
-    expect(result.current.entries).toHaveLength(1);
-  });
-
-  it('does not subscribe and stays empty when userId is blank', () => {
-    captureHandlers();
-    const { result } = renderHook(() => useTBR(''));
-    expect(mockSubscribe).not.toHaveBeenCalled();
+    await waitFor(() => expect(result.current.error).toBeDefined());
     expect(result.current.entries).toEqual([]);
-    expect(result.current.loading).toBe(false);
-  });
-
-  it('unsubscribes on unmount', () => {
-    const { unsubscribe } = captureHandlers();
-    const { unmount } = renderHook(() => useTBR('user-1'));
-    unmount();
-    expect(unsubscribe).toHaveBeenCalledOnce();
-  });
-
-  it('resubscribes when userId changes', () => {
-    const { unsubscribe } = captureHandlers();
-    const { rerender } = renderHook(({ id }) => useTBR(id), {
-      initialProps: { id: 'user-1' },
-    });
-    rerender({ id: 'user-2' });
-    expect(unsubscribe).toHaveBeenCalledOnce();
-    expect(mockSubscribe).toHaveBeenCalledTimes(2);
-    expect(mockSubscribe).toHaveBeenLastCalledWith(
-      'user-2',
-      expect.any(Function),
-      expect.any(Function),
-    );
   });
 });

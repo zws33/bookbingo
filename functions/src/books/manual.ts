@@ -1,23 +1,18 @@
 import { HttpsError, type CallableRequest } from 'firebase-functions/v2/https';
-import z from 'zod/v4';
+import type { Book } from '@bookbingo/lib-types';
 import { logEvent, logFailure } from '../observability.js';
+import { parseRequest, requireAuth } from '../callable.js';
 import { deriveBookId, normalizeForKey } from './bookIdentity.js';
 import { CreateManualBookRequestSchema } from './schema.js';
 import { createBookIfAbsent } from './store.js';
 
 export async function createManualBookHandler(
   request: CallableRequest<unknown>,
-): Promise<{ bookId: string }> {
-  if (!request.auth) {
-    throw new HttpsError('unauthenticated', 'Must be signed in to add a book.');
-  }
+): Promise<Book> {
+  const { uid } = requireAuth(request, 'add a book');
+  const book = parseRequest(CreateManualBookRequestSchema, request.data);
 
-  const parsed = CreateManualBookRequestSchema.safeParse(request.data);
-  if (!parsed.success) {
-    throw new HttpsError('invalid-argument', z.prettifyError(parsed.error));
-  }
-
-  const { title, author } = parsed.data;
+  const { title, author, metadata } = book;
   // Punctuation-only input normalizes to an empty key shared by every such book.
   if (normalizeForKey(title) === '' || normalizeForKey(author) === '') {
     throw new HttpsError(
@@ -26,27 +21,26 @@ export async function createManualBookHandler(
     );
   }
 
-  const uid = request.auth.uid;
   const startedAt = Date.now();
 
   try {
     const written = await createBookIfAbsent(
       deriveBookId({ title, author }),
-      parsed.data,
+      book,
     );
     logEvent('book.manual', {
       uid,
       outcome: 'ok',
       bookId: written.bookId,
       bookCreated: written.created,
-      hasPageCount: parsed.data.metadata.pageCount !== null,
-      hasPublishedDate: parsed.data.metadata.publishedDate !== null,
-      hasCategories: parsed.data.metadata.categories.length > 0,
-      hasLanguage: parsed.data.metadata.language !== null,
-      hasThumbnailUrl: parsed.data.metadata.thumbnailUrl !== null,
+      hasPageCount: metadata.pageCount !== null,
+      hasPublishedDate: metadata.publishedDate !== null,
+      hasCategories: metadata.categories.length > 0,
+      hasLanguage: metadata.language !== null,
+      hasThumbnailUrl: metadata.thumbnailUrl !== null,
       durationMs: Date.now() - startedAt,
     });
-    return { bookId: written.bookId };
+    return { id: written.bookId, title, author, metadata };
   } catch (error) {
     logFailure('book.manual', error, {
       uid,

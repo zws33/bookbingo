@@ -15,6 +15,7 @@ export default tseslint.config(
       'functions/lib/**',
       '.gemini/**',
       '**/*.d.ts',
+      '**/.claude/worktrees/**',
     ],
   },
   {
@@ -58,12 +59,26 @@ export default tseslint.config(
     plugins: { 'react-hooks': reactHooks },
     rules: {
       'react-hooks/exhaustive-deps': 'error',
+      // The client owns no data-source access: every read and write goes
+      // through a callable in src/data. The security rules deny direct
+      // Firestore access, so an import here fails at runtime, not at build.
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [
+            {
+              name: 'firebase/firestore',
+              message:
+                'The client does not talk to Firestore. Add a callable in functions/ and wrap it in src/data.',
+            },
+          ],
+        },
+      ],
     },
   },
   {
     // Enforces the lib/ boundary CLAUDE.md calls a first-class architectural
-    // concern. lib/core is consumed by the browser, by Node scripts, and (per
-    // docs/decisions/guarded-writes.md) soon by Cloud Functions, so anything
+    // concern. lib/ is consumed by the browser and by Node scripts, so anything
     // environment-specific in here breaks at runtime in at least one of them.
     //
     // Anchored at the repo root, so this matches lib/{core,types,util}/ and

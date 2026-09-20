@@ -2,8 +2,9 @@ import { httpsCallable, type FunctionsError } from 'firebase/functions';
 import { log } from '@bookbingo/lib-util';
 import { functions } from './firebase';
 import {
-  BookDetailsResultSchema,
+  BookResponseSchema,
   SearchBooksResponseSchema,
+  type Book,
   type BookSearchResult,
 } from 'src/types/schemas';
 
@@ -44,24 +45,23 @@ export async function searchBooks(query: string): Promise<BookSearchResult[]> {
 }
 
 /**
- * Ensures the catalog book exists in `/books` and returns its id.
+ * Ensures the catalog book exists in `/books` and returns it whole.
  *
- * The callable also returns title and author, but the UI reads those from the
- * `/books` subscription — the single source of truth — so the response's other
- * fields stop here rather than becoming state the components carry.
+ * The response is the book the add form renders. Fetching it back by id would
+ * be a second round trip for data this call already returned.
  */
-export async function resolveBookId(externalId: string): Promise<string> {
+export async function resolveBook(externalId: string): Promise<Book> {
   const startedAt = Date.now();
   try {
     const result = await api.fetchBookDetails({
       externalId,
     });
-    const parsed = BookDetailsResultSchema.parse(result.data);
+    const parsed = BookResponseSchema.parse(result.data);
     log.event('book_fetch', {
       external_id: externalId,
       duration_ms: Date.now() - startedAt,
     });
-    return parsed.bookId;
+    return parsed;
   } catch (error) {
     log.error('bookFetch', error);
     log.event('book_fetch_error', {
