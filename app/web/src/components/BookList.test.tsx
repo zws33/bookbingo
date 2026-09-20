@@ -97,3 +97,22 @@ describe('BookList edit flow', () => {
     });
   });
 });
+
+describe('BookList view modes', () => {
+  it('marks a freebie in both card and list view', async () => {
+    const user = userEvent.setup();
+    render(
+      <BookList
+        userId="user-1"
+        readings={[makeReading({ bookTitle: 'Dune', isFreebie: true })]}
+        loading={false}
+      />,
+    );
+
+    expect(screen.getByTitle('Freebie')).toBeInTheDocument();
+
+    await user.click(screen.getByLabelText('List view'));
+
+    expect(screen.getByTitle('Freebie')).toBeInTheDocument();
+  });
+});

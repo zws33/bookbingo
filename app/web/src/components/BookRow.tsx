@@ -1,12 +1,11 @@
-import type { BookMetadata } from '@bookbingo/lib-types';
 import { useTileCatalog } from '../hooks/useTileCatalog';
 
 interface BookRowProps {
   bookTitle: string;
   bookAuthor: string;
   tiles: string[];
-  isFreebie: boolean;
-  metadata?: BookMetadata | undefined;
+  thumbnailUrl: string | null;
+  isFreebie?: boolean;
   onClick?: () => void;
   readOnly?: boolean;
 }
@@ -17,15 +16,14 @@ export function BookRow({
   bookTitle,
   bookAuthor,
   tiles,
-  isFreebie,
-  metadata,
+  thumbnailUrl = null,
+  isFreebie = false,
   onClick,
   readOnly,
 }: BookRowProps) {
   const { getTileById } = useTileCatalog();
   const visibleTiles = tiles.slice(0, MAX_DOTS);
   const overflow = tiles.length - MAX_DOTS;
-  const thumbnailUrl = metadata?.thumbnailUrl ?? null;
 
   return (
     <div

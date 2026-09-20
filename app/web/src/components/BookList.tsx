@@ -84,149 +84,136 @@ export function BookList({
     return <PageStatus loading={loading} error={error} />;
   }
 
+  if (readings.length === 0) {
+    return <EmptyState />;
+  }
+
   const selectedBook = {
     title: selectedReading?.bookTitle ?? '',
     author: selectedReading?.bookAuthor ?? '',
   };
 
+  const isCards = viewMode === 'cards';
+  const ItemComponent = isCards ? BookCard : BookRow;
+
   return (
     <div className="space-y-4">
-      {readings.length > 0 && (
-        <div className="flex items-center gap-2">
-          <div className="flex-1">
-            <SearchFilter value={authorFilter} onChange={setAuthorFilter} />
-          </div>
-          <ToggleGroup.Root
-            type="single"
-            value={viewMode}
-            onValueChange={(value) => {
-              if (value) setViewMode(value as 'cards' | 'list');
-            }}
-          >
-            <ToggleGroup.Item
-              value="cards"
-              aria-label="Card view"
-              title="Card view"
-            >
-              <svg
-                className="w-5 h-5"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M4 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM14 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zM4 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1v-4zM14 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z"
-                />
-              </svg>
-            </ToggleGroup.Item>
-            <ToggleGroup.Item
-              value="list"
-              aria-label="List view"
-              title="List view"
-            >
-              <svg
-                className="w-5 h-5"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M4 6h16M4 12h16M4 18h16"
-                />
-              </svg>
-            </ToggleGroup.Item>
-          </ToggleGroup.Root>
+      <div className="flex items-center gap-2">
+        <div className="flex-1">
+          <SearchFilter value={authorFilter} onChange={setAuthorFilter} />
         </div>
-      )}
+        <ToggleGroup.Root
+          type="single"
+          value={viewMode}
+          onValueChange={(value) => {
+            if (value) setViewMode(value as 'cards' | 'list');
+          }}
+        >
+          <ToggleGroup.Item
+            value="cards"
+            aria-label="Card view"
+            title="Card view"
+          >
+            <svg
+              className="w-5 h-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M4 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM14 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zM4 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1v-4zM14 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z"
+              />
+            </svg>
+          </ToggleGroup.Item>
+          <ToggleGroup.Item
+            value="list"
+            aria-label="List view"
+            title="List view"
+          >
+            <svg
+              className="w-5 h-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M4 6h16M4 12h16M4 18h16"
+              />
+            </svg>
+          </ToggleGroup.Item>
+        </ToggleGroup.Root>
+      </div>
 
       {filteredReadings.length === 0 ? (
-        readings.length === 0 ? (
-          <EmptyState />
-        ) : (
-          <div className="text-center py-8 text-on-surface-variant">
-            No books match your filter.
-          </div>
-        )
-      ) : viewMode === 'cards' ? (
-        <div className="grid gap-4 sm:grid-cols-2">
-          {filteredReadings.map((reading) => {
-            return (
-              <BookCard
-                key={reading.id}
-                bookTitle={reading.bookTitle}
-                bookAuthor={reading.bookAuthor}
-                thumbnailUrl={reading.bookMetadata.thumbnailUrl}
-                tiles={reading.tiles}
-                onClick={() => setSelectedReading(reading)}
-                readOnly={readOnly}
-              />
-            );
-          })}
+        <div role="status" className="text-center py-8 text-on-surface-variant">
+          No books match your filter.
         </div>
       ) : (
-        <div className="divide-y divide-outline-variant bg-surface-container-lowest rounded-lg shadow">
-          {filteredReadings.map((reading) => {
-            return (
-              <BookRow
-                key={reading.id}
-                bookTitle={reading.bookTitle}
-                bookAuthor={reading.bookAuthor}
-                metadata={reading.bookMetadata}
-                tiles={reading.tiles}
-                isFreebie={reading.isFreebie}
-                onClick={() => setSelectedReading(reading)}
-                readOnly={readOnly}
-              />
-            );
-          })}
+        <div
+          className={
+            isCards
+              ? 'grid gap-4 sm:grid-cols-2'
+              : 'divide-y divide-outline-variant bg-surface-container-lowest rounded-lg shadow'
+          }
+        >
+          {filteredReadings.map((reading) => (
+            <ItemComponent
+              key={reading.id}
+              bookTitle={reading.bookTitle}
+              bookAuthor={reading.bookAuthor}
+              thumbnailUrl={reading.bookMetadata.thumbnailUrl}
+              tiles={reading.tiles}
+              isFreebie={reading.isFreebie}
+              onClick={() => setSelectedReading(reading)}
+              readOnly={readOnly}
+            />
+          ))}
         </div>
       )}
 
-      <>
-        <Dialog
-          isOpen={!!selectedReading && !showDeleteConfirm}
-          onClose={() => setSelectedReading(null)}
-          title="Edit Book"
-        >
-          <BookForm
-            identityLocked
-            initialData={{
-              title: selectedBook.title,
-              author: selectedBook.author,
-              tiles: selectedReading?.tiles ?? [],
-              isFreebie: selectedReading?.isFreebie ?? false,
-            }}
-            onSubmit={handleEdit}
-            onCancel={() => setSelectedReading(null)}
-            isSubmitting={isSubmitting}
-          />
-          <div className="mt-4 pt-4 border-t border-outline-variant flex justify-center">
-            <button
-              type="button"
-              onClick={() => setShowDeleteConfirm(true)}
-              className="text-sm text-error hover:text-error/90"
-              disabled={isSubmitting}
-            >
-              Delete this reading
-            </button>
-          </div>
-        </Dialog>
-
-        <AlertDialog
-          isOpen={showDeleteConfirm}
-          onClose={() => setShowDeleteConfirm(false)}
-          onConfirm={handleDelete}
-          title="Delete Book"
-          message={`Are you sure you want to delete "${selectedBook.title}"? This action cannot be undone.`}
-          confirmLabel="Delete"
+      <Dialog
+        isOpen={!!selectedReading && !showDeleteConfirm}
+        onClose={() => setSelectedReading(null)}
+        title="Edit Book"
+      >
+        <BookForm
+          identityLocked
+          initialData={{
+            title: selectedBook.title,
+            author: selectedBook.author,
+            tiles: selectedReading?.tiles ?? [],
+            isFreebie: selectedReading?.isFreebie ?? false,
+          }}
+          onSubmit={handleEdit}
+          onCancel={() => setSelectedReading(null)}
+          isSubmitting={isSubmitting}
         />
-      </>
+        <div className="mt-4 pt-4 border-t border-outline-variant flex justify-center">
+          <button
+            type="button"
+            onClick={() => setShowDeleteConfirm(true)}
+            className="text-sm text-error hover:text-error/90"
+            disabled={isSubmitting}
+          >
+            Delete this reading
+          </button>
+        </div>
+      </Dialog>
+
+      <AlertDialog
+        isOpen={showDeleteConfirm}
+        onClose={() => setShowDeleteConfirm(false)}
+        onConfirm={handleDelete}
+        title="Delete Book"
+        message={`Are you sure you want to delete "${selectedBook.title}"? This action cannot be undone.`}
+        confirmLabel="Delete"
+      />
     </div>
   );
 }
