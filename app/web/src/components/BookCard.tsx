@@ -6,6 +6,7 @@ interface BookCardProps {
   bookAuthor: string;
   tiles: string[];
   thumbnailUrl: string | null;
+  isFreebie?: boolean;
   notes?: string | undefined;
   /** When set (and not read-only / no footer), the whole card is a button. */
   onClick?: () => void;
@@ -23,6 +24,7 @@ export function BookCard({
   bookAuthor,
   thumbnailUrl = null,
   tiles,
+  isFreebie = false,
   notes,
   onClick,
   readOnly,
@@ -65,6 +67,11 @@ export function BookCard({
           <div>
             <h3 className="font-display text-headline-sm text-on-surface line-clamp-2">
               {bookTitle}
+              {isFreebie && (
+                <span className="ml-1 text-yellow-500" title="Freebie">
+                  ★
+                </span>
+              )}
             </h3>
             <p className="mt-1 truncate text-sm italic text-on-surface-variant">
               by {bookAuthor}
