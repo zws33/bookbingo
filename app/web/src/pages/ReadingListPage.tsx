@@ -11,12 +11,12 @@ import {
   promoteTBREntry,
 } from '../data/tbr';
 import { BookForm, type BookFormData } from '../components/BookForm.js';
-import { ReadingFormForBook } from '../components/ReadingFormForBook';
 import { BookSearch } from '../components/BookSearch';
 import { BookCard } from '../components/BookCard';
 import { PageStatus } from '../components/PageStatus';
 import { Dialog, AlertDialog, Button } from '../components/ui/index.js';
 import { log } from '@bookbingo/lib-util';
+import { ReadingForm } from 'src/components/ReadingForm.js';
 
 interface ReadingListPageProps {
   userId: string;
@@ -229,8 +229,13 @@ export function ReadingListPage({ userId }: ReadingListPageProps) {
           />
         )}
         {dialog?.kind === 'add' && (
-          <ReadingFormForBook
-            book={dialog.book}
+          <ReadingForm
+            initialData={{
+              title: dialog.book.title,
+              author: dialog.book.author,
+              tiles: [],
+              isFreebie: false,
+            }}
             onSubmit={handleAdd}
             onCancel={closeDialog}
             isSubmitting={isSubmitting}

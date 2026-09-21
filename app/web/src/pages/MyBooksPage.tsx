@@ -10,8 +10,8 @@ import { ScoreDisplay } from '../components/ScoreDisplay';
 import { Dialog } from '../components/ui/index.js';
 import { BookForm, type BookFormData } from '../components/BookForm';
 import { log } from '@bookbingo/lib-util';
-import { ReadingFormForBook } from '../components/ReadingFormForBook';
 import { createManualBook } from '../lib/createManualBook';
+import { ReadingForm } from 'src/components/ReadingForm.js';
 
 interface MyBooksPageProps {
   userId: string;
@@ -147,8 +147,13 @@ export function MyBooksPage({ userId }: MyBooksPageProps) {
           />
         )}
         {dialog?.kind === 'readingForm' && (
-          <ReadingFormForBook
-            book={dialog.book}
+          <ReadingForm
+            initialData={{
+              title: dialog.book.title,
+              author: dialog.book.author,
+              tiles: [],
+              isFreebie: false,
+            }}
             onSubmit={submitReadingData}
             onCancel={handleAddModalClose}
             isSubmitting={isSubmitting}
