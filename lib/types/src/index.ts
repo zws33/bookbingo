@@ -14,6 +14,14 @@ export interface Tile {
   name: string;
 }
 
+/**
+ * Served board configuration: tile vocabulary plus the per-reading tile cap.
+ */
+export interface BoardConfig {
+  tiles: Tile[];
+  maxTilesPerBook: number;
+}
+
 // =============================================================================
 // Book Types
 // =============================================================================

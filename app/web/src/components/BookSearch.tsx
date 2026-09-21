@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
+import type { Book } from '@bookbingo/lib-types';
 import { Input } from './ui/index.js';
 import { useToast } from '../lib/ToastContext.js';
 import { searchBooks, resolveBook } from '../lib/bookSearch.js';
-import type { Book, BookSearchResult } from 'src/types/schemas.js';
+import type { BookSearchResult } from 'src/types/schemas.js';
 
 interface BookSearchProps {
   /** The resolved book, not just its id: the caller renders it immediately. */

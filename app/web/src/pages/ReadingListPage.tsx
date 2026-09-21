@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
-import type { Book, TBREntry } from '../types/schemas';
+import type { Book } from '@bookbingo/lib-types';
+import type { TBREntry } from '../types/schemas';
 import { useTBR } from '../hooks/useTBR';
 import { useInvalidateReadings } from '../hooks/useInvalidateReadings';
 import { useToast } from '../lib/ToastContext';

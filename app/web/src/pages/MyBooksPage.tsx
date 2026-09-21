@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import type { Book } from '../types/schemas';
+import type { Book } from '@bookbingo/lib-types';
 import { useReadings } from '../hooks/useReadings';
 import { useInvalidateReadings } from '../hooks/useInvalidateReadings';
 import { useToast } from '../lib/ToastContext';

@@ -1,9 +1,9 @@
 import { httpsCallable, type FunctionsError } from 'firebase/functions';
-import type { BookMetadata } from '@bookbingo/lib-types';
+import type { Book, BookMetadata } from '@bookbingo/lib-types';
 import { EMPTY_METADATA } from '@bookbingo/lib-types';
 import { log } from '@bookbingo/lib-util';
 import { functions } from './firebase';
-import { BookResponseSchema, type Book } from 'src/types/schemas';
+import { BookResponseSchema } from 'src/types/schemas';
 
 const createManualBookCallable = httpsCallable(functions, 'createManualBook');
 

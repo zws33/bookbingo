@@ -1,11 +1,6 @@
-import type { Tile } from '@bookbingo/lib-types';
+import type { BoardConfig } from '@bookbingo/lib-types';
 import { createCallable } from '../lib/callable';
 import { BoardConfigResponseSchema } from '../types/schemas';
-
-export interface BoardConfig {
-  tiles: Tile[];
-  maxTilesPerBook: number;
-}
 
 /**
  * The tile vocabulary and the per-reading tile cap.

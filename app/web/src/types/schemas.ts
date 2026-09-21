@@ -1,3 +1,4 @@
+import type { Book } from '@bookbingo/lib-types';
 import z from 'zod/v4';
 
 export const BookSearchResultSchema = z.object({
@@ -45,9 +46,7 @@ export const BookResponseSchema = z.object({
   title: z.string(),
   author: z.string(),
   metadata: BookMetadataResponseSchema,
-});
-
-export type Book = z.infer<typeof BookResponseSchema>;
+}) satisfies z.ZodType<Book>;
 
 export const UserProfileResponseSchema = z.object({
   id: z.string().min(1),

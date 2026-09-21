@@ -1,13 +1,8 @@
 import type { CallableRequest } from 'firebase-functions/v2/https';
-import type { Tile } from '@bookbingo/lib-types';
+import type { BoardConfig } from '@bookbingo/lib-types';
 import { TILES } from '../domain/constants.js';
 import { MAX_TILES_PER_BOOK } from '../domain/validation.js';
 import { requireAuth } from '../callable.js';
-
-export interface BoardConfig {
-  tiles: Tile[];
-  maxTilesPerBook: number;
-}
 
 /**
  * The tile vocabulary and the per-reading tile cap.

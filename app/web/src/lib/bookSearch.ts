@@ -1,10 +1,10 @@
 import { httpsCallable, type FunctionsError } from 'firebase/functions';
+import type { Book } from '@bookbingo/lib-types';
 import { log } from '@bookbingo/lib-util';
 import { functions } from './firebase';
 import {
   BookResponseSchema,
   SearchBooksResponseSchema,
-  type Book,
   type BookSearchResult,
 } from 'src/types/schemas';
 
