@@ -1,12 +1,7 @@
 import type { DocumentSnapshot } from 'firebase-admin/firestore';
 import { db } from '../firebase.js';
 import { UserProfileDocSchema, mapValid } from '../schemas.js';
-
-export interface UserProfile {
-  id: string;
-  name: string;
-  photoURL: string | null;
-}
+import type { UserProfile } from '@bookbingo/lib-types';
 
 /**
  * The profile shape the UI renders.

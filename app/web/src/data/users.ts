@@ -1,10 +1,10 @@
+import type { UserProfile } from '@bookbingo/lib-types';
 import { createCallable } from '../lib/callable';
 import {
   GetLeaderboardResponseSchema,
   ListUsersResponseSchema,
   type LeaderboardRow,
 } from '../types/schemas';
-import type { UserProfile } from '../types';
 
 export const listUsers = createCallable<void, UserProfile[]>(
   'listUsers',

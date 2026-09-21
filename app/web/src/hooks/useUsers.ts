@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { listUsers } from '../data/users';
 import { queryKeys } from '../lib/queryClient';
-import type { UserProfile } from '../types';
+import type { UserProfile } from '@bookbingo/lib-types';
 
 const NO_USERS: UserProfile[] = [];
 

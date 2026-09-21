@@ -1,9 +1,9 @@
+import type { UserProfile } from '@bookbingo/lib-types';
 import { createCallable } from '../lib/callable';
 import {
   GetUserProfileResponseSchema,
   UserProfileResponseSchema,
 } from '../types/schemas';
-import type { UserProfile } from '../types';
 
 /** null when the id has no profile document — normal, not an error. */
 export const getUserProfile = createCallable<

@@ -4,7 +4,8 @@ import z from 'zod/v4';
 import { db } from '../firebase.js';
 import { parseRequest, requireAuth } from '../callable.js';
 import { logEvent, logFailure } from '../observability.js';
-import { getUserProfile, listUserProfiles, type UserProfile } from './store.js';
+import { getUserProfile, listUserProfiles } from './store.js';
+import type { UserProfile } from '@bookbingo/lib-types';
 
 const GetUserProfileRequestSchema = z.object({
   userId: z.string().trim().min(1),

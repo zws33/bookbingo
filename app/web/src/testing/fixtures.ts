@@ -1,6 +1,5 @@
-import type { Book, Tile } from '@bookbingo/lib-types';
+import type { Book, Tile, UserProfile } from '@bookbingo/lib-types';
 import { EMPTY_METADATA } from '@bookbingo/lib-types';
-import type { UserProfile } from '../types';
 import type { Reading, TBREntry } from '../types/schemas';
 
 /**
