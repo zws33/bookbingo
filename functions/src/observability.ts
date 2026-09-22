@@ -1,4 +1,5 @@
 import { logger } from 'firebase-functions';
+import { DomainError } from './common/errors.js';
 
 /**
  * Structured Cloud Logging events.
@@ -28,6 +29,32 @@ export function logFailure(
   fields: EventFields = {},
 ): void {
   logger.error(event, { event, ...fields, ...describeError(error) });
+}
+
+/**
+ * A DomainError is a deliberate rejection, not a failure — it logs as an event
+ * rather than an error so a caller's mistake does not page as a bug.
+ */
+export function reportWriteFailure(
+  error: unknown,
+  event: string,
+  fields: EventFields = {},
+): never {
+  if (error instanceof DomainError) {
+    logEvent(event, {
+      ...fields,
+      outcome: 'rejected',
+      kind: error.kind,
+      ...error.details,
+    });
+  } else {
+    logFailure(event, error, {
+      ...fields,
+      outcome: 'error',
+      stage: 'firestore',
+    });
+  }
+  throw error;
 }
 
 /**

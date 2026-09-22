@@ -1,7 +1,6 @@
-import { HttpsError } from 'firebase-functions/v2/https';
 import type { Transaction } from 'firebase-admin/firestore';
 import { db } from '../firebase.js';
-import { logEvent, logFailure } from '../observability.js';
+import { DomainError } from '../common/errors.js';
 import { readingsCollection } from './store.js';
 
 /**
@@ -15,7 +14,7 @@ export async function requireBook(
 ): Promise<void> {
   const book = await transaction.get(db.collection('books').doc(bookId));
   if (!book.exists) {
-    throw new HttpsError('not-found', 'That book is not in the catalog.');
+    throw new DomainError('not-found', 'That book is not in the catalog.');
   }
 }
 
@@ -35,23 +34,6 @@ export async function requireNoOtherFreebie(
   );
   const other = freebies.docs.find((doc) => doc.id !== readingId);
   if (other) {
-    throw new HttpsError(
-      'failed-precondition',
-      'You already have a freebie reading.',
-    );
+    throw new DomainError('conflict', 'You already have a freebie reading.');
   }
-}
-
-/** Logs the failure and keeps a deliberate HttpsError intact. */
-export function toWriteError(
-  error: unknown,
-  event: string,
-  fields: Record<string, unknown>,
-): HttpsError {
-  if (error instanceof HttpsError) {
-    logEvent(event, { ...fields, outcome: 'rejected', code: error.code });
-    return error;
-  }
-  logFailure(event, error, { ...fields, outcome: 'error', stage: 'firestore' });
-  return new HttpsError('internal', 'Failed to save your reading.');
 }

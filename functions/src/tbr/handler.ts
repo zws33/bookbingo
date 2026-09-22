@@ -5,7 +5,8 @@ import {
 } from 'firebase-admin/firestore';
 import { db } from '../firebase.js';
 import { parseRequest, requireAuth } from '../callable.js';
-import { logEvent, logFailure } from '../observability.js';
+import { logEvent, logFailure, reportWriteFailure } from '../observability.js';
+import { DomainError } from '../common/errors.js';
 import { mapValid } from '../common/firestoreDoc.js';
 import {
   CreateTBRRequestSchema,
@@ -16,11 +17,7 @@ import {
 } from './schema.js';
 import { newReadingFields, readingDoc } from '../readings/store.js';
 import { validateReadingTiles, validateTileIds } from '../readings/validate.js';
-import {
-  requireBook,
-  requireNoOtherFreebie,
-  toWriteError,
-} from '../readings/guards.js';
+import { requireBook, requireNoOtherFreebie } from '../readings/guards.js';
 import { MissingBookError, withBooks, type BookFields } from '../books/join.js';
 
 /** What the API returns: the stored entry plus its resolved book. */
@@ -106,7 +103,7 @@ export async function createTBREntryHandler(
   // from, because the list never renders the row that would let you delete it.
   const book = await db.collection('books').doc(bookId).get();
   if (!book.exists) {
-    throw new HttpsError('not-found', 'That book is not in the catalog.');
+    throw new DomainError('not-found', 'That book is not in the catalog.');
   }
 
   try {
@@ -202,7 +199,7 @@ export async function promoteTBREntryHandler(
       if (!entry.exists) {
         const existing = await transaction.get(readingRef);
         if (!existing.exists) {
-          throw new HttpsError('not-found', 'That entry no longer exists.');
+          throw new DomainError('not-found', 'That entry no longer exists.');
         }
         alreadyLogged = true;
         return;
@@ -216,7 +213,7 @@ export async function promoteTBREntryHandler(
       transaction.delete(entryRef);
     });
   } catch (error) {
-    throw toWriteError(error, 'tbr.promote', { uid, tbrId, bookId });
+    reportWriteFailure(error, 'tbr.promote', { uid, tbrId, bookId });
   }
 
   logEvent('tbr.promote', {

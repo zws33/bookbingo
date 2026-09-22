@@ -2,7 +2,8 @@ import { HttpsError, type CallableRequest } from 'firebase-functions/v2/https';
 import { FieldValue } from 'firebase-admin/firestore';
 import { db } from '../firebase.js';
 import { parseRequest, requireAuth } from '../callable.js';
-import { logEvent, logFailure } from '../observability.js';
+import { logEvent, logFailure, reportWriteFailure } from '../observability.js';
+import { DomainError } from '../common/errors.js';
 import { mapValid } from '../common/firestoreDoc.js';
 import {
   DeleteReadingRequestSchema,
@@ -22,7 +23,7 @@ import {
 } from './store.js';
 import { MissingBookError, withBooks } from '../books/join.js';
 import { scoreOf, validateReadingTiles, type ScoreDTO } from './validate.js';
-import { requireBook, requireNoOtherFreebie, toWriteError } from './guards.js';
+import { requireBook, requireNoOtherFreebie } from './guards.js';
 
 /**
  * One user's readings, newest first, with their score.
@@ -117,7 +118,7 @@ export async function createReadingHandler(
       transaction.set(ref, newReadingFields(bookId, tiles, isFreebie));
     });
   } catch (error) {
-    throw toWriteError(error, 'reading.create', {
+    reportWriteFailure(error, 'reading.create', {
       uid,
       bookId,
       tileCount: tiles.length,
@@ -153,7 +154,7 @@ export async function updateReadingHandler(
       // The path is built from the caller's own uid, so another user's reading
       // id simply does not resolve — there is nothing to leak here.
       if (!existing.exists) {
-        throw new HttpsError('not-found', 'That reading no longer exists.');
+        throw new DomainError('not-found', 'That reading no longer exists.');
       }
       await requireBook(transaction, bookId);
       if (isFreebie) await requireNoOtherFreebie(transaction, uid, readingId);
@@ -166,7 +167,7 @@ export async function updateReadingHandler(
       });
     });
   } catch (error) {
-    throw toWriteError(error, 'reading.update', { uid, readingId, bookId });
+    reportWriteFailure(error, 'reading.update', { uid, readingId, bookId });
   }
 
   logEvent('reading.update', {
@@ -188,7 +189,7 @@ export async function deleteReadingHandler(
   try {
     await readingDoc(uid, readingId).delete();
   } catch (error) {
-    throw toWriteError(error, 'reading.delete', { uid, readingId });
+    reportWriteFailure(error, 'reading.delete', { uid, readingId });
   }
 
   logEvent('reading.delete', { uid, outcome: 'ok', readingId });
