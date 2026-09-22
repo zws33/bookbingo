@@ -1,6 +1,6 @@
 import type { Book, BookMetadata } from '@bookbingo/lib-types';
 import { db } from '../firebase.js';
-import { BookDocSchema } from '../schemas.js';
+import { BookDocSchema } from './schema.js';
 
 /** The book fields the UI renders, joined onto anything holding a `bookId`. */
 export interface BookFields {

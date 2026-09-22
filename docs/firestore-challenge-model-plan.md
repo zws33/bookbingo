@@ -125,7 +125,8 @@ Post-#89 premise: `functions/` is the only reader and writer of Firestore. `fire
 
 - `functions/src/config/handler.ts` — `getBoardConfig` takes a `challengeId` and serves that challenge's tags + `tagCap` from stored docs, not `TILES` + `MAX_TILES_PER_BOOK`. This is the client's only source of vocabulary and cap; nothing else can move until it does.
 - `functions/src/index.ts` — new callables: `listMyChallenges`, `createChallenge`, `joinChallenge`, `leaveChallenge`, `removeMember`, `setMemberRole`, `setChallengeStatus`, `updateChallengeConfig`, `deleteChallenge`, `createJoinCode`, `revokeJoinCode`, tag CRUD. `challengeId` added to `listReadings`, `getLeaderboard`, `getLibrary`, `createReading`, `updateReading`, `deleteReading`, `promoteTBREntry`.
-- `functions/src/schemas.ts` — `ReadingDocSchema` gains `userId` and `tags`, both **optional** until Phase 5 completes. A required field here silently drops every legacy doc through `mapValid` — a blank leaderboard with no error. New `ChallengeDocSchema`, `MembershipDocSchema`, `TagDocSchema`.
+- `functions/src/readings/schema.ts` — `ReadingDocSchema` gains `userId` and `tags`, both **optional** until Phase 5 completes. A required field here silently drops every legacy doc through `mapValid` — a blank leaderboard with no error.
+- `functions/src/challenges/schema.ts` — new `ChallengeDocSchema`, `MembershipDocSchema`, `TagDocSchema`. Doc schemas live beside the store that parses them; only cross-domain primitives go in `functions/src/common/`.
 
 ### Server — storage and rules
 
@@ -152,7 +153,7 @@ Post-#89 premise: `functions/` is the only reader and writer of Firestore. `fire
 
 ### Types and scripts
 
-- `lib/types/src/index.ts` — add `Challenge`, `ChallengeConfig`, `Membership`, `Tag`. It has no `Reading` to amend; that type lives in three places now (`functions/src/readings/store.ts`, `functions/src/schemas.ts`, `app/web/src/types/schemas.ts`), so Parallel Change has three sites.
+- `lib/types/src/index.ts` — add `Challenge`, `ChallengeConfig`, `Membership`, `Tag`. It has no `Reading` to amend; that type lives in three places now (`functions/src/readings/store.ts`, `functions/src/readings/schema.ts`, `app/web/src/types/schemas.ts`), so Parallel Change has three sites.
 - `scripts/` — new `migrate-readings-to-challenge.ts` modeled on `migrate-book-identity.ts`; a read-back verify script; update `seed-emulator.ts`, `seed-staging.ts`, **and `mirror-prod-to-staging.ts`** (the tool that stages the rehearsal). New `set-superadmin.ts` sets the custom claim per project.
 
 ## Ordered phases

@@ -1,10 +1,15 @@
 import { HttpsError, type CallableRequest } from 'firebase-functions/v2/https';
 import { FieldValue } from 'firebase-admin/firestore';
-import z from 'zod/v4';
 import { db } from '../firebase.js';
 import { parseRequest, requireAuth } from '../callable.js';
 import { logEvent, logFailure } from '../observability.js';
-import { mapValid } from '../schemas.js';
+import { mapValid } from '../common/firestoreDoc.js';
+import {
+  DeleteReadingRequestSchema,
+  ListReadingsRequestSchema,
+  ReadingFieldsSchema,
+  UpdateReadingRequestSchema,
+} from './schema.js';
 import { listUserProfiles } from '../users/store.js';
 import {
   allReadingsQuery,
@@ -18,24 +23,6 @@ import {
 import { MissingBookError, withBooks } from '../books/join.js';
 import { scoreOf, validateReadingTiles, type ScoreDTO } from './validate.js';
 import { requireBook, requireNoOtherFreebie, toWriteError } from './guards.js';
-
-const ListReadingsRequestSchema = z.object({
-  userId: z.string().trim().min(1),
-});
-
-const ReadingFieldsSchema = z.object({
-  bookId: z.string().trim().min(1),
-  tiles: z.array(z.string().trim().min(1)),
-  isFreebie: z.boolean(),
-});
-
-const UpdateReadingRequestSchema = ReadingFieldsSchema.extend({
-  readingId: z.string().trim().min(1),
-});
-
-const DeleteReadingRequestSchema = z.object({
-  readingId: z.string().trim().min(1),
-});
 
 /**
  * One user's readings, newest first, with their score.

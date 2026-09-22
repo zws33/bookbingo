@@ -1,15 +1,11 @@
 import { HttpsError, type CallableRequest } from 'firebase-functions/v2/https';
 import { FieldValue } from 'firebase-admin/firestore';
-import z from 'zod/v4';
 import { db } from '../firebase.js';
 import { parseRequest, requireAuth } from '../callable.js';
 import { logEvent, logFailure } from '../observability.js';
 import { getUserProfile, listUserProfiles } from './store.js';
+import { GetUserProfileRequestSchema } from './schema.js';
 import type { UserProfile } from '@bookbingo/lib-types';
-
-const GetUserProfileRequestSchema = z.object({
-  userId: z.string().trim().min(1),
-});
 
 export async function listUsersHandler(
   request: CallableRequest<unknown>,

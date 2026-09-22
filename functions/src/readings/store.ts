@@ -3,7 +3,8 @@ import {
   type QueryDocumentSnapshot,
 } from 'firebase-admin/firestore';
 import { db } from '../firebase.js';
-import { mapValid, ReadingDocSchema } from '../schemas.js';
+import { mapValid } from '../common/firestoreDoc.js';
+import { ReadingDocSchema } from './schema.js';
 import type { BookFields } from '../books/join.js';
 
 /** What the API returns: the stored reading plus its resolved book. */

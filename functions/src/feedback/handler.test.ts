@@ -1,11 +1,7 @@
 import { describe, it, mock, beforeEach, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
-import {
-  submitFeedbackHandler,
-  GITHUB_API_URL,
-  TITLE_MAX_LENGTH,
-  DESCRIPTION_MAX_LENGTH,
-} from './handler.js';
+import { submitFeedbackHandler, GITHUB_API_URL } from './handler.js';
+import { TITLE_MAX_LENGTH, DESCRIPTION_MAX_LENGTH } from './schema.js';
 import type { FeedbackDeps } from './handler.js';
 
 const TEST_DEPS: FeedbackDeps = { pat: 'test-pat', apiUrl: GITHUB_API_URL };

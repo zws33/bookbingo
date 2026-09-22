@@ -3,11 +3,17 @@ import {
   FieldValue,
   type QueryDocumentSnapshot,
 } from 'firebase-admin/firestore';
-import z from 'zod/v4';
 import { db } from '../firebase.js';
 import { parseRequest, requireAuth } from '../callable.js';
 import { logEvent, logFailure } from '../observability.js';
-import { TBREntryDocSchema, mapValid } from '../schemas.js';
+import { mapValid } from '../common/firestoreDoc.js';
+import {
+  CreateTBRRequestSchema,
+  DeleteTBRRequestSchema,
+  PromoteTBRRequestSchema,
+  TBREntryDocSchema,
+  UpdateTBRRequestSchema,
+} from './schema.js';
 import { newReadingFields, readingDoc } from '../readings/store.js';
 import { validateReadingTiles, validateTileIds } from '../readings/validate.js';
 import {
@@ -29,31 +35,6 @@ export interface TBREntry {
   addedAt: string;
   updatedAt?: string;
 }
-
-const NotesSchema = z.string().trim().max(2000).optional();
-
-const CreateTBRRequestSchema = z.object({
-  bookId: z.string().trim().min(1),
-  plannedTiles: z.array(z.string().trim().min(1)),
-  notes: NotesSchema,
-});
-
-const UpdateTBRRequestSchema = z.object({
-  tbrId: z.string().trim().min(1),
-  plannedTiles: z.array(z.string().trim().min(1)),
-  notes: NotesSchema,
-});
-
-const DeleteTBRRequestSchema = z.object({
-  tbrId: z.string().trim().min(1),
-});
-
-/** No bookId: the entry already names its book, and that is the one promoted. */
-const PromoteTBRRequestSchema = z.object({
-  tbrId: z.string().trim().min(1),
-  tiles: z.array(z.string().trim().min(1)),
-  isFreebie: z.boolean(),
-});
 
 /** The one place the TBR collection path is written. */
 function tbrCollection(userId: string) {

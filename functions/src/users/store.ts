@@ -1,6 +1,7 @@
 import type { DocumentSnapshot } from 'firebase-admin/firestore';
 import { db } from '../firebase.js';
-import { UserProfileDocSchema, mapValid } from '../schemas.js';
+import { mapValid } from '../common/firestoreDoc.js';
+import { UserProfileDocSchema } from './schema.js';
 import type { UserProfile } from '@bookbingo/lib-types';
 
 /**
