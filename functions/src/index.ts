@@ -1,6 +1,7 @@
 import { setGlobalOptions } from 'firebase-functions/v2';
 import { onCall } from 'firebase-functions/v2/https';
 import { defineSecret } from 'firebase-functions/params';
+import { callable } from './callable.js';
 import { submitFeedbackHandler, GITHUB_API_URL } from './feedback/handler.js';
 import {
   fetchBookDetailsHandler,
@@ -39,72 +40,90 @@ const githubPat = defineSecret('GITHUB_PAT');
 
 export const submitFeedback = onCall(
   { invoker: 'public', secrets: [githubPat] },
-  (request) =>
-    submitFeedbackHandler(request, {
-      pat: githubPat.value(),
-      apiUrl: GITHUB_API_URL,
-    }),
+  callable(
+    (request) =>
+      submitFeedbackHandler(request, {
+        pat: githubPat.value(),
+        apiUrl: GITHUB_API_URL,
+      }),
+    'Failed to create GitHub issue. Please try again.',
+  ),
 );
 
 export const fetchBookDetails = onCall(
   { invoker: 'public' },
-  fetchBookDetailsHandler,
+  callable(fetchBookDetailsHandler, 'Could not load book details.'),
 );
-export const searchBooks = onCall({ invoker: 'public' }, searchBooksHandler);
+export const searchBooks = onCall(
+  { invoker: 'public' },
+  callable(searchBooksHandler, 'Book search is unavailable.'),
+);
 
 export const createManualBook = onCall(
   { invoker: 'public' },
-  createManualBookHandler,
+  callable(createManualBookHandler, 'Failed to create book.'),
 );
 
 export const getBoardConfig = onCall(
   { invoker: 'public' },
-  getBoardConfigHandler,
+  callable(getBoardConfigHandler, 'Could not load the board.'),
 );
 
-export const listUsers = onCall({ invoker: 'public' }, listUsersHandler);
+export const listUsers = onCall(
+  { invoker: 'public' },
+  callable(listUsersHandler, 'Could not load users.'),
+);
 export const getUserProfile = onCall(
   { invoker: 'public' },
-  getUserProfileHandler,
+  callable(getUserProfileHandler, 'Could not load that profile.'),
 );
 export const syncMyProfile = onCall(
   { invoker: 'public' },
-  syncMyProfileHandler,
+  callable(syncMyProfileHandler, 'Failed to save your profile.'),
 );
 
-export const listReadings = onCall({ invoker: 'public' }, listReadingsHandler);
-export const getLibrary = onCall({ invoker: 'public' }, getLibraryHandler);
+export const listReadings = onCall(
+  { invoker: 'public' },
+  callable(listReadingsHandler, 'Could not load those readings.'),
+);
+export const getLibrary = onCall(
+  { invoker: 'public' },
+  callable(getLibraryHandler, 'Could not load the library.'),
+);
 export const getLeaderboard = onCall(
   { invoker: 'public' },
-  getLeaderboardHandler,
+  callable(getLeaderboardHandler, 'Could not load the leaderboard.'),
 );
 export const createReading = onCall(
   { invoker: 'public' },
-  createReadingHandler,
+  callable(createReadingHandler, 'Failed to save your reading.'),
 );
 export const updateReading = onCall(
   { invoker: 'public' },
-  updateReadingHandler,
+  callable(updateReadingHandler, 'Failed to save your reading.'),
 );
 export const deleteReading = onCall(
   { invoker: 'public' },
-  deleteReadingHandler,
+  callable(deleteReadingHandler, 'Failed to save your reading.'),
 );
 
-export const listMyTBR = onCall({ invoker: 'public' }, listMyTBRHandler);
+export const listMyTBR = onCall(
+  { invoker: 'public' },
+  callable(listMyTBRHandler, 'Could not load your reading list.'),
+);
 export const createTBREntry = onCall(
   { invoker: 'public' },
-  createTBREntryHandler,
+  callable(createTBREntryHandler, 'Failed to save your reading list.'),
 );
 export const updateTBREntry = onCall(
   { invoker: 'public' },
-  updateTBREntryHandler,
+  callable(updateTBREntryHandler, 'Failed to save your reading list.'),
 );
 export const deleteTBREntry = onCall(
   { invoker: 'public' },
-  deleteTBREntryHandler,
+  callable(deleteTBREntryHandler, 'Failed to save your reading list.'),
 );
 export const promoteTBREntry = onCall(
   { invoker: 'public' },
-  promoteTBREntryHandler,
+  callable(promoteTBREntryHandler, 'Failed to save your reading.'),
 );

@@ -58,3 +58,20 @@ export function toHttpsError(
       return new HttpsError('internal', fallbackMessage);
   }
 }
+
+/**
+ * Wraps a handler for `onCall` so domain errors reach the client as callable
+ * error codes. This is the only place that translation happens.
+ */
+export function callable<T>(
+  handler: (request: CallableRequest<unknown>) => T | Promise<T>,
+  fallbackMessage: string,
+): (request: CallableRequest<unknown>) => Promise<T> {
+  return async (request) => {
+    try {
+      return await handler(request);
+    } catch (error) {
+      throw toHttpsError(error, fallbackMessage);
+    }
+  };
+}

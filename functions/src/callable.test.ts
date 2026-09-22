@@ -2,7 +2,12 @@ import { test, describe } from 'node:test';
 import assert from 'node:assert';
 import { HttpsError, type CallableRequest } from 'firebase-functions/v2/https';
 import z from 'zod/v4';
-import { parseRequest, requireAuth, toHttpsError } from './callable.js';
+import {
+  callable,
+  parseRequest,
+  requireAuth,
+  toHttpsError,
+} from './callable.js';
 import { DomainError } from './common/errors.js';
 
 const AUTH = { uid: 'user-1', token: {}, rawToken: 'test' };
@@ -120,5 +125,45 @@ describe('toHttpsError', () => {
   test('passes an existing HttpsError through unchanged', () => {
     const original = new HttpsError('unauthenticated', 'Must be signed in.');
     assert.equal(toHttpsError(original, FALLBACK), original);
+  });
+});
+
+describe('callable', () => {
+  const FALLBACK = 'Failed to save your reading.';
+
+  test('returns the handler result', async () => {
+    const wrapped = callable(() => ({ readingId: 'r1' }), FALLBACK);
+    assert.deepEqual(await wrapped(makeRequest(AUTH, {})), {
+      readingId: 'r1',
+    });
+  });
+
+  test('maps a DomainError thrown by the handler', async () => {
+    const wrapped = callable(() => {
+      throw new DomainError('conflict', 'You already have a freebie reading.');
+    }, FALLBACK);
+    await assert.rejects(wrapped(makeRequest(AUTH, {})), {
+      code: 'failed-precondition',
+      message: 'You already have a freebie reading.',
+    });
+  });
+
+  test('maps a rejected promise, not just a synchronous throw', async () => {
+    const wrapped = callable(
+      () => Promise.reject(new DomainError('not-found', 'No such reading.')),
+      FALLBACK,
+    );
+    await assert.rejects(wrapped(makeRequest(AUTH, {})), { code: 'not-found' });
+  });
+
+  test('leaves an HttpsError from requireAuth intact', async () => {
+    const wrapped = callable(
+      (request) => requireAuth(request, 'log a reading'),
+      FALLBACK,
+    );
+    await assert.rejects(wrapped(makeRequest(undefined, {})), {
+      code: 'unauthenticated',
+      message: 'Must be signed in to log a reading.',
+    });
   });
 });
