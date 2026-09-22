@@ -13,13 +13,15 @@ describe('validateTileIds', () => {
 
   test('rejects a tile that is not in the catalog', () => {
     assert.throws(() => validateTileIds(['not-a-tile']), {
-      code: 'invalid-argument',
+      name: 'DomainError',
+      kind: 'invalid-input',
     });
   });
 
   test('rejects the same tile twice', () => {
     assert.throws(() => validateTileIds([t1!, t1!]), {
-      code: 'invalid-argument',
+      name: 'DomainError',
+      kind: 'invalid-input',
     });
   });
 
@@ -36,7 +38,8 @@ describe('validateReadingTiles', () => {
 
   test(`rejects tile ${MAX_TILES_PER_BOOK + 1} on a non-freebie`, () => {
     assert.throws(() => validateReadingTiles([t1!, t2!, t3!, t4!], false), {
-      code: 'invalid-argument',
+      name: 'DomainError',
+      kind: 'invalid-input',
     });
   });
 
@@ -46,7 +49,8 @@ describe('validateReadingTiles', () => {
 
   test('still rejects an unknown tile on a freebie', () => {
     assert.throws(() => validateReadingTiles([t1!, 'not-a-tile'], true), {
-      code: 'invalid-argument',
+      name: 'DomainError',
+      kind: 'invalid-input',
     });
   });
 });

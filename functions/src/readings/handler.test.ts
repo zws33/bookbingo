@@ -85,7 +85,7 @@ describe('createReadingHandler', () => {
           isFreebie: false,
         }),
       ),
-      { code: 'invalid-argument' },
+      { name: 'DomainError', kind: 'invalid-input' },
     );
   });
 
@@ -98,7 +98,7 @@ describe('createReadingHandler', () => {
           isFreebie: false,
         }),
       ),
-      { code: 'invalid-argument' },
+      { name: 'DomainError', kind: 'invalid-input' },
     );
   });
 });

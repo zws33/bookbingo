@@ -55,7 +55,7 @@ describe('createTBREntryHandler', () => {
       createTBREntryHandler(
         makeRequest(AUTH, { bookId: 'book-1', plannedTiles: ['not-a-tile'] }),
       ),
-      { code: 'invalid-argument' },
+      { name: 'DomainError', kind: 'invalid-input' },
     );
   });
 
@@ -121,7 +121,7 @@ describe('promoteTBREntryHandler', () => {
           isFreebie: false,
         }),
       ),
-      { code: 'invalid-argument' },
+      { name: 'DomainError', kind: 'invalid-input' },
     );
   });
 });

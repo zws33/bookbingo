@@ -1,5 +1,5 @@
-import { HttpsError } from 'firebase-functions/v2/https';
 import type { ScoreBreakdown, ScoringInput } from '@bookbingo/lib-types';
+import { DomainError } from '../common/errors.js';
 import { TILES } from '../domain/constants.js';
 import { MAX_TILES_PER_BOOK } from '../domain/validation.js';
 import { getScoreBreakdown } from '../domain/scoring.js';
@@ -16,15 +16,15 @@ const TILE_IDS = new Set(TILES.map((tile) => tile.id));
 export function validateTileIds(tiles: string[]): void {
   const unknown = tiles.filter((tile) => !TILE_IDS.has(tile));
   if (unknown.length > 0) {
-    throw new HttpsError(
-      'invalid-argument',
+    throw new DomainError(
+      'invalid-input',
       `Unknown tile: ${unknown.join(', ')}.`,
     );
   }
 
   if (new Set(tiles).size !== tiles.length) {
-    throw new HttpsError(
-      'invalid-argument',
+    throw new DomainError(
+      'invalid-input',
       'A tile list cannot use the same tile twice.',
     );
   }
@@ -44,8 +44,8 @@ export function validateReadingTiles(
   validateTileIds(tiles);
 
   if (!isFreebie && tiles.length > MAX_TILES_PER_BOOK) {
-    throw new HttpsError(
-      'invalid-argument',
+    throw new DomainError(
+      'invalid-input',
       `A reading can use at most ${MAX_TILES_PER_BOOK} tiles unless it is a freebie.`,
     );
   }
