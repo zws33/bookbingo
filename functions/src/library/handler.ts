@@ -3,7 +3,10 @@ import type { Book } from '@bookbingo/lib-types';
 import { requireAuth } from '../callable.js';
 import { logFailure, logWarning } from '../observability.js';
 import { listUserProfiles } from '../users/store.js';
-import { allReadingsQuery, readingsByUser } from '../readings/store.js';
+import {
+  readingRepository,
+  type ReadingRepository,
+} from '../readings/store.js';
 import { getBooksById, MissingBookError } from '../books/store.js';
 
 export interface LibraryReader {
@@ -33,12 +36,13 @@ export interface LibraryBook {
  */
 export async function getLibraryHandler(
   request: CallableRequest<unknown>,
+  repo: ReadingRepository = readingRepository(),
 ): Promise<LibraryBook[]> {
   requireAuth(request, 'load the library');
 
-  const [profiles, snapshot] = await Promise.all([
+  const [profiles, byUser] = await Promise.all([
     listUserProfiles(),
-    allReadingsQuery().get(),
+    repo.listAllByUser(),
   ]);
   const profilesById = new Map(profiles.map((p) => [p.id, p]));
 
@@ -47,7 +51,7 @@ export async function getLibraryHandler(
     { readCount: number; tiles: Set<string>; readers: LibraryReader[] }
   >();
 
-  for (const [userId, readings] of readingsByUser(snapshot.docs)) {
+  for (const [userId, readings] of byUser) {
     const profile = profilesById.get(userId);
     if (!profile) {
       // A reader with no profile document: they signed in but the profile

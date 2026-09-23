@@ -6,45 +6,41 @@ import {
 import { db } from '../firebase.js';
 import { DomainError } from '../common/errors.js';
 import { mapValid } from '../common/firestoreDoc.js';
+import { requireBookExists } from '../books/store.js';
 import { ReadingDocSchema } from './schema.js';
-import type { BookMetadata } from '@bookbingo/lib-types';
 
-/** What the API returns: the stored reading plus its resolved book. */
-export type ReadingDTO = Reading & {
-  bookTitle: string;
-  bookAuthor: string;
-  bookMetadata: BookMetadata;
-};
-
-/**
- * A reading as stored: a tile assignment pointing at a book by id.
- *
- * Instants are ISO strings, not Dates. The callable protocol encodes responses
- * as JSON, which has no date type, and a Date would arrive as `{}`. The client
- * parses these back into Dates at its own boundary.
- */
+/** A reading as stored: a tile assignment pointing at a book by id. */
 export interface Reading {
   id: string;
   bookId: string;
   tiles: string[];
   isFreebie: boolean;
-  readAt: string;
-  createdAt: string;
-  updatedAt?: string;
+  readAt: Date;
+  createdAt: Date;
+  updatedAt?: Date;
 }
 
-/** The one place the readings collection path is written. */
-export function readingsCollection(userId: string) {
+export interface ReadingFields {
+  bookId: string;
+  tiles: string[];
+  isFreebie: boolean;
+}
+
+export interface ReadingRepository {
+  list(userId: string): Promise<Reading[]>;
+  listAllByUser(): Promise<Map<string, Reading[]>>;
+  create(uid: string, fields: ReadingFields): Promise<string>;
+  update(uid: string, readingId: string, fields: ReadingFields): Promise<void>;
+  remove(uid: string, readingId: string): Promise<void>;
+}
+
+function readingsCollection(userId: string) {
   return db.collection('users').doc(userId).collection('readings');
 }
 
+/** Exported for the TBR promote path, which writes a reading in its own transaction. */
 export function readingDoc(userId: string, readingId: string) {
   return readingsCollection(userId).doc(readingId);
-}
-
-/** Matches on any user's readings subcollection; feeds the leaderboard and library. */
-export function allReadingsQuery() {
-  return db.collectionGroup('readings');
 }
 
 export function toReading(doc: QueryDocumentSnapshot): Reading {
@@ -54,11 +50,9 @@ export function toReading(doc: QueryDocumentSnapshot): Reading {
     bookId: data.bookId,
     tiles: data.tiles,
     isFreebie: data.isFreebie,
-    readAt: data.readAt.toISOString(),
-    createdAt: data.createdAt.toISOString(),
-    ...(data.updatedAt !== undefined && {
-      updatedAt: data.updatedAt.toISOString(),
-    }),
+    readAt: data.readAt,
+    createdAt: data.createdAt,
+    ...(data.updatedAt !== undefined && { updatedAt: data.updatedAt }),
   };
 }
 
@@ -68,9 +62,7 @@ export function toReading(doc: QueryDocumentSnapshot): Reading {
  * Invalid documents are dropped by `mapValid` rather than failing the whole
  * read: one malformed reading must not blank a leaderboard.
  */
-export function readingsByUser(
-  docs: QueryDocumentSnapshot[],
-): Map<string, Reading[]> {
+function readingsByUser(docs: QueryDocumentSnapshot[]): Map<string, Reading[]> {
   const byUser = new Map<string, Reading[]>();
 
   for (const doc of docs) {
@@ -121,4 +113,61 @@ export function newReadingFields(
     readAt: FieldValue.serverTimestamp(),
     createdAt: FieldValue.serverTimestamp(),
   };
+}
+
+const firestoreReadings: ReadingRepository = {
+  async list(userId) {
+    const snapshot = await readingsCollection(userId)
+      .orderBy('readAt', 'desc')
+      .get();
+    return mapValid('readings', snapshot.docs, toReading);
+  },
+
+  async listAllByUser() {
+    const snapshot = await db.collectionGroup('readings').get();
+    return readingsByUser(snapshot.docs);
+  },
+
+  async create(uid, { bookId, tiles, isFreebie }) {
+    const ref = readingsCollection(uid).doc();
+
+    await db.runTransaction(async (transaction) => {
+      await requireBookExists(transaction, bookId);
+      if (isFreebie) await requireNoOtherFreebie(transaction, uid, ref.id);
+      transaction.set(ref, newReadingFields(bookId, tiles, isFreebie));
+    });
+
+    return ref.id;
+  },
+
+  async update(uid, readingId, { bookId, tiles, isFreebie }) {
+    const ref = readingDoc(uid, readingId);
+
+    await db.runTransaction(async (transaction) => {
+      const existing = await transaction.get(ref);
+      // The path is built from the caller's own uid, so another user's reading
+      // id simply does not resolve — there is nothing to leak here.
+      if (!existing.exists) {
+        throw new DomainError('not-found', 'That reading no longer exists.');
+      }
+      await requireBookExists(transaction, bookId);
+      if (isFreebie) await requireNoOtherFreebie(transaction, uid, readingId);
+
+      transaction.update(ref, {
+        bookId,
+        tiles,
+        isFreebie,
+        updatedAt: FieldValue.serverTimestamp(),
+      });
+    });
+  },
+
+  async remove(uid, readingId) {
+    await readingDoc(uid, readingId).delete();
+  },
+};
+
+/** The module singleton, not a new instance per call. */
+export function readingRepository(): ReadingRepository {
+  return firestoreReadings;
 }

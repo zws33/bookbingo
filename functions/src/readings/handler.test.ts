@@ -1,19 +1,32 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert';
 import type { CallableRequest } from 'firebase-functions/v2/https';
-import type { QueryDocumentSnapshot } from 'firebase-admin/firestore';
 import {
   createReadingHandler,
   deleteReadingHandler,
   listReadingsHandler,
   updateReadingHandler,
 } from './handler.js';
-import { toReading } from './store.js';
+import type { ReadingRepository } from './store.js';
+import { DomainError } from '../common/errors.js';
 import { TILES } from '../domain/constants.js';
 
 const AUTH = { uid: 'user-1', token: {}, rawToken: 'test' };
 const [t1, t2, t3, t4] = TILES.map((tile) => tile.id);
-const READ_AT = new Date('2026-01-02T03:04:05.000Z');
+
+/** Every method rejects unless the test overrides it, so an unexpected call fails loudly. */
+function fakeRepo(overrides: Partial<ReadingRepository>): ReadingRepository {
+  const unexpected = (name: string) => () =>
+    Promise.reject(new Error(`unexpected ${name} call`));
+  return {
+    list: unexpected('list'),
+    listAllByUser: unexpected('listAllByUser'),
+    create: unexpected('create'),
+    update: unexpected('update'),
+    remove: unexpected('remove'),
+    ...overrides,
+  };
+}
 
 function makeRequest(
   auth: typeof AUTH | undefined,
@@ -26,16 +39,6 @@ function makeRequest(
     acceptsStreaming: false,
   } as CallableRequest<unknown>;
 }
-
-function makeDoc(id: string, data: unknown): QueryDocumentSnapshot {
-  return {
-    id,
-    ref: { path: `users/user-1/readings/${id}` },
-    data: () => data,
-  } as unknown as QueryDocumentSnapshot;
-}
-
-const timestamp = (date: Date) => ({ toDate: () => date });
 
 describe('listReadingsHandler', () => {
   test('throws unauthenticated when request has no auth', async () => {
@@ -134,43 +137,126 @@ describe('deleteReadingHandler', () => {
   });
 });
 
-describe('toReading', () => {
-  test('encodes instants as ISO strings', () => {
-    const reading = toReading(
-      makeDoc('r1', {
+describe('createReadingHandler with a fake repository', () => {
+  test('returns the id the repository assigned', async () => {
+    const result = await createReadingHandler(
+      makeRequest(AUTH, { bookId: 'book-1', tiles: [t1], isFreebie: false }),
+      fakeRepo({ create: () => Promise.resolve('r-new') }),
+    );
+    assert.deepEqual(result, { readingId: 'r-new' });
+  });
+
+  test('passes the parsed fields through to the repository', async () => {
+    const calls: unknown[] = [];
+    await createReadingHandler(
+      makeRequest(AUTH, { bookId: 'book-1', tiles: [t1, t2], isFreebie: true }),
+      fakeRepo({
+        create: (uid, fields) => {
+          calls.push({ uid, fields });
+          return Promise.resolve('r-new');
+        },
+      }),
+    );
+    assert.deepEqual(calls, [
+      {
+        uid: 'user-1',
+        fields: { bookId: 'book-1', tiles: [t1, t2], isFreebie: true },
+      },
+    ]);
+  });
+
+  test('surfaces a repository conflict rather than reporting success', async () => {
+    await assert.rejects(
+      createReadingHandler(
+        makeRequest(AUTH, { bookId: 'book-1', tiles: [t1], isFreebie: true }),
+        fakeRepo({
+          create: () =>
+            Promise.reject(
+              new DomainError(
+                'conflict',
+                'You already have a freebie reading.',
+              ),
+            ),
+        }),
+      ),
+      { name: 'DomainError', kind: 'conflict' },
+    );
+  });
+});
+
+describe('updateReadingHandler with a fake repository', () => {
+  test('passes the reading id and fields through', async () => {
+    const calls: unknown[] = [];
+    await updateReadingHandler(
+      makeRequest(AUTH, {
+        readingId: 'r1',
         bookId: 'book-1',
         tiles: [t1],
         isFreebie: false,
-        readAt: timestamp(READ_AT),
-        createdAt: timestamp(READ_AT),
+      }),
+      fakeRepo({
+        update: (uid, readingId, fields) => {
+          calls.push({ uid, readingId, fields });
+          return Promise.resolve();
+        },
       }),
     );
-    assert.equal(reading.readAt, '2026-01-02T03:04:05.000Z');
-    assert.equal(reading.updatedAt, undefined);
+    assert.deepEqual(calls, [
+      {
+        uid: 'user-1',
+        readingId: 'r1',
+        fields: { bookId: 'book-1', tiles: [t1], isFreebie: false },
+      },
+    ]);
   });
 
-  // 49 of prod's 104 readings still carry bookTitle/bookAuthor from the
-  // pre-bookId era. Every one of them resolves through bookId, so the stored
-  // copies are ignored and the book document is the only source of a title.
-  test('ignores the stale denormalized title and author', () => {
-    const reading = toReading(
-      makeDoc('r1', {
-        bookId: 'book-1',
-        bookTitle: 'Stale Title',
-        bookAuthor: 'Stale Author',
-        tiles: [],
-        isFreebie: false,
-        readAt: timestamp(READ_AT),
-        createdAt: timestamp(READ_AT),
+  test('surfaces a missing reading', async () => {
+    await assert.rejects(
+      updateReadingHandler(
+        makeRequest(AUTH, {
+          readingId: 'gone',
+          bookId: 'book-1',
+          tiles: [t1],
+          isFreebie: false,
+        }),
+        fakeRepo({
+          update: () =>
+            Promise.reject(
+              new DomainError('not-found', 'That reading no longer exists.'),
+            ),
+        }),
+      ),
+      { name: 'DomainError', kind: 'not-found' },
+    );
+  });
+});
+
+describe('deleteReadingHandler with a fake repository', () => {
+  test('removes the reading under the caller uid', async () => {
+    const calls: unknown[] = [];
+    await deleteReadingHandler(
+      makeRequest(AUTH, { readingId: 'r1' }),
+      fakeRepo({
+        remove: (uid, readingId) => {
+          calls.push({ uid, readingId });
+          return Promise.resolve();
+        },
       }),
     );
-    assert.deepEqual(Object.keys(reading).sort(), [
-      'bookId',
-      'createdAt',
-      'id',
-      'isFreebie',
-      'readAt',
-      'tiles',
-    ]);
+    assert.deepEqual(calls, [{ uid: 'user-1', readingId: 'r1' }]);
+  });
+});
+
+describe('listReadingsHandler with a fake repository', () => {
+  // A non-empty list reaches attachBooks, which reads Firestore directly, so
+  // only the empty case is coverable until the books repository is injected.
+  test('returns a zero score when the user has no readings', async () => {
+    const result = await listReadingsHandler(
+      makeRequest(AUTH, { userId: 'user-1' }),
+      fakeRepo({ list: () => Promise.resolve([]) }),
+    );
+    assert.deepEqual(result.readings, []);
+    assert.equal(result.score.score, 0);
+    assert.equal(result.score.totalBooks, 0);
   });
 });

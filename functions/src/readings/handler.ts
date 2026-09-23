@@ -1,10 +1,6 @@
 import type { CallableRequest } from 'firebase-functions/v2/https';
-import { FieldValue } from 'firebase-admin/firestore';
-import { db } from '../firebase.js';
 import { parseRequest, requireAuth } from '../callable.js';
 import { logEvent, logFailure, reportWriteFailure } from '../observability.js';
-import { DomainError } from '../common/errors.js';
-import { mapValid } from '../common/firestoreDoc.js';
 import {
   DeleteReadingRequestSchema,
   ListReadingsRequestSchema,
@@ -12,18 +8,10 @@ import {
   UpdateReadingRequestSchema,
 } from './schema.js';
 import { listUserProfiles } from '../users/store.js';
-import {
-  allReadingsQuery,
-  newReadingFields,
-  readingDoc,
-  readingsByUser,
-  readingsCollection,
-  requireNoOtherFreebie,
-  toReading,
-  type ReadingDTO,
-} from './store.js';
+import { readingRepository, type ReadingRepository } from './store.js';
+import { toReadingDTO, type ReadingDTO } from './present.js';
 import { attachBooks } from '../books/join.js';
-import { MissingBookError, requireBookExists } from '../books/store.js';
+import { MissingBookError } from '../books/store.js';
 import { scoreOf, validateReadingTiles, type ScoreDTO } from './validate.js';
 
 /**
@@ -35,24 +23,17 @@ import { scoreOf, validateReadingTiles, type ScoreDTO } from './validate.js';
  */
 export async function listReadingsHandler(
   request: CallableRequest<unknown>,
+  repo: ReadingRepository = readingRepository(),
 ): Promise<{ readings: ReadingDTO[]; score: ScoreDTO }> {
   requireAuth(request, 'load readings');
   const { userId } = parseRequest(ListReadingsRequestSchema, request.data);
 
-  const snapshot = await readingsCollection(userId)
-    .orderBy('readAt', 'desc')
-    .get();
-  const readings = mapValid('readings', snapshot.docs, toReading);
+  const readings = await repo.list(userId);
 
   try {
     const joined = await attachBooks(readings);
     return {
-      readings: joined.map(({ book, ...reading }) => ({
-        ...reading,
-        bookTitle: book.title,
-        bookAuthor: book.author,
-        bookMetadata: book.metadata,
-      })),
+      readings: joined.map(toReadingDTO),
       score: scoreOf(readings),
     };
   } catch (error) {
@@ -84,15 +65,14 @@ export interface LeaderboardRow {
  */
 export async function getLeaderboardHandler(
   request: CallableRequest<unknown>,
+  repo: ReadingRepository = readingRepository(),
 ): Promise<LeaderboardRow[]> {
   requireAuth(request, 'load the leaderboard');
 
-  const [profiles, readingsSnapshot] = await Promise.all([
+  const [profiles, byUser] = await Promise.all([
     listUserProfiles(),
-    allReadingsQuery().get(),
+    repo.listAllByUser(),
   ]);
-
-  const byUser = readingsByUser(readingsSnapshot.docs);
 
   return profiles
     .map((profile) => {
@@ -110,6 +90,7 @@ export async function getLeaderboardHandler(
 
 export async function createReadingHandler(
   request: CallableRequest<unknown>,
+  repo: ReadingRepository = readingRepository(),
 ): Promise<{ readingId: string }> {
   const { uid } = requireAuth(request, 'log a reading');
   const { bookId, tiles, isFreebie } = parseRequest(
@@ -118,14 +99,9 @@ export async function createReadingHandler(
   );
   validateReadingTiles(tiles, isFreebie);
 
-  const ref = readingsCollection(uid).doc();
-
+  let readingId: string;
   try {
-    await db.runTransaction(async (transaction) => {
-      await requireBookExists(transaction, bookId);
-      if (isFreebie) await requireNoOtherFreebie(transaction, uid, ref.id);
-      transaction.set(ref, newReadingFields(bookId, tiles, isFreebie));
-    });
+    readingId = await repo.create(uid, { bookId, tiles, isFreebie });
   } catch (error) {
     reportWriteFailure(error, 'reading.create', {
       uid,
@@ -137,16 +113,17 @@ export async function createReadingHandler(
   logEvent('reading.create', {
     uid,
     outcome: 'ok',
-    readingId: ref.id,
+    readingId,
     bookId,
     tileCount: tiles.length,
     isFreebie,
   });
-  return { readingId: ref.id };
+  return { readingId };
 }
 
 export async function updateReadingHandler(
   request: CallableRequest<unknown>,
+  repo: ReadingRepository = readingRepository(),
 ): Promise<void> {
   const { uid } = requireAuth(request, 'update a reading');
   const { readingId, bookId, tiles, isFreebie } = parseRequest(
@@ -155,26 +132,8 @@ export async function updateReadingHandler(
   );
   validateReadingTiles(tiles, isFreebie);
 
-  const ref = readingDoc(uid, readingId);
-
   try {
-    await db.runTransaction(async (transaction) => {
-      const existing = await transaction.get(ref);
-      // The path is built from the caller's own uid, so another user's reading
-      // id simply does not resolve — there is nothing to leak here.
-      if (!existing.exists) {
-        throw new DomainError('not-found', 'That reading no longer exists.');
-      }
-      await requireBookExists(transaction, bookId);
-      if (isFreebie) await requireNoOtherFreebie(transaction, uid, readingId);
-
-      transaction.update(ref, {
-        bookId,
-        tiles,
-        isFreebie,
-        updatedAt: FieldValue.serverTimestamp(),
-      });
-    });
+    await repo.update(uid, readingId, { bookId, tiles, isFreebie });
   } catch (error) {
     reportWriteFailure(error, 'reading.update', { uid, readingId, bookId });
   }
@@ -191,12 +150,13 @@ export async function updateReadingHandler(
 
 export async function deleteReadingHandler(
   request: CallableRequest<unknown>,
+  repo: ReadingRepository = readingRepository(),
 ): Promise<void> {
   const { uid } = requireAuth(request, 'delete a reading');
   const { readingId } = parseRequest(DeleteReadingRequestSchema, request.data);
 
   try {
-    await readingDoc(uid, readingId).delete();
+    await repo.remove(uid, readingId);
   } catch (error) {
     reportWriteFailure(error, 'reading.delete', { uid, readingId });
   }
