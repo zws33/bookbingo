@@ -25,11 +25,11 @@ import { MissingBookError } from '../books/store.js';
  */
 export async function listMyTBRHandler(
   request: CallableRequest<unknown>,
-  repo: TBREntryRepository = tbrEntryRepository(),
+  tbrRepo: TBREntryRepository = tbrEntryRepository(),
 ): Promise<TBREntryDTO[]> {
   const { uid } = requireAuth(request, 'load your reading list');
 
-  const entries = await repo.list(uid);
+  const entries = await tbrRepo.list(uid);
 
   try {
     return (await attachBooks(entries)).map(toTBREntryDTO);
@@ -48,7 +48,7 @@ export async function listMyTBRHandler(
 
 export async function createTBREntryHandler(
   request: CallableRequest<unknown>,
-  repo: TBREntryRepository = tbrEntryRepository(),
+  tbrRepo: TBREntryRepository = tbrEntryRepository(),
 ): Promise<{ tbrId: string }> {
   const { uid } = requireAuth(request, 'add to your reading list');
   const { bookId, plannedTiles, notes } = parseRequest(
@@ -61,7 +61,7 @@ export async function createTBREntryHandler(
 
   let tbrId: string;
   try {
-    tbrId = await repo.create(uid, { bookId, plannedTiles, notes });
+    tbrId = await tbrRepo.create(uid, { bookId, plannedTiles, notes });
   } catch (error) {
     reportWriteFailure(error, 'tbr.create', { uid, bookId });
   }
@@ -72,7 +72,7 @@ export async function createTBREntryHandler(
 
 export async function updateTBREntryHandler(
   request: CallableRequest<unknown>,
-  repo: TBREntryRepository = tbrEntryRepository(),
+  tbrRepo: TBREntryRepository = tbrEntryRepository(),
 ): Promise<void> {
   const { uid } = requireAuth(request, 'update your reading list');
   const { tbrId, plannedTiles, notes } = parseRequest(
@@ -82,7 +82,7 @@ export async function updateTBREntryHandler(
   validateTileIds(plannedTiles);
 
   try {
-    await repo.update(uid, tbrId, { plannedTiles, notes });
+    await tbrRepo.update(uid, tbrId, { plannedTiles, notes });
   } catch (error) {
     reportWriteFailure(error, 'tbr.update', { uid, tbrId });
   }
@@ -92,13 +92,13 @@ export async function updateTBREntryHandler(
 
 export async function deleteTBREntryHandler(
   request: CallableRequest<unknown>,
-  repo: TBREntryRepository = tbrEntryRepository(),
+  tbrRepo: TBREntryRepository = tbrEntryRepository(),
 ): Promise<void> {
   const { uid } = requireAuth(request, 'update your reading list');
   const { tbrId } = parseRequest(DeleteTBRRequestSchema, request.data);
 
   try {
-    await repo.remove(uid, tbrId);
+    await tbrRepo.remove(uid, tbrId);
   } catch (error) {
     reportWriteFailure(error, 'tbr.delete', { uid, tbrId });
   }
@@ -108,7 +108,7 @@ export async function deleteTBREntryHandler(
 
 export async function promoteTBREntryHandler(
   request: CallableRequest<unknown>,
-  repo: TBREntryRepository = tbrEntryRepository(),
+  tbrRepo: TBREntryRepository = tbrEntryRepository(),
 ): Promise<{ readingId: string }> {
   const { uid } = requireAuth(request, 'log a reading');
   const { tbrId, tiles, isFreebie } = parseRequest(
@@ -119,7 +119,7 @@ export async function promoteTBREntryHandler(
 
   let outcome: PromotionOutcome;
   try {
-    outcome = await repo.promote(uid, tbrId, tiles, isFreebie);
+    outcome = await tbrRepo.promote(uid, tbrId, tiles, isFreebie);
   } catch (error) {
     reportWriteFailure(error, 'tbr.promote', { uid, tbrId });
   }

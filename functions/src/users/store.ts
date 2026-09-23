@@ -1,12 +1,17 @@
-import type { DocumentSnapshot } from 'firebase-admin/firestore';
+import { FieldValue, type DocumentSnapshot } from 'firebase-admin/firestore';
 import { db } from '../firebase.js';
 import { mapValid } from '../common/firestoreDoc.js';
 import { UserProfileDocSchema } from './schema.js';
 import type { UserProfile } from '@bookbingo/lib-types';
 
+export interface UserProfileRepository {
+  list(): Promise<UserProfile[]>;
+  /** `null` when the id has no document, which is normal — see getUserProfileHandler. */
+  get(userId: string): Promise<UserProfile | null>;
+  upsert(profile: UserProfile): Promise<void>;
+}
+
 /**
- * The profile shape the UI renders.
- *
  * `photoURL` is `null` rather than absent: the client's optional-property form
  * does not survive JSON, where an omitted key and an explicit null read the
  * same. Google sign-in supplies both fields, but a profile written before
@@ -21,15 +26,29 @@ export function toUserProfile(doc: DocumentSnapshot): UserProfile {
   };
 }
 
-export async function listUserProfiles(): Promise<UserProfile[]> {
-  const snapshot = await db.collection('users').get();
-  return mapValid('users', snapshot.docs, toUserProfile);
-}
+const firestoreUserProfiles: UserProfileRepository = {
+  async list() {
+    const snapshot = await db.collection('users').get();
+    return mapValid('users', snapshot.docs, toUserProfile);
+  },
 
-/** `null` when the id has no document, which is normal — see getUserProfileHandler. */
-export async function getUserProfile(
-  userId: string,
-): Promise<UserProfile | null> {
-  const snapshot = await db.collection('users').doc(userId).get();
-  return snapshot.exists ? toUserProfile(snapshot) : null;
+  async get(userId) {
+    const snapshot = await db.collection('users').doc(userId).get();
+    return snapshot.exists ? toUserProfile(snapshot) : null;
+  },
+
+  async upsert({ id, name, photoURL }) {
+    await db
+      .collection('users')
+      .doc(id)
+      .set(
+        { name, photoURL, updatedAt: FieldValue.serverTimestamp() },
+        { merge: true },
+      );
+  },
+};
+
+/** The module singleton, not a new instance per call. */
+export function userProfileRepository(): UserProfileRepository {
+  return firestoreUserProfiles;
 }

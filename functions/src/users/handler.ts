@@ -1,17 +1,16 @@
-import { HttpsError, type CallableRequest } from 'firebase-functions/v2/https';
-import { FieldValue } from 'firebase-admin/firestore';
-import { db } from '../firebase.js';
+import type { CallableRequest } from 'firebase-functions/v2/https';
 import { parseRequest, requireAuth } from '../callable.js';
-import { logEvent, logFailure } from '../observability.js';
-import { getUserProfile, listUserProfiles } from './store.js';
+import { logEvent, reportWriteFailure } from '../observability.js';
+import { userProfileRepository, type UserProfileRepository } from './store.js';
 import { GetUserProfileRequestSchema } from './schema.js';
 import type { UserProfile } from '@bookbingo/lib-types';
 
 export async function listUsersHandler(
   request: CallableRequest<unknown>,
+  usersRepo: UserProfileRepository = userProfileRepository(),
 ): Promise<UserProfile[]> {
   requireAuth(request, 'load users');
-  return listUserProfiles();
+  return usersRepo.list();
 }
 
 /**
@@ -22,10 +21,11 @@ export async function listUsersHandler(
  */
 export async function getUserProfileHandler(
   request: CallableRequest<unknown>,
+  usersRepo: UserProfileRepository = userProfileRepository(),
 ): Promise<UserProfile | null> {
   requireAuth(request, 'load a profile');
   const { userId } = parseRequest(GetUserProfileRequestSchema, request.data);
-  return getUserProfile(userId);
+  return usersRepo.get(userId);
 }
 
 /**
@@ -41,6 +41,7 @@ export async function getUserProfileHandler(
  */
 export async function syncMyProfileHandler(
   request: CallableRequest<unknown>,
+  usersRepo: UserProfileRepository = userProfileRepository(),
 ): Promise<UserProfile> {
   const { uid, token } = requireAuth(request, 'save your profile');
   const claimedName: unknown = token.name;
@@ -54,17 +55,9 @@ export async function syncMyProfileHandler(
   };
 
   try {
-    await db.collection('users').doc(uid).set(
-      {
-        name: profile.name,
-        photoURL: profile.photoURL,
-        updatedAt: FieldValue.serverTimestamp(),
-      },
-      { merge: true },
-    );
+    await usersRepo.upsert(profile);
   } catch (error) {
-    logFailure('user.sync', error, { uid, outcome: 'error' });
-    throw new HttpsError('internal', 'Failed to save your profile.');
+    reportWriteFailure(error, 'user.sync', { uid });
   }
 
   logEvent('user.sync', {

@@ -7,7 +7,10 @@ import {
   ReadingFieldsSchema,
   UpdateReadingRequestSchema,
 } from './schema.js';
-import { listUserProfiles } from '../users/store.js';
+import {
+  userProfileRepository,
+  type UserProfileRepository,
+} from '../users/store.js';
 import { readingRepository, type ReadingRepository } from './store.js';
 import { toReadingDTO, type ReadingDTO } from './present.js';
 import { attachBooks } from '../books/join.js';
@@ -23,12 +26,12 @@ import { scoreOf, validateReadingTiles, type ScoreDTO } from './validate.js';
  */
 export async function listReadingsHandler(
   request: CallableRequest<unknown>,
-  repo: ReadingRepository = readingRepository(),
+  readingsRepo: ReadingRepository = readingRepository(),
 ): Promise<{ readings: ReadingDTO[]; score: ScoreDTO }> {
   requireAuth(request, 'load readings');
   const { userId } = parseRequest(ListReadingsRequestSchema, request.data);
 
-  const readings = await repo.list(userId);
+  const readings = await readingsRepo.list(userId);
 
   try {
     const joined = await attachBooks(readings);
@@ -65,13 +68,14 @@ export interface LeaderboardRow {
  */
 export async function getLeaderboardHandler(
   request: CallableRequest<unknown>,
-  repo: ReadingRepository = readingRepository(),
+  readingsRepo: ReadingRepository = readingRepository(),
+  usersRepo: UserProfileRepository = userProfileRepository(),
 ): Promise<LeaderboardRow[]> {
   requireAuth(request, 'load the leaderboard');
 
   const [profiles, byUser] = await Promise.all([
-    listUserProfiles(),
-    repo.listAllByUser(),
+    usersRepo.list(),
+    readingsRepo.listAllByUser(),
   ]);
 
   return profiles
@@ -90,7 +94,7 @@ export async function getLeaderboardHandler(
 
 export async function createReadingHandler(
   request: CallableRequest<unknown>,
-  repo: ReadingRepository = readingRepository(),
+  readingsRepo: ReadingRepository = readingRepository(),
 ): Promise<{ readingId: string }> {
   const { uid } = requireAuth(request, 'log a reading');
   const { bookId, tiles, isFreebie } = parseRequest(
@@ -101,7 +105,7 @@ export async function createReadingHandler(
 
   let readingId: string;
   try {
-    readingId = await repo.create(uid, { bookId, tiles, isFreebie });
+    readingId = await readingsRepo.create(uid, { bookId, tiles, isFreebie });
   } catch (error) {
     reportWriteFailure(error, 'reading.create', {
       uid,
@@ -123,7 +127,7 @@ export async function createReadingHandler(
 
 export async function updateReadingHandler(
   request: CallableRequest<unknown>,
-  repo: ReadingRepository = readingRepository(),
+  readingsRepo: ReadingRepository = readingRepository(),
 ): Promise<void> {
   const { uid } = requireAuth(request, 'update a reading');
   const { readingId, bookId, tiles, isFreebie } = parseRequest(
@@ -133,7 +137,7 @@ export async function updateReadingHandler(
   validateReadingTiles(tiles, isFreebie);
 
   try {
-    await repo.update(uid, readingId, { bookId, tiles, isFreebie });
+    await readingsRepo.update(uid, readingId, { bookId, tiles, isFreebie });
   } catch (error) {
     reportWriteFailure(error, 'reading.update', { uid, readingId, bookId });
   }
@@ -150,13 +154,13 @@ export async function updateReadingHandler(
 
 export async function deleteReadingHandler(
   request: CallableRequest<unknown>,
-  repo: ReadingRepository = readingRepository(),
+  readingsRepo: ReadingRepository = readingRepository(),
 ): Promise<void> {
   const { uid } = requireAuth(request, 'delete a reading');
   const { readingId } = parseRequest(DeleteReadingRequestSchema, request.data);
 
   try {
-    await repo.remove(uid, readingId);
+    await readingsRepo.remove(uid, readingId);
   } catch (error) {
     reportWriteFailure(error, 'reading.delete', { uid, readingId });
   }

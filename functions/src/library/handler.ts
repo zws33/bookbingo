@@ -2,7 +2,10 @@ import type { CallableRequest } from 'firebase-functions/v2/https';
 import type { Book } from '@bookbingo/lib-types';
 import { requireAuth } from '../callable.js';
 import { logFailure, logWarning } from '../observability.js';
-import { listUserProfiles } from '../users/store.js';
+import {
+  userProfileRepository,
+  type UserProfileRepository,
+} from '../users/store.js';
 import {
   readingRepository,
   type ReadingRepository,
@@ -36,13 +39,14 @@ export interface LibraryBook {
  */
 export async function getLibraryHandler(
   request: CallableRequest<unknown>,
-  repo: ReadingRepository = readingRepository(),
+  readingsRepo: ReadingRepository = readingRepository(),
+  usersRepo: UserProfileRepository = userProfileRepository(),
 ): Promise<LibraryBook[]> {
   requireAuth(request, 'load the library');
 
   const [profiles, byUser] = await Promise.all([
-    listUserProfiles(),
-    repo.listAllByUser(),
+    usersRepo.list(),
+    readingsRepo.listAllByUser(),
   ]);
   const profilesById = new Map(profiles.map((p) => [p.id, p]));
 

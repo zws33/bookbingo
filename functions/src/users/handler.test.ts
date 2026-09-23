@@ -1,11 +1,29 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert';
 import type { CallableRequest } from 'firebase-functions/v2/https';
-import { getUserProfileHandler, listUsersHandler } from './handler.js';
-import { toUserProfile } from './store.js';
+import {
+  getUserProfileHandler,
+  listUsersHandler,
+  syncMyProfileHandler,
+} from './handler.js';
+import { toUserProfile, type UserProfileRepository } from './store.js';
 import type { DocumentSnapshot } from 'firebase-admin/firestore';
 
 const AUTH = { uid: 'user-1', token: {}, rawToken: 'test' };
+
+/** Every method rejects unless the test overrides it, so an unexpected call fails loudly. */
+function fakeRepo(
+  overrides: Partial<UserProfileRepository>,
+): UserProfileRepository {
+  const unexpected = (name: string) => () =>
+    Promise.reject(new Error(`unexpected ${name} call`));
+  return {
+    list: unexpected('list'),
+    get: unexpected('get'),
+    upsert: unexpected('upsert'),
+    ...overrides,
+  };
+}
 
 function makeRequest(
   auth: typeof AUTH | undefined,
@@ -76,5 +94,42 @@ describe('toUserProfile', () => {
       makeDoc('user-1', { name: 'Ada', photoURL: 'https://example.com/a.png' }),
     );
     assert.equal(profile.photoURL, 'https://example.com/a.png');
+  });
+});
+
+describe('syncMyProfileHandler with a fake repository', () => {
+  const authWith = (token: Record<string, unknown>) => ({
+    ...AUTH,
+    token,
+  });
+
+  test('writes name and photo taken from the verified token', async () => {
+    const writes: unknown[] = [];
+    const profile = await syncMyProfileHandler(
+      makeRequest(authWith({ name: '  Ada  ', picture: 'https://p/a.png' }), {
+        name: 'Attacker',
+      }),
+      fakeRepo({
+        upsert: (written) => {
+          writes.push(written);
+          return Promise.resolve();
+        },
+      }),
+    );
+    assert.deepEqual(profile, {
+      id: 'user-1',
+      name: 'Ada',
+      photoURL: 'https://p/a.png',
+    });
+    assert.deepEqual(writes, [profile]);
+  });
+
+  test('falls back to User when the token carries no usable name', async () => {
+    const profile = await syncMyProfileHandler(
+      makeRequest(authWith({ name: 42 }), {}),
+      fakeRepo({ upsert: () => Promise.resolve() }),
+    );
+    assert.equal(profile.name, 'User');
+    assert.equal(profile.photoURL, null);
   });
 });
