@@ -1,8 +1,10 @@
 import {
   FieldValue,
   type QueryDocumentSnapshot,
+  type Transaction,
 } from 'firebase-admin/firestore';
 import { db } from '../firebase.js';
+import { DomainError } from '../common/errors.js';
 import { mapValid } from '../common/firestoreDoc.js';
 import { ReadingDocSchema } from './schema.js';
 import type { BookFields } from '../books/join.js';
@@ -80,6 +82,26 @@ export function readingsByUser(
   }
 
   return byUser;
+}
+
+/**
+ * At most one freebie per user.
+ *
+ * Shared by the create, update and promote paths: three writers of the same
+ * rule, so it lives in one place where a change reaches all of them.
+ */
+export async function requireNoOtherFreebie(
+  transaction: Transaction,
+  uid: string,
+  readingId: string,
+): Promise<void> {
+  const freebies = await transaction.get(
+    readingsCollection(uid).where('isFreebie', '==', true).limit(2),
+  );
+  const other = freebies.docs.find((doc) => doc.id !== readingId);
+  if (other) {
+    throw new DomainError('conflict', 'You already have a freebie reading.');
+  }
 }
 
 /** Field set for a newly created reading. Shared with the TBR promote path. */

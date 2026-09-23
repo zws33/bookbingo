@@ -18,12 +18,13 @@ import {
   readingDoc,
   readingsByUser,
   readingsCollection,
+  requireNoOtherFreebie,
   toReading,
   type ReadingDTO,
 } from './store.js';
 import { MissingBookError, withBooks } from '../books/join.js';
+import { requireBookExists } from '../books/store.js';
 import { scoreOf, validateReadingTiles, type ScoreDTO } from './validate.js';
-import { requireBook, requireNoOtherFreebie } from './guards.js';
 
 /**
  * One user's readings, newest first, with their score.
@@ -112,7 +113,7 @@ export async function createReadingHandler(
 
   try {
     await db.runTransaction(async (transaction) => {
-      await requireBook(transaction, bookId);
+      await requireBookExists(transaction, bookId);
       if (isFreebie) await requireNoOtherFreebie(transaction, uid, ref.id);
       transaction.set(ref, newReadingFields(bookId, tiles, isFreebie));
     });
@@ -155,7 +156,7 @@ export async function updateReadingHandler(
       if (!existing.exists) {
         throw new DomainError('not-found', 'That reading no longer exists.');
       }
-      await requireBook(transaction, bookId);
+      await requireBookExists(transaction, bookId);
       if (isFreebie) await requireNoOtherFreebie(transaction, uid, readingId);
 
       transaction.update(ref, {

@@ -15,10 +15,14 @@ import {
   TBREntryDocSchema,
   UpdateTBRRequestSchema,
 } from './schema.js';
-import { newReadingFields, readingDoc } from '../readings/store.js';
+import {
+  newReadingFields,
+  readingDoc,
+  requireNoOtherFreebie,
+} from '../readings/store.js';
 import { validateReadingTiles, validateTileIds } from '../readings/validate.js';
-import { requireBook, requireNoOtherFreebie } from '../readings/guards.js';
 import { MissingBookError, withBooks, type BookFields } from '../books/join.js';
+import { requireBookExists } from '../books/store.js';
 
 /** What the API returns: the stored entry plus its resolved book. */
 export type TBREntryDTO = TBREntry & BookFields;
@@ -205,7 +209,7 @@ export async function promoteTBREntryHandler(
       }
 
       bookId = TBREntryDocSchema.parse(entry.data()).bookId;
-      await requireBook(transaction, bookId);
+      await requireBookExists(transaction, bookId);
       if (isFreebie) await requireNoOtherFreebie(transaction, uid, tbrId);
 
       transaction.set(readingRef, newReadingFields(bookId, tiles, isFreebie));
