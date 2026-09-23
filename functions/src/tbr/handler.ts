@@ -1,69 +1,21 @@
-import { HttpsError, type CallableRequest } from 'firebase-functions/v2/https';
-import {
-  FieldValue,
-  type QueryDocumentSnapshot,
-} from 'firebase-admin/firestore';
-import { db } from '../firebase.js';
+import type { CallableRequest } from 'firebase-functions/v2/https';
 import { parseRequest, requireAuth } from '../callable.js';
 import { logEvent, logFailure, reportWriteFailure } from '../observability.js';
-import { DomainError } from '../common/errors.js';
-import { mapValid } from '../common/firestoreDoc.js';
 import {
   CreateTBRRequestSchema,
   DeleteTBRRequestSchema,
   PromoteTBRRequestSchema,
-  TBREntryDocSchema,
   UpdateTBRRequestSchema,
 } from './schema.js';
 import {
-  newReadingFields,
-  readingDoc,
-  requireNoOtherFreebie,
-} from '../readings/store.js';
+  tbrEntryRepository,
+  type PromotionOutcome,
+  type TBREntryRepository,
+} from './store.js';
+import { toTBREntryDTO, type TBREntryDTO } from './present.js';
 import { validateReadingTiles, validateTileIds } from '../readings/validate.js';
-import type { BookMetadata } from '@bookbingo/lib-types';
 import { attachBooks } from '../books/join.js';
-import { MissingBookError, requireBookExists } from '../books/store.js';
-
-/** What the API returns: the stored entry plus its resolved book. */
-export type TBREntryDTO = TBREntry & {
-  bookTitle: string;
-  bookAuthor: string;
-  bookMetadata: BookMetadata;
-};
-
-/** Instants are ISO strings for the same reason as Reading. */
-export interface TBREntry {
-  id: string;
-  bookId: string;
-  plannedTiles: string[];
-  notes?: string;
-  addedAt: string;
-  updatedAt?: string;
-}
-
-/** The one place the TBR collection path is written. */
-function tbrCollection(userId: string) {
-  return db.collection('users').doc(userId).collection('tbr');
-}
-
-function tbrDoc(userId: string, tbrId: string) {
-  return tbrCollection(userId).doc(tbrId);
-}
-
-function toTBREntry(doc: QueryDocumentSnapshot): TBREntry {
-  const data = TBREntryDocSchema.parse(doc.data());
-  return {
-    id: doc.id, // ID is the key, not a stored field
-    bookId: data.bookId,
-    plannedTiles: data.plannedTiles,
-    ...(data.notes !== undefined && { notes: data.notes }),
-    addedAt: data.addedAt.toISOString(),
-    ...(data.updatedAt !== undefined && {
-      updatedAt: data.updatedAt.toISOString(),
-    }),
-  };
-}
+import { MissingBookError } from '../books/store.js';
 
 /**
  * The caller's own TBR list, newest first.
@@ -73,20 +25,14 @@ function toTBREntry(doc: QueryDocumentSnapshot): TBREntry {
  */
 export async function listMyTBRHandler(
   request: CallableRequest<unknown>,
+  repo: TBREntryRepository = tbrEntryRepository(),
 ): Promise<TBREntryDTO[]> {
   const { uid } = requireAuth(request, 'load your reading list');
 
-  const snapshot = await tbrCollection(uid).orderBy('addedAt', 'desc').get();
-  const entries = mapValid('tbr', snapshot.docs, toTBREntry);
+  const entries = await repo.list(uid);
 
   try {
-    const joined = await attachBooks(entries);
-    return joined.map(({ book, ...entry }) => ({
-      ...entry,
-      bookTitle: book.title,
-      bookAuthor: book.author,
-      bookMetadata: book.metadata,
-    }));
+    return (await attachBooks(entries)).map(toTBREntryDTO);
   } catch (error) {
     if (error instanceof MissingBookError) {
       logFailure('tbr.list', error, {
@@ -102,6 +48,7 @@ export async function listMyTBRHandler(
 
 export async function createTBREntryHandler(
   request: CallableRequest<unknown>,
+  repo: TBREntryRepository = tbrEntryRepository(),
 ): Promise<{ tbrId: string }> {
   const { uid } = requireAuth(request, 'add to your reading list');
   const { bookId, plannedTiles, notes } = parseRequest(
@@ -112,31 +59,20 @@ export async function createTBREntryHandler(
   // have to be real ones, or promoting the entry would fail later.
   validateTileIds(plannedTiles);
 
-  // Without this an entry can point at a book that does not exist, and
-  // `listMyTBR` then fails for the whole list — which the UI cannot recover
-  // from, because the list never renders the row that would let you delete it.
-  const book = await db.collection('books').doc(bookId).get();
-  if (!book.exists) {
-    throw new DomainError('not-found', 'That book is not in the catalog.');
+  let tbrId: string;
+  try {
+    tbrId = await repo.create(uid, { bookId, plannedTiles, notes });
+  } catch (error) {
+    reportWriteFailure(error, 'tbr.create', { uid, bookId });
   }
 
-  try {
-    const ref = await tbrCollection(uid).add({
-      bookId,
-      plannedTiles,
-      ...(notes ? { notes } : {}),
-      addedAt: FieldValue.serverTimestamp(),
-    });
-    logEvent('tbr.create', { uid, outcome: 'ok', tbrId: ref.id, bookId });
-    return { tbrId: ref.id };
-  } catch (error) {
-    logFailure('tbr.create', error, { uid, bookId, outcome: 'error' });
-    throw new HttpsError('internal', 'Failed to save your reading list.');
-  }
+  logEvent('tbr.create', { uid, outcome: 'ok', tbrId, bookId });
+  return { tbrId };
 }
 
 export async function updateTBREntryHandler(
   request: CallableRequest<unknown>,
+  repo: TBREntryRepository = tbrEntryRepository(),
 ): Promise<void> {
   const { uid } = requireAuth(request, 'update your reading list');
   const { tbrId, plannedTiles, notes } = parseRequest(
@@ -146,19 +82,9 @@ export async function updateTBREntryHandler(
   validateTileIds(plannedTiles);
 
   try {
-    await tbrDoc(uid, tbrId).update({
-      plannedTiles,
-      // An empty note clears the field rather than storing '' — the shape the
-      // read schema expects for "no note".
-      notes: notes ? notes : FieldValue.delete(),
-      updatedAt: FieldValue.serverTimestamp(),
-    });
+    await repo.update(uid, tbrId, { plannedTiles, notes });
   } catch (error) {
-    if (isNotFound(error)) {
-      throw new HttpsError('not-found', 'That entry no longer exists.');
-    }
-    logFailure('tbr.update', error, { uid, tbrId, outcome: 'error' });
-    throw new HttpsError('internal', 'Failed to save your reading list.');
+    reportWriteFailure(error, 'tbr.update', { uid, tbrId });
   }
 
   logEvent('tbr.update', { uid, outcome: 'ok', tbrId });
@@ -166,33 +92,23 @@ export async function updateTBREntryHandler(
 
 export async function deleteTBREntryHandler(
   request: CallableRequest<unknown>,
+  repo: TBREntryRepository = tbrEntryRepository(),
 ): Promise<void> {
   const { uid } = requireAuth(request, 'update your reading list');
   const { tbrId } = parseRequest(DeleteTBRRequestSchema, request.data);
 
   try {
-    await tbrDoc(uid, tbrId).delete();
+    await repo.remove(uid, tbrId);
   } catch (error) {
-    logFailure('tbr.delete', error, { uid, tbrId, outcome: 'error' });
-    throw new HttpsError('internal', 'Failed to save your reading list.');
+    reportWriteFailure(error, 'tbr.delete', { uid, tbrId });
   }
 
   logEvent('tbr.delete', { uid, outcome: 'ok', tbrId });
 }
 
-/**
- * Turns a planned entry into a reading, atomically.
- *
- * The reading takes the entry's id, which makes a retry safe: if the entry is
- * already gone but a reading exists at that id, the first call succeeded and
- * its response was lost, so this returns that reading instead of reporting an
- * entry that "no longer exists" for a book the user did log.
- *
- * The book comes from the stored entry rather than the request — the entry
- * already names it, so there is nothing for a caller to disagree with.
- */
 export async function promoteTBREntryHandler(
   request: CallableRequest<unknown>,
+  repo: TBREntryRepository = tbrEntryRepository(),
 ): Promise<{ readingId: string }> {
   const { uid } = requireAuth(request, 'log a reading');
   const { tbrId, tiles, isFreebie } = parseRequest(
@@ -201,48 +117,21 @@ export async function promoteTBREntryHandler(
   );
   validateReadingTiles(tiles, isFreebie);
 
-  const readingRef = readingDoc(uid, tbrId);
-  const entryRef = tbrDoc(uid, tbrId);
-  let bookId = '';
-  let alreadyLogged = false;
-
+  let outcome: PromotionOutcome;
   try {
-    await db.runTransaction(async (transaction) => {
-      const entry = await transaction.get(entryRef);
-
-      if (!entry.exists) {
-        const existing = await transaction.get(readingRef);
-        if (!existing.exists) {
-          throw new DomainError('not-found', 'That entry no longer exists.');
-        }
-        alreadyLogged = true;
-        return;
-      }
-
-      bookId = TBREntryDocSchema.parse(entry.data()).bookId;
-      await requireBookExists(transaction, bookId);
-      if (isFreebie) await requireNoOtherFreebie(transaction, uid, tbrId);
-
-      transaction.set(readingRef, newReadingFields(bookId, tiles, isFreebie));
-      transaction.delete(entryRef);
-    });
+    outcome = await repo.promote(uid, tbrId, tiles, isFreebie);
   } catch (error) {
-    reportWriteFailure(error, 'tbr.promote', { uid, tbrId, bookId });
+    reportWriteFailure(error, 'tbr.promote', { uid, tbrId });
   }
 
   logEvent('tbr.promote', {
     uid,
-    outcome: alreadyLogged ? 'already-logged' : 'ok',
+    outcome: outcome.alreadyLogged ? 'already-logged' : 'ok',
     tbrId,
-    readingId: readingRef.id,
-    bookId,
+    readingId: outcome.readingId,
+    bookId: outcome.bookId,
     tileCount: tiles.length,
     isFreebie,
   });
-  return { readingId: readingRef.id };
-}
-
-/** Firestore reports an update to a missing document as NOT_FOUND (code 5). */
-function isNotFound(error: unknown): boolean {
-  return (error as { code?: unknown } | null)?.code === 5;
+  return { readingId: outcome.readingId };
 }
