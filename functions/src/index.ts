@@ -11,13 +11,8 @@ import { createManualBookHandler } from './books/manual.js';
 import { getBoardConfigHandler } from './config/handler.js';
 import { userHandlers } from './users/handler.js';
 import { userProfileRepository } from './users/store.js';
-import {
-  createReadingHandler,
-  deleteReadingHandler,
-  getLeaderboardHandler,
-  listReadingsHandler,
-  updateReadingHandler,
-} from './readings/handler.js';
+import { readingHandlers } from './readings/handler.js';
+import { readingRepository } from './readings/store.js';
 import { getLibraryHandler } from './library/handler.js';
 import { tbrHandlers } from './tbr/handler.js';
 import { tbrEntryRepository } from './tbr/store.js';
@@ -32,9 +27,11 @@ const githubPat = defineSecret('GITHUB_PAT');
 
 const usersRepo = userProfileRepository();
 const tbrRepo = tbrEntryRepository();
+const readingsRepo = readingRepository();
 
 const users = userHandlers(usersRepo);
 const tbr = tbrHandlers(tbrRepo);
+const readings = readingHandlers(readingsRepo, usersRepo);
 
 export const submitFeedback = onCall(
   { invoker: 'public', secrets: [githubPat] },
@@ -82,7 +79,7 @@ export const syncMyProfile = onCall(
 
 export const listReadings = onCall(
   { invoker: 'public' },
-  callable(listReadingsHandler, 'Could not load those readings.'),
+  callable(readings.list, 'Could not load those readings.'),
 );
 export const getLibrary = onCall(
   { invoker: 'public' },
@@ -90,19 +87,19 @@ export const getLibrary = onCall(
 );
 export const getLeaderboard = onCall(
   { invoker: 'public' },
-  callable(getLeaderboardHandler, 'Could not load the leaderboard.'),
+  callable(readings.leaderboard, 'Could not load the leaderboard.'),
 );
 export const createReading = onCall(
   { invoker: 'public' },
-  callable(createReadingHandler, 'Failed to save your reading.'),
+  callable(readings.create, 'Failed to save your reading.'),
 );
 export const updateReading = onCall(
   { invoker: 'public' },
-  callable(updateReadingHandler, 'Failed to save your reading.'),
+  callable(readings.update, 'Failed to save your reading.'),
 );
 export const deleteReading = onCall(
   { invoker: 'public' },
-  callable(deleteReadingHandler, 'Failed to save your reading.'),
+  callable(readings.remove, 'Failed to save your reading.'),
 );
 
 export const listMyTBR = onCall(

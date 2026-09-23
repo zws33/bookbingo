@@ -1,13 +1,9 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert';
 import type { CallableRequest } from 'firebase-functions/v2/https';
-import {
-  createReadingHandler,
-  deleteReadingHandler,
-  listReadingsHandler,
-  updateReadingHandler,
-} from './handler.js';
+import { readingHandlers } from './handler.js';
 import type { ReadingRepository } from './store.js';
+import type { UserProfileRepository } from '../users/store.js';
 import { DomainError } from '../common/errors.js';
 import { TILES } from '../domain/constants.js';
 
@@ -15,7 +11,9 @@ const AUTH = { uid: 'user-1', token: {}, rawToken: 'test' };
 const [t1, t2, t3, t4] = TILES.map((tile) => tile.id);
 
 /** Every method rejects unless the test overrides it, so an unexpected call fails loudly. */
-function fakeRepo(overrides: Partial<ReadingRepository>): ReadingRepository {
+function fakeRepo(
+  overrides: Partial<ReadingRepository> = {},
+): ReadingRepository {
   const unexpected = (name: string) => () =>
     Promise.reject(new Error(`unexpected ${name} call`));
   return {
@@ -27,6 +25,24 @@ function fakeRepo(overrides: Partial<ReadingRepository>): ReadingRepository {
     ...overrides,
   };
 }
+
+function fakeUsersRepo(
+  overrides: Partial<UserProfileRepository> = {},
+): UserProfileRepository {
+  const unexpected = (name: string) => () =>
+    Promise.reject(new Error(`unexpected ${name} call`));
+  return {
+    list: unexpected('list'),
+    get: unexpected('get'),
+    upsert: unexpected('upsert'),
+    ...overrides,
+  };
+}
+
+const handlers = (
+  readings: Partial<ReadingRepository> = {},
+  users: Partial<UserProfileRepository> = {},
+) => readingHandlers(fakeRepo(readings), fakeUsersRepo(users));
 
 function makeRequest(
   auth: typeof AUTH | undefined,
@@ -40,25 +56,25 @@ function makeRequest(
   } as CallableRequest<unknown>;
 }
 
-describe('listReadingsHandler', () => {
+describe('readingHandlers.list', () => {
   test('throws unauthenticated when request has no auth', async () => {
     await assert.rejects(
-      listReadingsHandler(makeRequest(undefined, { userId: 'user-1' })),
+      handlers().list(makeRequest(undefined, { userId: 'user-1' })),
       { code: 'unauthenticated' },
     );
   });
 
   test('throws invalid-argument when userId is missing', async () => {
-    await assert.rejects(listReadingsHandler(makeRequest(AUTH, {})), {
+    await assert.rejects(handlers().list(makeRequest(AUTH, {})), {
       code: 'invalid-argument',
     });
   });
 });
 
-describe('createReadingHandler', () => {
+describe('readingHandlers.create', () => {
   test('throws unauthenticated when request has no auth', async () => {
     await assert.rejects(
-      createReadingHandler(
+      handlers().create(
         makeRequest(undefined, {
           bookId: 'book-1',
           tiles: [t1],
@@ -71,9 +87,7 @@ describe('createReadingHandler', () => {
 
   test('throws invalid-argument when bookId is missing', async () => {
     await assert.rejects(
-      createReadingHandler(
-        makeRequest(AUTH, { tiles: [t1], isFreebie: false }),
-      ),
+      handlers().create(makeRequest(AUTH, { tiles: [t1], isFreebie: false })),
       { code: 'invalid-argument' },
     );
   });
@@ -81,7 +95,7 @@ describe('createReadingHandler', () => {
   // The tile rules reject before any Firestore call, so they are testable here.
   test('rejects a fourth tile on a non-freebie', async () => {
     await assert.rejects(
-      createReadingHandler(
+      handlers().create(
         makeRequest(AUTH, {
           bookId: 'book-1',
           tiles: [t1, t2, t3, t4],
@@ -94,7 +108,7 @@ describe('createReadingHandler', () => {
 
   test('rejects a tile that is not in the catalog', async () => {
     await assert.rejects(
-      createReadingHandler(
+      handlers().create(
         makeRequest(AUTH, {
           bookId: 'book-1',
           tiles: ['not-a-tile'],
@@ -106,10 +120,10 @@ describe('createReadingHandler', () => {
   });
 });
 
-describe('updateReadingHandler', () => {
+describe('readingHandlers.update', () => {
   test('throws invalid-argument when readingId is missing', async () => {
     await assert.rejects(
-      updateReadingHandler(
+      handlers().update(
         makeRequest(AUTH, {
           bookId: 'book-1',
           tiles: [t1],
@@ -121,41 +135,41 @@ describe('updateReadingHandler', () => {
   });
 });
 
-describe('deleteReadingHandler', () => {
+describe('readingHandlers.remove', () => {
   test('throws unauthenticated when request has no auth', async () => {
     await assert.rejects(
-      deleteReadingHandler(makeRequest(undefined, { readingId: 'r1' })),
+      handlers().remove(makeRequest(undefined, { readingId: 'r1' })),
       { code: 'unauthenticated' },
     );
   });
 
   test('throws invalid-argument when readingId is empty', async () => {
     await assert.rejects(
-      deleteReadingHandler(makeRequest(AUTH, { readingId: '' })),
+      handlers().remove(makeRequest(AUTH, { readingId: '' })),
       { code: 'invalid-argument' },
     );
   });
 });
 
-describe('createReadingHandler with a fake repository', () => {
+describe('readingHandlers.create (fake repository)', () => {
   test('returns the id the repository assigned', async () => {
-    const result = await createReadingHandler(
+    const result = await handlers({
+      create: () => Promise.resolve('r-new'),
+    }).create(
       makeRequest(AUTH, { bookId: 'book-1', tiles: [t1], isFreebie: false }),
-      fakeRepo({ create: () => Promise.resolve('r-new') }),
     );
     assert.deepEqual(result, { readingId: 'r-new' });
   });
 
   test('passes the parsed fields through to the repository', async () => {
     const calls: unknown[] = [];
-    await createReadingHandler(
+    await handlers({
+      create: (uid, fields) => {
+        calls.push({ uid, fields });
+        return Promise.resolve('r-new');
+      },
+    }).create(
       makeRequest(AUTH, { bookId: 'book-1', tiles: [t1, t2], isFreebie: true }),
-      fakeRepo({
-        create: (uid, fields) => {
-          calls.push({ uid, fields });
-          return Promise.resolve('r-new');
-        },
-      }),
     );
     assert.deepEqual(calls, [
       {
@@ -167,38 +181,33 @@ describe('createReadingHandler with a fake repository', () => {
 
   test('surfaces a repository conflict rather than reporting success', async () => {
     await assert.rejects(
-      createReadingHandler(
+      handlers({
+        create: () =>
+          Promise.reject(
+            new DomainError('conflict', 'You already have a freebie reading.'),
+          ),
+      }).create(
         makeRequest(AUTH, { bookId: 'book-1', tiles: [t1], isFreebie: true }),
-        fakeRepo({
-          create: () =>
-            Promise.reject(
-              new DomainError(
-                'conflict',
-                'You already have a freebie reading.',
-              ),
-            ),
-        }),
       ),
       { name: 'DomainError', kind: 'conflict' },
     );
   });
 });
 
-describe('updateReadingHandler with a fake repository', () => {
+describe('readingHandlers.update (fake repository)', () => {
   test('passes the reading id and fields through', async () => {
     const calls: unknown[] = [];
-    await updateReadingHandler(
+    await handlers({
+      update: (uid, readingId, fields) => {
+        calls.push({ uid, readingId, fields });
+        return Promise.resolve();
+      },
+    }).update(
       makeRequest(AUTH, {
         readingId: 'r1',
         bookId: 'book-1',
         tiles: [t1],
         isFreebie: false,
-      }),
-      fakeRepo({
-        update: (uid, readingId, fields) => {
-          calls.push({ uid, readingId, fields });
-          return Promise.resolve();
-        },
       }),
     );
     assert.deepEqual(calls, [
@@ -212,18 +221,17 @@ describe('updateReadingHandler with a fake repository', () => {
 
   test('surfaces a missing reading', async () => {
     await assert.rejects(
-      updateReadingHandler(
+      handlers({
+        update: () =>
+          Promise.reject(
+            new DomainError('not-found', 'That reading no longer exists.'),
+          ),
+      }).update(
         makeRequest(AUTH, {
           readingId: 'gone',
           bookId: 'book-1',
           tiles: [t1],
           isFreebie: false,
-        }),
-        fakeRepo({
-          update: () =>
-            Promise.reject(
-              new DomainError('not-found', 'That reading no longer exists.'),
-            ),
         }),
       ),
       { name: 'DomainError', kind: 'not-found' },
@@ -231,29 +239,25 @@ describe('updateReadingHandler with a fake repository', () => {
   });
 });
 
-describe('deleteReadingHandler with a fake repository', () => {
+describe('readingHandlers.remove (fake repository)', () => {
   test('removes the reading under the caller uid', async () => {
     const calls: unknown[] = [];
-    await deleteReadingHandler(
-      makeRequest(AUTH, { readingId: 'r1' }),
-      fakeRepo({
-        remove: (uid, readingId) => {
-          calls.push({ uid, readingId });
-          return Promise.resolve();
-        },
-      }),
-    );
+    await handlers({
+      remove: (uid, readingId) => {
+        calls.push({ uid, readingId });
+        return Promise.resolve();
+      },
+    }).remove(makeRequest(AUTH, { readingId: 'r1' }));
     assert.deepEqual(calls, [{ uid: 'user-1', readingId: 'r1' }]);
   });
 });
 
-describe('listReadingsHandler with a fake repository', () => {
+describe('readingHandlers.list (fake repository)', () => {
   // A non-empty list reaches attachBooks, which reads Firestore directly, so
   // only the empty case is coverable until the books repository is injected.
   test('returns a zero score when the user has no readings', async () => {
-    const result = await listReadingsHandler(
+    const result = await handlers({ list: () => Promise.resolve([]) }).list(
       makeRequest(AUTH, { userId: 'user-1' }),
-      fakeRepo({ list: () => Promise.resolve([]) }),
     );
     assert.deepEqual(result.readings, []);
     assert.equal(result.score.score, 0);
