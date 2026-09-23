@@ -9,11 +9,8 @@ import {
 } from './books/handler.js';
 import { createManualBookHandler } from './books/manual.js';
 import { getBoardConfigHandler } from './config/handler.js';
-import {
-  getUserProfileHandler,
-  listUsersHandler,
-  syncMyProfileHandler,
-} from './users/handler.js';
+import { userHandlers } from './users/handler.js';
+import { userProfileRepository } from './users/store.js';
 import {
   createReadingHandler,
   deleteReadingHandler,
@@ -37,6 +34,9 @@ import {
 setGlobalOptions({ region: 'northamerica-northeast1' });
 
 const githubPat = defineSecret('GITHUB_PAT');
+
+const usersRepo = userProfileRepository();
+const users = userHandlers(usersRepo);
 
 export const submitFeedback = onCall(
   { invoker: 'public', secrets: [githubPat] },
@@ -71,15 +71,15 @@ export const getBoardConfig = onCall(
 
 export const listUsers = onCall(
   { invoker: 'public' },
-  callable(listUsersHandler, 'Could not load users.'),
+  callable(users.list, 'Could not load users.'),
 );
 export const getUserProfile = onCall(
   { invoker: 'public' },
-  callable(getUserProfileHandler, 'Could not load that profile.'),
+  callable(users.get, 'Could not load that profile.'),
 );
 export const syncMyProfile = onCall(
   { invoker: 'public' },
-  callable(syncMyProfileHandler, 'Failed to save your profile.'),
+  callable(users.sync, 'Failed to save your profile.'),
 );
 
 export const listReadings = onCall(

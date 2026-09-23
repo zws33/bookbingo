@@ -1,11 +1,7 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert';
 import type { CallableRequest } from 'firebase-functions/v2/https';
-import {
-  getUserProfileHandler,
-  listUsersHandler,
-  syncMyProfileHandler,
-} from './handler.js';
+import { userHandlers } from './handler.js';
 import { toUserProfile, type UserProfileRepository } from './store.js';
 import type { DocumentSnapshot } from 'firebase-admin/firestore';
 
@@ -13,7 +9,7 @@ const AUTH = { uid: 'user-1', token: {}, rawToken: 'test' };
 
 /** Every method rejects unless the test overrides it, so an unexpected call fails loudly. */
 function fakeRepo(
-  overrides: Partial<UserProfileRepository>,
+  overrides: Partial<UserProfileRepository> = {},
 ): UserProfileRepository {
   const unexpected = (name: string) => () =>
     Promise.reject(new Error(`unexpected ${name} call`));
@@ -24,6 +20,9 @@ function fakeRepo(
     ...overrides,
   };
 }
+
+const handlers = (overrides: Partial<UserProfileRepository> = {}) =>
+  userHandlers(fakeRepo(overrides));
 
 function makeRequest(
   auth: typeof AUTH | undefined,
@@ -41,33 +40,32 @@ function makeDoc(id: string, data: unknown): DocumentSnapshot {
   return { id, data: () => data } as unknown as DocumentSnapshot;
 }
 
-describe('listUsersHandler', () => {
+describe('userHandlers.list', () => {
   test('throws unauthenticated when request has no auth', async () => {
-    await assert.rejects(listUsersHandler(makeRequest(undefined, {})), {
+    await assert.rejects(handlers().list(makeRequest(undefined, {})), {
       code: 'unauthenticated',
     });
   });
 });
 
-describe('getUserProfileHandler', () => {
+describe('userHandlers.get', () => {
   test('throws unauthenticated when request has no auth', async () => {
     await assert.rejects(
-      getUserProfileHandler(makeRequest(undefined, { userId: 'user-2' })),
+      handlers().get(makeRequest(undefined, { userId: 'user-2' })),
       { code: 'unauthenticated' },
     );
   });
 
   test('throws invalid-argument when userId is missing', async () => {
-    await assert.rejects(getUserProfileHandler(makeRequest(AUTH, {})), {
+    await assert.rejects(handlers().get(makeRequest(AUTH, {})), {
       code: 'invalid-argument',
     });
   });
 
   test('throws invalid-argument for a whitespace-only userId', async () => {
-    await assert.rejects(
-      getUserProfileHandler(makeRequest(AUTH, { userId: '   ' })),
-      { code: 'invalid-argument' },
-    );
+    await assert.rejects(handlers().get(makeRequest(AUTH, { userId: '   ' })), {
+      code: 'invalid-argument',
+    });
   });
 });
 
@@ -97,7 +95,7 @@ describe('toUserProfile', () => {
   });
 });
 
-describe('syncMyProfileHandler with a fake repository', () => {
+describe('userHandlers.sync', () => {
   const authWith = (token: Record<string, unknown>) => ({
     ...AUTH,
     token,
@@ -105,15 +103,14 @@ describe('syncMyProfileHandler with a fake repository', () => {
 
   test('writes name and photo taken from the verified token', async () => {
     const writes: unknown[] = [];
-    const profile = await syncMyProfileHandler(
+    const profile = await handlers({
+      upsert: (written) => {
+        writes.push(written);
+        return Promise.resolve();
+      },
+    }).sync(
       makeRequest(authWith({ name: '  Ada  ', picture: 'https://p/a.png' }), {
         name: 'Attacker',
-      }),
-      fakeRepo({
-        upsert: (written) => {
-          writes.push(written);
-          return Promise.resolve();
-        },
       }),
     );
     assert.deepEqual(profile, {
@@ -125,10 +122,9 @@ describe('syncMyProfileHandler with a fake repository', () => {
   });
 
   test('falls back to User when the token carries no usable name', async () => {
-    const profile = await syncMyProfileHandler(
-      makeRequest(authWith({ name: 42 }), {}),
-      fakeRepo({ upsert: () => Promise.resolve() }),
-    );
+    const profile = await handlers({
+      upsert: () => Promise.resolve(),
+    }).sync(makeRequest(authWith({ name: 42 }), {}));
     assert.equal(profile.name, 'User');
     assert.equal(profile.photoURL, null);
   });
