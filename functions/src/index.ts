@@ -13,7 +13,7 @@ import { userHandlers } from './users/handler.js';
 import { userProfileRepository } from './users/store.js';
 import { readingHandlers } from './readings/handler.js';
 import { readingRepository } from './readings/store.js';
-import { getLibraryHandler } from './library/handler.js';
+import { libraryHandlers } from './library/handler.js';
 import { tbrHandlers } from './tbr/handler.js';
 import { tbrEntryRepository } from './tbr/store.js';
 
@@ -32,6 +32,7 @@ const readingsRepo = readingRepository();
 const users = userHandlers(usersRepo);
 const tbr = tbrHandlers(tbrRepo);
 const readings = readingHandlers(readingsRepo, usersRepo);
+const library = libraryHandlers(readingsRepo, usersRepo);
 
 export const submitFeedback = onCall(
   { invoker: 'public', secrets: [githubPat] },
@@ -83,7 +84,7 @@ export const listReadings = onCall(
 );
 export const getLibrary = onCall(
   { invoker: 'public' },
-  callable(getLibraryHandler, 'Could not load the library.'),
+  callable(library.get, 'Could not load the library.'),
 );
 export const getLeaderboard = onCall(
   { invoker: 'public' },
