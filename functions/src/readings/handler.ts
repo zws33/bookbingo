@@ -1,4 +1,4 @@
-import { HttpsError, type CallableRequest } from 'firebase-functions/v2/https';
+import type { CallableRequest } from 'firebase-functions/v2/https';
 import { FieldValue } from 'firebase-admin/firestore';
 import { db } from '../firebase.js';
 import { parseRequest, requireAuth } from '../callable.js';
@@ -53,7 +53,6 @@ export async function listReadingsHandler(
         stage: 'join',
         bookIds: error.bookIds,
       });
-      throw new HttpsError('internal', 'Could not load those readings.');
     }
     throw error;
   }

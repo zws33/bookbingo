@@ -1,4 +1,4 @@
-import { HttpsError, type CallableRequest } from 'firebase-functions/v2/https';
+import type { CallableRequest } from 'firebase-functions/v2/https';
 import type { Book } from '@bookbingo/lib-types';
 import { requireAuth } from '../callable.js';
 import { logFailure, logWarning } from '../observability.js';
@@ -88,7 +88,6 @@ export async function getLibraryHandler(
         stage: 'join',
         bookIds: error.bookIds,
       });
-      throw new HttpsError('internal', 'Could not load the library.');
     }
     throw error;
   }

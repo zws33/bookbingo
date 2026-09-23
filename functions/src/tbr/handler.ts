@@ -80,7 +80,6 @@ export async function listMyTBRHandler(
         stage: 'join',
         bookIds: error.bookIds,
       });
-      throw new HttpsError('internal', 'Could not load your reading list.');
     }
     throw error;
   }

@@ -1,5 +1,6 @@
 import type { Book, BookMetadata } from '@bookbingo/lib-types';
 import { db } from '../firebase.js';
+import { DomainError } from '../common/errors.js';
 import { BookDocSchema } from './schema.js';
 
 /** The book fields the UI renders, joined onto anything holding a `bookId`. */
@@ -17,11 +18,13 @@ export interface BookFields {
  * `internal` error rather than papering over it with a placeholder title,
  * which would hide the corruption behind something that looks like a real row.
  */
-export class MissingBookError extends Error {
+export class MissingBookError extends DomainError {
   readonly bookIds: string[];
 
   constructor(bookIds: string[]) {
-    super(`No book document for: ${bookIds.join(', ')}`);
+    super('corrupt', `No book document for: ${bookIds.join(', ')}`, {
+      bookIds,
+    });
     this.name = 'MissingBookError';
     this.bookIds = bookIds;
   }
