@@ -21,11 +21,16 @@ import {
   requireNoOtherFreebie,
 } from '../readings/store.js';
 import { validateReadingTiles, validateTileIds } from '../readings/validate.js';
-import { MissingBookError, withBooks, type BookFields } from '../books/join.js';
-import { requireBookExists } from '../books/store.js';
+import type { BookMetadata } from '@bookbingo/lib-types';
+import { attachBooks } from '../books/join.js';
+import { MissingBookError, requireBookExists } from '../books/store.js';
 
 /** What the API returns: the stored entry plus its resolved book. */
-export type TBREntryDTO = TBREntry & BookFields;
+export type TBREntryDTO = TBREntry & {
+  bookTitle: string;
+  bookAuthor: string;
+  bookMetadata: BookMetadata;
+};
 
 /** Instants are ISO strings for the same reason as Reading. */
 export interface TBREntry {
@@ -75,7 +80,13 @@ export async function listMyTBRHandler(
   const entries = mapValid('tbr', snapshot.docs, toTBREntry);
 
   try {
-    return await withBooks(entries);
+    const joined = await attachBooks(entries);
+    return joined.map(({ book, ...entry }) => ({
+      ...entry,
+      bookTitle: book.title,
+      bookAuthor: book.author,
+      bookMetadata: book.metadata,
+    }));
   } catch (error) {
     if (error instanceof MissingBookError) {
       logFailure('tbr.list', error, {

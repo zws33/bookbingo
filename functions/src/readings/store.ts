@@ -7,10 +7,14 @@ import { db } from '../firebase.js';
 import { DomainError } from '../common/errors.js';
 import { mapValid } from '../common/firestoreDoc.js';
 import { ReadingDocSchema } from './schema.js';
-import type { BookFields } from '../books/join.js';
+import type { BookMetadata } from '@bookbingo/lib-types';
 
 /** What the API returns: the stored reading plus its resolved book. */
-export type ReadingDTO = Reading & BookFields;
+export type ReadingDTO = Reading & {
+  bookTitle: string;
+  bookAuthor: string;
+  bookMetadata: BookMetadata;
+};
 
 /**
  * A reading as stored: a tile assignment pointing at a book by id.

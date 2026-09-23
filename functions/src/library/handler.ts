@@ -4,7 +4,7 @@ import { requireAuth } from '../callable.js';
 import { logFailure, logWarning } from '../observability.js';
 import { listUserProfiles } from '../users/store.js';
 import { allReadingsQuery, readingsByUser } from '../readings/store.js';
-import { fetchBooks, MissingBookError } from '../books/join.js';
+import { getBooksById, MissingBookError } from '../books/store.js';
 
 export interface LibraryReader {
   userId: string;
@@ -80,7 +80,7 @@ export async function getLibraryHandler(
 
   let booksById: Map<string, Book>;
   try {
-    booksById = await fetchBooks([...stats.keys()]);
+    booksById = await getBooksById([...stats.keys()]);
   } catch (error) {
     if (error instanceof MissingBookError) {
       logFailure('library.list', error, {

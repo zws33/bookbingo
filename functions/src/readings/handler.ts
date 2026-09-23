@@ -22,8 +22,8 @@ import {
   toReading,
   type ReadingDTO,
 } from './store.js';
-import { MissingBookError, withBooks } from '../books/join.js';
-import { requireBookExists } from '../books/store.js';
+import { attachBooks } from '../books/join.js';
+import { MissingBookError, requireBookExists } from '../books/store.js';
 import { scoreOf, validateReadingTiles, type ScoreDTO } from './validate.js';
 
 /**
@@ -45,7 +45,16 @@ export async function listReadingsHandler(
   const readings = mapValid('readings', snapshot.docs, toReading);
 
   try {
-    return { readings: await withBooks(readings), score: scoreOf(readings) };
+    const joined = await attachBooks(readings);
+    return {
+      readings: joined.map(({ book, ...reading }) => ({
+        ...reading,
+        bookTitle: book.title,
+        bookAuthor: book.author,
+        bookMetadata: book.metadata,
+      })),
+      score: scoreOf(readings),
+    };
   } catch (error) {
     if (error instanceof MissingBookError) {
       logFailure('reading.list', error, {
