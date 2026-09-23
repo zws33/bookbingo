@@ -8,6 +8,7 @@ import {
   searchBooksHandler,
 } from './books/handler.js';
 import { createManualBookHandler } from './books/manual.js';
+import { bookRepository } from './books/store.js';
 import { getBoardConfigHandler } from './config/handler.js';
 import { userHandlers } from './users/handler.js';
 import { userProfileRepository } from './users/store.js';
@@ -28,11 +29,12 @@ const githubPat = defineSecret('GITHUB_PAT');
 const usersRepo = userProfileRepository();
 const tbrRepo = tbrEntryRepository();
 const readingsRepo = readingRepository();
+const booksRepo = bookRepository();
 
 const users = userHandlers(usersRepo);
-const tbr = tbrHandlers(tbrRepo);
-const readings = readingHandlers(readingsRepo, usersRepo);
-const library = libraryHandlers(readingsRepo, usersRepo);
+const tbr = tbrHandlers(tbrRepo, booksRepo);
+const readings = readingHandlers(readingsRepo, usersRepo, booksRepo);
+const library = libraryHandlers(readingsRepo, usersRepo, booksRepo);
 
 export const submitFeedback = onCall(
   { invoker: 'public', secrets: [githubPat] },

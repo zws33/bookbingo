@@ -4,6 +4,8 @@ import type { CallableRequest } from 'firebase-functions/v2/https';
 import { tbrHandlers } from './handler.js';
 import type { TBREntryRepository } from './store.js';
 import { DomainError } from '../common/errors.js';
+import type { BookRepository } from '../books/store.js';
+import type { Book } from '@bookbingo/lib-types';
 import { TILES } from '../domain/constants.js';
 
 const AUTH = { uid: 'user-1', token: {}, rawToken: 'test' };
@@ -25,8 +27,14 @@ function fakeRepo(
   };
 }
 
-const handlers = (overrides: Partial<TBREntryRepository> = {}) =>
-  tbrHandlers(fakeRepo(overrides));
+function fakeBooksRepo(books: Map<string, Book> = new Map()): BookRepository {
+  return { getByIds: () => Promise.resolve(books) };
+}
+
+const handlers = (
+  overrides: Partial<TBREntryRepository> = {},
+  books: Map<string, Book> = new Map(),
+) => tbrHandlers(fakeRepo(overrides), fakeBooksRepo(books));
 
 function makeRequest(
   auth: typeof AUTH | undefined,

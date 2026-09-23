@@ -24,6 +24,10 @@ export class MissingBookError extends DomainError {
   }
 }
 
+export interface BookRepository {
+  getByIds(ids: string[]): Promise<Map<string, Book>>;
+}
+
 /**
  * Reads every book in one `getAll`, keyed by id.
  *
@@ -31,7 +35,7 @@ export class MissingBookError extends DomainError {
  * what it can: reporting all of them at once makes it one fix instead of a
  * game of whack-a-mole.
  */
-export async function getBooksById(ids: string[]): Promise<Map<string, Book>> {
+async function getBooksById(ids: string[]): Promise<Map<string, Book>> {
   const bookIds = [...new Set(ids)];
   if (bookIds.length === 0) return new Map();
 
@@ -92,4 +96,13 @@ export async function createBookIfAbsent(
   });
 
   return { bookId, created };
+}
+
+const firestoreBooks: BookRepository = {
+  getByIds: getBooksById,
+};
+
+/** The module singleton, not a new instance per call. */
+export function bookRepository(): BookRepository {
+  return firestoreBooks;
 }

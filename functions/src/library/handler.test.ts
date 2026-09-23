@@ -4,6 +4,7 @@ import type { CallableRequest } from 'firebase-functions/v2/https';
 import { libraryHandlers } from './handler.js';
 import type { ReadingRepository } from '../readings/store.js';
 import type { UserProfileRepository } from '../users/store.js';
+import type { BookRepository } from '../books/store.js';
 
 const unexpected = (name: string) => () =>
   Promise.reject(new Error(`unexpected ${name} call`));
@@ -22,6 +23,7 @@ const handlers = () =>
       get: unexpected('get'),
       upsert: unexpected('upsert'),
     } satisfies UserProfileRepository,
+    { getByIds: unexpected('getByIds') } satisfies BookRepository,
   );
 
 function makeRequest(auth: unknown): CallableRequest<unknown> {

@@ -11,9 +11,12 @@ import type { PromotionOutcome, TBREntryRepository } from './store.js';
 import { toTBREntryDTO, type TBREntryDTO } from './present.js';
 import { validateReadingTiles, validateTileIds } from '../readings/validate.js';
 import { attachBooks } from '../books/join.js';
-import { MissingBookError } from '../books/store.js';
+import { MissingBookError, type BookRepository } from '../books/store.js';
 
-export function tbrHandlers(tbrRepo: TBREntryRepository) {
+export function tbrHandlers(
+  tbrRepo: TBREntryRepository,
+  booksRepo: BookRepository,
+) {
   return {
     /**
      * The caller's own TBR list, newest first.
@@ -27,7 +30,7 @@ export function tbrHandlers(tbrRepo: TBREntryRepository) {
       const entries = await tbrRepo.list(uid);
 
       try {
-        return (await attachBooks(entries)).map(toTBREntryDTO);
+        return (await attachBooks(booksRepo, entries)).map(toTBREntryDTO);
       } catch (error) {
         if (error instanceof MissingBookError) {
           logFailure('tbr.list', error, {

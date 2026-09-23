@@ -4,7 +4,7 @@ import { requireAuth } from '../callable.js';
 import { logFailure, logWarning } from '../observability.js';
 import type { UserProfileRepository } from '../users/store.js';
 import type { ReadingRepository } from '../readings/store.js';
-import { getBooksById, MissingBookError } from '../books/store.js';
+import { MissingBookError, type BookRepository } from '../books/store.js';
 
 export interface LibraryReader {
   userId: string;
@@ -23,6 +23,7 @@ export interface LibraryBook {
 export function libraryHandlers(
   readingsRepo: ReadingRepository,
   usersRepo: UserProfileRepository,
+  booksRepo: BookRepository,
 ) {
   return {
     /**
@@ -83,7 +84,7 @@ export function libraryHandlers(
 
       let booksById: Map<string, Book>;
       try {
-        booksById = await getBooksById([...stats.keys()]);
+        booksById = await booksRepo.getByIds([...stats.keys()]);
       } catch (error) {
         if (error instanceof MissingBookError) {
           logFailure('library.list', error, {

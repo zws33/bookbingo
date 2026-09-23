@@ -11,7 +11,7 @@ import type { UserProfileRepository } from '../users/store.js';
 import type { ReadingRepository } from './store.js';
 import { toReadingDTO, type ReadingDTO } from './present.js';
 import { attachBooks } from '../books/join.js';
-import { MissingBookError } from '../books/store.js';
+import { MissingBookError, type BookRepository } from '../books/store.js';
 import { scoreOf, validateReadingTiles, type ScoreDTO } from './validate.js';
 
 export interface LeaderboardRow {
@@ -25,6 +25,7 @@ export interface LeaderboardRow {
 export function readingHandlers(
   readingsRepo: ReadingRepository,
   usersRepo: UserProfileRepository,
+  booksRepo: BookRepository,
 ) {
   return {
     /**
@@ -43,7 +44,7 @@ export function readingHandlers(
       const readings = await readingsRepo.list(userId);
 
       try {
-        const joined = await attachBooks(readings);
+        const joined = await attachBooks(booksRepo, readings);
         return {
           readings: joined.map(toReadingDTO),
           score: scoreOf(readings),

@@ -4,6 +4,8 @@ import type { CallableRequest } from 'firebase-functions/v2/https';
 import { readingHandlers } from './handler.js';
 import type { ReadingRepository } from './store.js';
 import type { UserProfileRepository } from '../users/store.js';
+import type { BookRepository } from '../books/store.js';
+import type { Book } from '@bookbingo/lib-types';
 import { DomainError } from '../common/errors.js';
 import { TILES } from '../domain/constants.js';
 
@@ -39,10 +41,20 @@ function fakeUsersRepo(
   };
 }
 
+function fakeBooksRepo(books: Map<string, Book> = new Map()): BookRepository {
+  return { getByIds: () => Promise.resolve(books) };
+}
+
 const handlers = (
   readings: Partial<ReadingRepository> = {},
   users: Partial<UserProfileRepository> = {},
-) => readingHandlers(fakeRepo(readings), fakeUsersRepo(users));
+  books: Map<string, Book> = new Map(),
+) =>
+  readingHandlers(
+    fakeRepo(readings),
+    fakeUsersRepo(users),
+    fakeBooksRepo(books),
+  );
 
 function makeRequest(
   auth: typeof AUTH | undefined,
