@@ -19,13 +19,8 @@ import {
   updateReadingHandler,
 } from './readings/handler.js';
 import { getLibraryHandler } from './library/handler.js';
-import {
-  createTBREntryHandler,
-  deleteTBREntryHandler,
-  listMyTBRHandler,
-  promoteTBREntryHandler,
-  updateTBREntryHandler,
-} from './tbr/handler.js';
+import { tbrHandlers } from './tbr/handler.js';
+import { tbrEntryRepository } from './tbr/store.js';
 
 // Colocated with Firestore (firebase.json sets the database to
 // northamerica-northeast1). The default, us-central1, puts a cross-region hop
@@ -36,7 +31,10 @@ setGlobalOptions({ region: 'northamerica-northeast1' });
 const githubPat = defineSecret('GITHUB_PAT');
 
 const usersRepo = userProfileRepository();
+const tbrRepo = tbrEntryRepository();
+
 const users = userHandlers(usersRepo);
+const tbr = tbrHandlers(tbrRepo);
 
 export const submitFeedback = onCall(
   { invoker: 'public', secrets: [githubPat] },
@@ -109,21 +107,21 @@ export const deleteReading = onCall(
 
 export const listMyTBR = onCall(
   { invoker: 'public' },
-  callable(listMyTBRHandler, 'Could not load your reading list.'),
+  callable(tbr.list, 'Could not load your reading list.'),
 );
 export const createTBREntry = onCall(
   { invoker: 'public' },
-  callable(createTBREntryHandler, 'Failed to save your reading list.'),
+  callable(tbr.create, 'Failed to save your reading list.'),
 );
 export const updateTBREntry = onCall(
   { invoker: 'public' },
-  callable(updateTBREntryHandler, 'Failed to save your reading list.'),
+  callable(tbr.update, 'Failed to save your reading list.'),
 );
 export const deleteTBREntry = onCall(
   { invoker: 'public' },
-  callable(deleteTBREntryHandler, 'Failed to save your reading list.'),
+  callable(tbr.remove, 'Failed to save your reading list.'),
 );
 export const promoteTBREntry = onCall(
   { invoker: 'public' },
-  callable(promoteTBREntryHandler, 'Failed to save your reading.'),
+  callable(tbr.promote, 'Failed to save your reading.'),
 );
