@@ -264,9 +264,25 @@ describe('readingHandlers.remove (fake repository)', () => {
   });
 });
 
+const EMPTY_METADATA = {
+  pageCount: null,
+  publishedDate: null,
+  categories: [],
+  language: null,
+  isbn: null,
+  thumbnailUrl: null,
+};
+
+const BOOK: Book = {
+  id: 'book-1',
+  title: 'The Left Hand of Darkness',
+  author: 'Ursula K. Le Guin',
+  metadata: EMPTY_METADATA,
+};
+
+const READ_AT = new Date('2026-01-02T03:04:05.000Z');
+
 describe('readingHandlers.list (fake repository)', () => {
-  // A non-empty list reaches attachBooks, which reads Firestore directly, so
-  // only the empty case is coverable until the books repository is injected.
   test('returns a zero score when the user has no readings', async () => {
     const result = await handlers({ list: () => Promise.resolve([]) }).list(
       makeRequest(AUTH, { userId: 'user-1' }),
@@ -274,5 +290,69 @@ describe('readingHandlers.list (fake repository)', () => {
     assert.deepEqual(result.readings, []);
     assert.equal(result.score.score, 0);
     assert.equal(result.score.totalBooks, 0);
+  });
+
+  test('flattens the joined book and encodes instants as ISO strings', async () => {
+    const result = await handlers(
+      {
+        list: () =>
+          Promise.resolve([
+            {
+              id: 'r1',
+              bookId: 'book-1',
+              tiles: [t1!],
+              isFreebie: false,
+              readAt: READ_AT,
+              createdAt: READ_AT,
+            },
+          ]),
+      },
+      {},
+      new Map([['book-1', BOOK]]),
+    ).list(makeRequest(AUTH, { userId: 'user-1' }));
+
+    assert.deepEqual(result.readings, [
+      {
+        id: 'r1',
+        bookId: 'book-1',
+        tiles: [t1],
+        isFreebie: false,
+        readAt: '2026-01-02T03:04:05.000Z',
+        createdAt: '2026-01-02T03:04:05.000Z',
+        bookTitle: 'The Left Hand of Darkness',
+        bookAuthor: 'Ursula K. Le Guin',
+        bookMetadata: EMPTY_METADATA,
+      },
+    ]);
+    assert.equal(result.score.totalBooks, 1);
+  });
+
+  // A reading pointing at a book document that does not exist is corruption,
+  // not a caller error, so the ids must not reach the response.
+  test('raises a corrupt domain error when a book does not resolve', async () => {
+    await assert.rejects(
+      handlers(
+        {
+          list: () =>
+            Promise.resolve([
+              {
+                id: 'r1',
+                bookId: 'ghost',
+                tiles: [t1!],
+                isFreebie: false,
+                readAt: READ_AT,
+                createdAt: READ_AT,
+              },
+            ]),
+        },
+        {},
+        new Map(),
+      ).list(makeRequest(AUTH, { userId: 'user-1' })),
+      (error: unknown) => {
+        assert.equal((error as DomainError).kind, 'corrupt');
+        assert.deepEqual((error as { bookIds: string[] }).bookIds, ['ghost']);
+        return true;
+      },
+    );
   });
 });

@@ -246,6 +246,22 @@ describe('tbrHandlers.promote (fake repository)', () => {
   });
 });
 
+const EMPTY_METADATA = {
+  pageCount: null,
+  publishedDate: null,
+  categories: [],
+  language: null,
+  isbn: null,
+  thumbnailUrl: null,
+};
+
+const BOOK: Book = {
+  id: 'book-1',
+  title: 'The Left Hand of Darkness',
+  author: 'Ursula K. Le Guin',
+  metadata: EMPTY_METADATA,
+};
+
 describe('tbrHandlers.list (fake repository)', () => {
   // A non-empty list reaches attachBooks, which reads Firestore directly.
   test('returns an empty list when the user has no entries', async () => {
@@ -253,5 +269,34 @@ describe('tbrHandlers.list (fake repository)', () => {
       makeRequest(AUTH, {}),
     );
     assert.deepEqual(result, []);
+  });
+
+  test('flattens the joined book and keeps an absent note absent', async () => {
+    const result = await handlers(
+      {
+        list: () =>
+          Promise.resolve([
+            {
+              id: 'tbr-1',
+              bookId: 'book-1',
+              plannedTiles: [t1!],
+              addedAt: new Date('2026-01-02T03:04:05.000Z'),
+            },
+          ]),
+      },
+      new Map([['book-1', BOOK]]),
+    ).list(makeRequest(AUTH, {}));
+
+    assert.deepEqual(result, [
+      {
+        id: 'tbr-1',
+        bookId: 'book-1',
+        plannedTiles: [t1],
+        addedAt: '2026-01-02T03:04:05.000Z',
+        bookTitle: 'The Left Hand of Darkness',
+        bookAuthor: 'Ursula K. Le Guin',
+        bookMetadata: EMPTY_METADATA,
+      },
+    ]);
   });
 });
