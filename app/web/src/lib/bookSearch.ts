@@ -1,6 +1,7 @@
-import { httpsCallable, type FunctionsError } from 'firebase/functions';
+import { httpsCallable } from 'firebase/functions';
 import type { Book } from '@bookbingo/lib-types';
 import { log } from '@bookbingo/lib-util';
+import { errorCode } from './callable';
 import { functions } from './firebase';
 import {
   BookResponseSchema,
@@ -12,12 +13,6 @@ const api = {
   fetchBookDetails: httpsCallable(functions, 'fetchBookDetails'),
   searchBooks: httpsCallable(functions, 'searchBooks'),
 };
-
-/** Pairs a `book_search*`/`book_fetch*` failure with the function's `book.search`/`book.fetch` event. */
-function errorCode(error: unknown): string {
-  const code = (error as Partial<FunctionsError> | null)?.code;
-  return typeof code === 'string' ? code : 'unknown';
-}
 
 export async function searchBooks(query: string): Promise<BookSearchResult[]> {
   const startedAt = Date.now();

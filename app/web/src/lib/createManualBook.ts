@@ -1,17 +1,12 @@
-import { httpsCallable, type FunctionsError } from 'firebase/functions';
+import { httpsCallable } from 'firebase/functions';
 import type { Book, BookMetadata } from '@bookbingo/lib-types';
 import { EMPTY_METADATA } from '@bookbingo/lib-types';
 import { log } from '@bookbingo/lib-util';
+import { errorCode } from './callable';
 import { functions } from './firebase';
 import { BookResponseSchema } from 'src/types/schemas';
 
 const createManualBookCallable = httpsCallable(functions, 'createManualBook');
-
-/** Pairs a failure with the function's `book.manual` event. */
-function errorCode(error: unknown): string {
-  const code = (error as Partial<FunctionsError> | null)?.code;
-  return typeof code === 'string' ? code : 'unknown';
-}
 
 /**
  * Creates a book from user-entered title/author alone — the failsafe path for
