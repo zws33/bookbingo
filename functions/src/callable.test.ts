@@ -104,6 +104,15 @@ describe('toHttpsError', () => {
     assert.equal(mapped.message, 'You already have a freebie reading.');
   });
 
+  test('maps forbidden to permission-denied, forwarding the message', () => {
+    const mapped = toHttpsError(
+      new DomainError('forbidden', 'Only an owner can complete a challenge.'),
+      FALLBACK,
+    );
+    assert.equal(mapped.code, 'permission-denied');
+    assert.equal(mapped.message, 'Only an owner can complete a challenge.');
+  });
+
   test('maps corrupt to internal without leaking the message', () => {
     const mapped = toHttpsError(
       new DomainError('corrupt', 'No book document for: book-1, book-2'),

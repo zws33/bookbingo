@@ -54,6 +54,8 @@ export function toHttpsError(
       return new HttpsError('not-found', error.message);
     case 'conflict':
       return new HttpsError('failed-precondition', error.message);
+    case 'forbidden':
+      return new HttpsError('permission-denied', error.message);
     case 'corrupt':
       return new HttpsError('internal', fallbackMessage);
   }
