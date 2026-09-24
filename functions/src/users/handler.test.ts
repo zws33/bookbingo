@@ -7,7 +7,6 @@ import type { DocumentSnapshot } from 'firebase-admin/firestore';
 
 const AUTH = { uid: 'user-1', token: {}, rawToken: 'test' };
 
-/** Every method rejects unless the test overrides it, so an unexpected call fails loudly. */
 function fakeRepo(
   overrides: Partial<UserProfileRepository> = {},
 ): UserProfileRepository {

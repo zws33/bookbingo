@@ -46,7 +46,7 @@ export function readingDoc(userId: string, readingId: string) {
 export function toReading(doc: QueryDocumentSnapshot): Reading {
   const data = ReadingDocSchema.parse(doc.data());
   return {
-    id: doc.id, // ID is the key, not a stored field
+    id: doc.id,
     bookId: data.bookId,
     tiles: data.tiles,
     isFreebie: data.isFreebie,
@@ -167,7 +167,6 @@ const firestoreReadings: ReadingRepository = {
   },
 };
 
-/** The module singleton, not a new instance per call. */
 export function readingRepository(): ReadingRepository {
   return firestoreReadings;
 }

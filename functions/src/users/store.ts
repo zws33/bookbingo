@@ -20,7 +20,7 @@ export interface UserProfileRepository {
 export function toUserProfile(doc: DocumentSnapshot): UserProfile {
   const data = UserProfileDocSchema.parse(doc.data() ?? {});
   return {
-    id: doc.id, // ID is the key, not a stored field
+    id: doc.id,
     name: data.name,
     photoURL: data.photoURL ?? null,
   };
@@ -48,7 +48,6 @@ const firestoreUserProfiles: UserProfileRepository = {
   },
 };
 
-/** The module singleton, not a new instance per call. */
 export function userProfileRepository(): UserProfileRepository {
   return firestoreUserProfiles;
 }

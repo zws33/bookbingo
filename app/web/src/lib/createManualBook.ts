@@ -7,10 +7,7 @@ import { BookResponseSchema } from 'src/types/schemas';
 
 const createManualBookCallable = httpsCallable(functions, 'createManualBook');
 
-/**
- * The callable's error code, e.g. `functions/invalid-argument`. Paired with
- * the `book.manual` event the function logged for the same request.
- */
+/** Pairs a failure with the function's `book.manual` event. */
 function errorCode(error: unknown): string {
   const code = (error as Partial<FunctionsError> | null)?.code;
   return typeof code === 'string' ? code : 'unknown';

@@ -73,9 +73,8 @@ export function ReadingListPage({ userId }: ReadingListPageProps) {
     [dialog, invalidate, showSuccess, showError, closeDialog],
   );
 
-  // Failsafe path: only reached when catalog search doesn't find the book, so
-  // createManualBook (server-side) is the only thing that ever writes it to
-  // /books.
+  // Reached only when catalog search finds nothing; createManualBook is the
+  // only writer of /books on this path.
   const handleManualAdd = useCallback(
     async (data: BookFormData) => {
       if (dialog?.kind !== 'manual') return;

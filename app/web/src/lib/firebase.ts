@@ -15,13 +15,9 @@ const FirebaseEnvSchema = z.object({
   VITE_FIREBASE_MEASUREMENT_ID: z.string().min(1).optional(),
 });
 
-// Fail loudly on an incomplete config rather than shipping a bundle that
-// looks fine and dies at runtime. Vite inlines a missing `import.meta.env.X`
-// as `undefined`, and `initializeApp` accepts that without complaint — so a
-// build with no env at all used to succeed and produce a dead app. That is
-// not hypothetical: the first CI staging deploy built cleanly with all seven
-// values empty, and only a missing service account stopped it from
-// overwriting staging.
+// Vite inlines a missing `import.meta.env.X` as `undefined` and `initializeApp`
+// accepts it, so an empty env yields a dead app rather than a build error.
+// vite.config.ts blocks this at build time; this is the runtime backstop.
 const env = FirebaseEnvSchema.safeParse(import.meta.env);
 if (!env.success) {
   const vars = Object.keys(z.flattenError(env.error).fieldErrors).join(', ');

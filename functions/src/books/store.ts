@@ -102,7 +102,6 @@ const firestoreBooks: BookRepository = {
   getByIds: getBooksById,
 };
 
-/** The module singleton, not a new instance per call. */
 export function bookRepository(): BookRepository {
   return firestoreBooks;
 }

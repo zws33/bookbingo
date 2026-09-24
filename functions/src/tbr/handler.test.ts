@@ -11,7 +11,6 @@ import { TILES } from '../domain/constants.js';
 const AUTH = { uid: 'user-1', token: {}, rawToken: 'test' };
 const [t1, t2, t3, t4] = TILES.map((tile) => tile.id);
 
-/** Every method rejects unless the test overrides it, so an unexpected call fails loudly. */
 function fakeRepo(
   overrides: Partial<TBREntryRepository> = {},
 ): TBREntryRepository {

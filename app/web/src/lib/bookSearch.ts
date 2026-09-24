@@ -13,12 +13,7 @@ const api = {
   searchBooks: httpsCallable(functions, 'searchBooks'),
 };
 
-/**
- * The callable's error code, e.g. `functions/unavailable`. This is the field
- * that pairs a client-side `book_search*`/`book_fetch*` failure with the
- * `book.search`/`book.fetch` event the function logged for the same request,
- * so log it on every failure.
- */
+/** Pairs a `book_search*`/`book_fetch*` failure with the function's `book.search`/`book.fetch` event. */
 function errorCode(error: unknown): string {
   const code = (error as Partial<FunctionsError> | null)?.code;
   return typeof code === 'string' ? code : 'unknown';
@@ -44,12 +39,7 @@ export async function searchBooks(query: string): Promise<BookSearchResult[]> {
   }
 }
 
-/**
- * Ensures the catalog book exists in `/books` and returns it whole.
- *
- * The response is the book the add form renders. Fetching it back by id would
- * be a second round trip for data this call already returned.
- */
+/** Ensures the catalog book exists in `/books` and returns it whole. */
 export async function resolveBook(externalId: string): Promise<Book> {
   const startedAt = Date.now();
   try {

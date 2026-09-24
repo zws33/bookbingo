@@ -64,7 +64,7 @@ function tbrDoc(userId: string, tbrId: string) {
 function toTBREntry(doc: QueryDocumentSnapshot): TBREntry {
   const data = TBREntryDocSchema.parse(doc.data());
   return {
-    id: doc.id, // ID is the key, not a stored field
+    id: doc.id,
     bookId: data.bookId,
     plannedTiles: data.plannedTiles,
     ...(data.notes !== undefined && { notes: data.notes }),
@@ -162,7 +162,6 @@ const firestoreTBREntries: TBREntryRepository = {
   },
 };
 
-/** The module singleton, not a new instance per call. */
 export function tbrEntryRepository(): TBREntryRepository {
   return firestoreTBREntries;
 }

@@ -48,9 +48,8 @@ export function MyBooksPage({ userId }: MyBooksPageProps) {
     setDialog(null);
   }, []);
 
-  // Failsafe path: only reached when catalog search doesn't find the book, so
-  // there is no enrichment to attach. createManualBook (server-side) is the
-  // only thing that ever writes this book to /books.
+  // Reached only when catalog search finds nothing, so there is no enrichment
+  // to attach. createManualBook is the only writer of /books on this path.
   const handleAddBook = async (data: BookFormData) => {
     setIsSubmitting(true);
     try {
@@ -75,9 +74,8 @@ export function MyBooksPage({ userId }: MyBooksPageProps) {
     }
   };
 
-  // Happy path: the book was already written to /books by the fetchBookDetails
-  // callable (see functions/src/books/handler.ts createBook), which is also
-  // who derives bookId — the client only records the reading.
+  // fetchBookDetails already wrote the book and derived its id; this only
+  // records the reading.
   const submitReadingData = async (data: {
     tiles: string[];
     isFreebie: boolean;
