@@ -1,4 +1,8 @@
-import { MEMBER_ROLES, type MemberRole } from './schema.js';
+import {
+  MEMBER_ROLES,
+  type ChallengeStatus,
+  type MemberRole,
+} from './schema.js';
 
 export const PERMISSIONS = [
   'challenge.read',
@@ -139,4 +143,79 @@ export function exceedsCreationCap(
 /** Rule 29: a custom claim on the verified token. No document read. */
 export function isSuperadmin(token: Record<string, unknown>): boolean {
   return token['superadmin'] === true;
+}
+
+/**
+ * What the lifecycle permits, independent of who is asking. A write needs both
+ * this and `can`: `status.change` says an owner may end a challenge, this says
+ * an ended one takes no more readings.
+ */
+export const CHALLENGE_ACTIONS = [
+  'join',
+  'readingWrite',
+  'configEdit',
+  'rename',
+  'memberManage',
+  'delete',
+] as const;
+
+export type ChallengeAction = (typeof CHALLENGE_ACTIONS)[number];
+
+/**
+ * Rules 18 and 21-23. `configEdit` is the locked set — `tagCap`, the tag
+ * vocabulary and `freebieRule`; `rename` is separate because rule 22 keeps
+ * `name` editable after the rest freezes. `memberManage` covers removal and
+ * role changes.
+ *
+ * Deletion survives `complete` (rules 23-24), so the row is not redundant.
+ */
+const STATUS_ALLOWS: Record<
+  ChallengeStatus,
+  Record<ChallengeAction, boolean>
+> = {
+  draft: {
+    join: true,
+    readingWrite: false,
+    configEdit: true,
+    rename: true,
+    memberManage: true,
+    delete: true,
+  },
+  active: {
+    join: true,
+    readingWrite: true,
+    configEdit: false,
+    rename: true,
+    memberManage: true,
+    delete: true,
+  },
+  complete: {
+    join: false,
+    readingWrite: false,
+    configEdit: false,
+    rename: false,
+    memberManage: false,
+    delete: true,
+  },
+};
+
+export function statusAllows(
+  status: ChallengeStatus,
+  action: ChallengeAction,
+): boolean {
+  return STATUS_ALLOWS[status][action];
+}
+
+/** Rule 20: a linear chain, so there is at most one successor and no way back. */
+const NEXT_STATUS: Record<ChallengeStatus, ChallengeStatus | undefined> = {
+  draft: 'active',
+  active: 'complete',
+  complete: undefined,
+};
+
+export function canTransition(
+  from: ChallengeStatus,
+  to: ChallengeStatus,
+): boolean {
+  return NEXT_STATUS[from] === to;
 }

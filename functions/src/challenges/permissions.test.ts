@@ -9,13 +9,22 @@ import {
   canRemove,
   canSelfDemote,
   canSetRole,
+  canTransition,
+  statusAllows,
+  CHALLENGE_ACTIONS,
+  type ChallengeAction,
   exceedsCreationCap,
   isSuperadmin,
   outranks,
   rankOf,
   type Permission,
 } from './permissions.js';
-import { MEMBER_ROLES, type MemberRole } from './schema.js';
+import {
+  CHALLENGE_STATUSES,
+  MEMBER_ROLES,
+  type ChallengeStatus,
+  type MemberRole,
+} from './schema.js';
 
 const owner = { role: 'owner' as const, superadmin: false };
 const admin = { role: 'admin' as const, superadmin: false };
@@ -225,5 +234,64 @@ describe('isSuperadmin', () => {
     assert.equal(isSuperadmin({ superadmin: 'true' }), false);
     assert.equal(isSuperadmin({ superadmin: 1 }), false);
     assert.equal(isSuperadmin({}), false);
+  });
+});
+
+/** The lifecycle table in docs/firestore-challenge-model-plan.md, rules 18 and 21-23. */
+const ALLOWED: Record<ChallengeStatus, ChallengeAction[]> = {
+  draft: ['join', 'configEdit', 'rename', 'memberManage', 'delete'],
+  active: ['join', 'readingWrite', 'rename', 'memberManage', 'delete'],
+  complete: ['delete'],
+};
+
+describe('statusAllows', () => {
+  for (const status of CHALLENGE_STATUSES) {
+    for (const action of CHALLENGE_ACTIONS) {
+      const expected = ALLOWED[status].includes(action);
+      test(`${status} ${expected ? 'permits' : 'rejects'} ${action}`, () => {
+        assert.equal(statusAllows(status, action), expected);
+      });
+    }
+  }
+
+  test('a draft takes no readings, so the board is set before play', () => {
+    assert.equal(statusAllows('draft', 'readingWrite'), false);
+  });
+
+  test('going active locks the config but not the name', () => {
+    assert.equal(statusAllows('active', 'configEdit'), false);
+    assert.ok(statusAllows('active', 'rename'));
+  });
+
+  test('a complete challenge can still be deleted', () => {
+    assert.ok(statusAllows('complete', 'delete'));
+  });
+});
+
+describe('canTransition', () => {
+  test('follows the chain forward one step at a time', () => {
+    assert.ok(canTransition('draft', 'active'));
+    assert.ok(canTransition('active', 'complete'));
+  });
+
+  test('cannot skip active', () => {
+    assert.equal(canTransition('draft', 'complete'), false);
+  });
+
+  test('cannot move backward', () => {
+    assert.equal(canTransition('active', 'draft'), false);
+    assert.equal(canTransition('complete', 'active'), false);
+  });
+
+  test('complete is terminal', () => {
+    for (const status of CHALLENGE_STATUSES) {
+      assert.equal(canTransition('complete', status), false);
+    }
+  });
+
+  test('a status does not transition to itself', () => {
+    for (const status of CHALLENGE_STATUSES) {
+      assert.equal(canTransition(status, status), false);
+    }
   });
 });
