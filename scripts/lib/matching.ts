@@ -6,10 +6,6 @@
 
 import { normalizeForKey } from '../../functions/src/books/bookIdentity.js';
 
-// =============================================================================
-// Query cleaning
-// =============================================================================
-
 export interface CleanedQuery {
   title: string;
   /** Title with a `: subtitle` suffix removed, for a second search tier. */
@@ -50,10 +46,6 @@ export function lastName(author: string): string {
   const parts = author.trim().split(/\s+/).filter(Boolean);
   return parts.length > 0 ? parts[parts.length - 1]! : '';
 }
-
-// =============================================================================
-// Scoring
-// =============================================================================
 
 export type MatchStatus = 'auto' | 'review' | 'none';
 
@@ -146,10 +138,6 @@ function levenshteinDistance(a: string, b: string): number {
   }
   return prevRow[b.length]!;
 }
-
-// =============================================================================
-// Empty-metadata predicate
-// =============================================================================
 
 /**
  * True when every metadata field is null/empty — covers both a missing

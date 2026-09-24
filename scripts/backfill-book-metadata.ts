@@ -43,12 +43,8 @@ interface ReportEntry {
   status: MatchStatus | 'skip';
 }
 
-// =============================================================================
-// Open Library tiered search (independent of OpenLibraryProvider.search,
-// which only supports a single combined `q=` query — the tiers below need
-// title=/author= as separate params).
-// =============================================================================
-
+// Independent of OpenLibraryProvider.search, which only supports a single
+// combined `q=` query; the tiers below need title=/author= as separate params.
 const OL_SEARCH_URL = 'https://openlibrary.org/search.json';
 const OL_HEADERS = { 'User-Agent': 'BookBingo/1.0 (zach.smith33@gmail.com)' };
 /** ~1 req/s, so the search step is polite to a public, unauthenticated API. */
@@ -134,10 +130,6 @@ async function findBestMatch(
   return best;
 }
 
-// =============================================================================
-// match
-// =============================================================================
-
 async function runMatch(): Promise<void> {
   const projectId = parseFlag('project');
   if (!projectId) {
@@ -185,10 +177,6 @@ async function runMatch(): Promise<void> {
   console.log(`\nWrote ${entries.length} entries to ${outPath}`);
   console.log(counts);
 }
-
-// =============================================================================
-// apply
-// =============================================================================
 
 function toBookMetadata(
   details: Awaited<ReturnType<OpenLibraryProvider['getDetails']>>,
@@ -274,8 +262,6 @@ async function runApply(): Promise<void> {
 
   console.log('\nOutcomes:', outcomes);
 }
-
-// =============================================================================
 
 async function main(): Promise<void> {
   const subcommand = process.argv[2];

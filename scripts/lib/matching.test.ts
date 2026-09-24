@@ -7,10 +7,6 @@ import {
   REVIEW_THRESHOLD,
 } from './matching.js';
 
-// =============================================================================
-// cleanQuery
-// =============================================================================
-
 test('cleanQuery flips "Last, First" author order', () => {
   assert.equal(cleanQuery('', 'Rivera, Tomás').author, 'Tomás Rivera');
 });
@@ -24,10 +20,6 @@ test('cleanQuery strips a subtitle after ":" into titleNoSubtitle', () => {
   assert.equal(cleaned.title, 'Mistborn: The Final Empire');
   assert.equal(cleaned.titleNoSubtitle, 'Mistborn');
 });
-
-// =============================================================================
-// scoreCandidate
-// =============================================================================
 
 test('an author-name typo still matches (Abercombie / Abercrombie)', () => {
   const result = scoreCandidate({
@@ -80,10 +72,6 @@ test('unrelated books score none', () => {
   });
   assert.equal(result.status, 'none');
 });
-
-// =============================================================================
-// isEmptyMetadata
-// =============================================================================
 
 const EMPTY_METADATA_SHAPE = {
   pageCount: null,

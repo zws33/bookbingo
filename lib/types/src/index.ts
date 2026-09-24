@@ -1,7 +1,3 @@
-// =============================================================================
-// Tile Types
-// =============================================================================
-
 export interface Tile {
   id: string;
   name: string;
@@ -14,10 +10,6 @@ export interface BoardConfig {
   tiles: Tile[];
   maxTilesPerBook: number;
 }
-
-// =============================================================================
-// Book Types
-// =============================================================================
 
 /**
  * Everything known about a book beyond its identity. Every field is nullable
@@ -54,10 +46,6 @@ export interface Book {
   metadata: BookMetadata;
 }
 
-// =============================================================================
-// Scoring Types
-// =============================================================================
-
 /**
  * Minimal input for the scoring engine. Any object with tiles and freebie status works.
  */
@@ -84,10 +72,6 @@ export interface ScoreBreakdown {
   tileCounts: Map<string, number>;
   totalBooks: number;
 }
-
-// =============================================================================
-// User Types
-// =============================================================================
 
 export interface UserProfile {
   id: string;

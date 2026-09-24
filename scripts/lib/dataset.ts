@@ -52,10 +52,6 @@ export function bookIdFor(book: SeedBook): string {
   });
 }
 
-// ---------------------------------------------------------------------------
-// Books — a mix of OL-enriched (externalIds + metadata) and manual entries.
-// ---------------------------------------------------------------------------
-
 export const BOOKS: SeedBook[] = [
   {
     handle: 'dune',
@@ -210,11 +206,7 @@ export const BOOKS: SeedBook[] = [
   { handle: 'pachinko', title: 'Pachinko', author: 'Min Jin Lee' },
 ];
 
-// ---------------------------------------------------------------------------
-// Personas — distinct shapes to exercise scoring, dedup, and edge cases.
 // Shared handles (dune, hobbit, lhd, beloved) appear across users on purpose.
-// ---------------------------------------------------------------------------
-
 export const USERS: SeedUser[] = [
   {
     // Heavy reader — broad variety across many tiles.

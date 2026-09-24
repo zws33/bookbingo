@@ -2,10 +2,6 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { deriveBookId, normalizeForKey } from './bookIdentity.js';
 
-// =============================================================================
-// normalizeForKey — the frozen pipeline
-// =============================================================================
-
 test('normalizeForKey folds case', () => {
   assert.equal(normalizeForKey('The Hobbit'), normalizeForKey('the hobbit'));
 });
@@ -26,10 +22,6 @@ test('normalizeForKey folds diacritics (NFKD + strip marks)', () => {
 test('normalizeForKey does NOT strip leading articles', () => {
   assert.notEqual(normalizeForKey('The Hobbit'), normalizeForKey('Hobbit'));
 });
-
-// =============================================================================
-// deriveBookId — catalog books
-// =============================================================================
 
 test('catalog id is deterministic for the same Work key', () => {
   const a = deriveBookId({
@@ -83,10 +75,6 @@ test('blank/whitespace openLibraryKey falls back to the manual path', () => {
   assert.equal(blank, manual);
 });
 
-// =============================================================================
-// deriveBookId — manual books
-// =============================================================================
-
 test('manual id is deterministic', () => {
   const a = deriveBookId({ title: 'The Hobbit', author: 'J.R.R. Tolkien' });
   const b = deriveBookId({ title: 'The Hobbit', author: 'J.R.R. Tolkien' });
@@ -116,10 +104,6 @@ test('manual id keeps the title/author boundary distinct', () => {
   const b = deriveBookId({ title: 'God', author: 'og' });
   assert.notEqual(a, b);
 });
-
-// =============================================================================
-// Domain separation and id shape
-// =============================================================================
 
 test('catalog and manual key spaces are domain-separated', () => {
   // A manual book whose normalized key equals an OL key string must still differ.

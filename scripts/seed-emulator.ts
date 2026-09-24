@@ -31,10 +31,6 @@ initializeApp({ projectId: 'demo-bookbingo' });
 const auth = getAuth();
 const db = getFirestore();
 
-// ---------------------------------------------------------------------------
-// Test user definitions
-// ---------------------------------------------------------------------------
-
 interface SeedUser {
   uid: string;
   email: string;
@@ -63,10 +59,7 @@ const USERS: SeedUser[] = [
   },
 ];
 
-// ---------------------------------------------------------------------------
-// Seed readings per user — diverse tiles to exercise the scoring engine
-// ---------------------------------------------------------------------------
-
+// Diverse tiles, to exercise the scoring engine.
 interface SeedReading {
   bookId: string;
   bookTitle: string;
@@ -178,10 +171,6 @@ const BOB_READINGS: SeedReading[] = [
     createdAt: daysAgo(7),
   },
 ];
-
-// ---------------------------------------------------------------------------
-// Seeding logic
-// ---------------------------------------------------------------------------
 
 function toTimestamp(d: Date): Timestamp {
   return Timestamp.fromDate(d);
