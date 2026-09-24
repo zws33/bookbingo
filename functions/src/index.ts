@@ -18,10 +18,6 @@ import { libraryHandlers } from './library/handler.js';
 import { tbrHandlers } from './tbr/handler.js';
 import { tbrEntryRepository } from './tbr/store.js';
 
-// Colocated with Firestore (firebase.json sets the database to
-// northamerica-northeast1). The default, us-central1, puts a cross-region hop
-// on every document read a callable makes. The client must ask for the same
-// region — see FUNCTIONS_REGION in app/web/src/lib/firebase.ts.
 setGlobalOptions({ region: 'northamerica-northeast1' });
 
 const githubPat = defineSecret('GITHUB_PAT');
