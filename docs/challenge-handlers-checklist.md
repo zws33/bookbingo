@@ -2,7 +2,7 @@
 
 Implementation order for the challenge callables. Numbered rules are in `docs/firestore-challenge-model-plan.md`. Module shape is in CLAUDE.md, `## functions/ Architecture`.
 
-Done: `challenges/schema.ts`, `challenges/store.ts`, `challenges/present.ts`, tests for all three (`c0bb056`). The repository covers the challenge doc only — membership methods are still to write.
+Done: `challenges/schema.ts`, `challenges/store.ts`, `challenges/present.ts`, tests for all three (`c0bb056`), plus the membership reads. The repository has no write path for member docs yet — both writers are transactional and land in step 3.
 
 ## 0. Conform the existing module
 
@@ -12,7 +12,9 @@ Done: `challenges/schema.ts`, `challenges/store.ts`, `challenges/present.ts`, te
 - [x] `schema.ts` — typos fixed; requests constrained; `maxTagsPerBook` → `tagCap` (rule 6)
 - [ ] `handler.ts` — `challengeHandlers(challengesRepo, usersRepo)` factory; delete `getChallengesCallback`
 - [ ] `handler.ts` — import `CallableRequest` from `firebase-functions/v2/https`, as every other handler does
-- [ ] `store.ts` — membership methods; re-add `membersCollection` / `memberDoc`, deleted as dead code
+- [x] `store.ts` — membership reads: `getMembership`, `listActiveMemberships`, `membersCollection` / `memberDoc` re-added
+- [ ] `store.ts` — membership writes. Both writers are transactional and blocked: the member doc for `createChallenge` belongs in step 3's transaction, `joinChallenge` needs `/joinCodes`
+- [ ] `store.ts` — `getMany(challengeIds)` over `db.getAll`, for `listMyChallenges`
 
 ## 1. Error taxonomy
 
@@ -56,7 +58,7 @@ Done: `challenges/schema.ts`, `challenges/store.ts`, `challenges/present.ts`, te
 
 - [ ] `listMyChallenges` return shape: `ChallengeDTO[]`, or each challenge plus the caller's `role`. The UI needs the role to pick which admin controls to show
 - [ ] `freebieRule` shape is undefined, so leave it off `createChallenge` rather than writing a placeholder into stored docs
-- [ ] Whether `Membership` carries `challengeId`, and whether it comes from the path or a stored field
+- [x] Whether `Membership` carries `challengeId` — no. `listActiveMemberships` returns `Map<challengeId, Membership>`, keyed from the document path, matching `readingsByUser`. A point read already knows the path it asked for
 
 ## Validation
 

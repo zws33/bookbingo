@@ -1,6 +1,10 @@
-import { FieldValue, type DocumentSnapshot } from 'firebase-admin/firestore';
+import {
+  FieldValue,
+  type DocumentSnapshot,
+  type QueryDocumentSnapshot,
+} from 'firebase-admin/firestore';
 import { DomainError } from '../common/errors.js';
-import { isNotFound } from '../common/firestoreHelpers.js';
+import { isNotFound, mapValid } from '../common/firestoreHelpers.js';
 import { db } from '../firebase.js';
 import {
   ChallengeDocSchema,
@@ -47,12 +51,42 @@ export function toMembership(doc: DocumentSnapshot): Membership {
     joinedAt: data.joinedAt,
   };
 }
+
+/**
+ * Keyed by the challenge id in each document's path: a collection-group read
+ * carries no challenge id of its own, and a user holds at most one member doc
+ * per challenge.
+ */
+export function membershipsByChallenge(
+  docs: QueryDocumentSnapshot[],
+): Map<string, Membership> {
+  const byChallenge = new Map<string, Membership>();
+
+  for (const doc of docs) {
+    const challengeId = doc.ref.parent.parent?.id;
+    if (!challengeId) continue;
+
+    const [membership] = mapValid('members', [doc], toMembership);
+    if (membership) byChallenge.set(challengeId, membership);
+  }
+
+  return byChallenge;
+}
+
 function challengeCollection() {
   return db.collection('challenges');
 }
 
 function challengeDoc(cid: string) {
   return challengeCollection().doc(cid);
+}
+
+function membersCollection(cid: string) {
+  return challengeDoc(cid).collection('members');
+}
+
+function memberDoc(cid: string, userId: string) {
+  return membersCollection(cid).doc(userId);
 }
 
 export interface ChallengeFields {
@@ -69,6 +103,11 @@ export interface ChallengeRepository {
     status: ChallengeStatus,
   ): Promise<void>;
   remove(challengeId: string): Promise<void>;
+  getMembership(
+    challengeId: string,
+    userId: string,
+  ): Promise<Membership | undefined>;
+  listActiveMemberships(userId: string): Promise<Map<string, Membership>>;
 }
 
 const firestoreChallenges: ChallengeRepository = {
@@ -116,6 +155,25 @@ const firestoreChallenges: ChallengeRepository = {
   },
   async remove(challengeId) {
     await challengeDoc(challengeId).delete();
+  },
+
+  // Absent and non-`active` are the same answer to the caller (rule 14), so
+  // both are left for the guard to reject rather than thrown on here.
+  async getMembership(challengeId, userId) {
+    const doc = await memberDoc(challengeId, userId).get();
+    if (!doc.exists) return undefined;
+    return toMembership(doc);
+  },
+
+  // A collection group cannot filter on the document key, so the stored
+  // `userId` field is the only way to select one user's member docs.
+  async listActiveMemberships(userId) {
+    const snapshot = await db
+      .collectionGroup('members')
+      .where('userId', '==', userId)
+      .where('status', '==', 'active' satisfies MembershipStatus)
+      .get();
+    return membershipsByChallenge(snapshot.docs);
   },
 };
 

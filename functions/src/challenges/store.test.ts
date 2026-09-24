@@ -1,7 +1,7 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert';
 import type { QueryDocumentSnapshot } from 'firebase-admin/firestore';
-import { toChallenge, toMembership } from './store.js';
+import { membershipsByChallenge, toChallenge, toMembership } from './store.js';
 
 const CREATED_AT = new Date('2026-01-02T03:04:05Z');
 
@@ -82,6 +82,54 @@ describe('toMembership', () => {
   test('throws on an invalid document', () => {
     assert.throws(() =>
       toMembership(makeDoc('user-1', { ...stored, role: 'superadmin' })),
+    );
+  });
+});
+
+describe('membershipsByChallenge', () => {
+  const stored = {
+    userId: 'user-1',
+    role: 'member',
+    status: 'active',
+    joinedAt: timestamp(CREATED_AT),
+  };
+
+  /** `/challenges/{cid}/members/{userId}`: the grandparent is the challenge. */
+  function makeMemberDoc(
+    challengeId: string | undefined,
+    data: unknown,
+  ): QueryDocumentSnapshot {
+    return {
+      id: 'user-1',
+      data: () => data,
+      ref: { parent: { parent: challengeId ? { id: challengeId } : null } },
+    } as unknown as QueryDocumentSnapshot;
+  }
+
+  test('keys each membership by the challenge id in its path', () => {
+    const byChallenge = membershipsByChallenge([
+      makeMemberDoc('challenge-1', stored),
+      makeMemberDoc('challenge-2', { ...stored, role: 'owner' }),
+    ]);
+
+    assert.deepEqual([...byChallenge.keys()], ['challenge-1', 'challenge-2']);
+    assert.equal(byChallenge.get('challenge-2')?.role, 'owner');
+  });
+
+  // One malformed member doc must not blank a user's whole challenge list.
+  test('drops an invalid document and keeps the rest', () => {
+    const byChallenge = membershipsByChallenge([
+      makeMemberDoc('challenge-1', { ...stored, status: 'banned' }),
+      makeMemberDoc('challenge-2', stored),
+    ]);
+
+    assert.deepEqual([...byChallenge.keys()], ['challenge-2']);
+  });
+
+  test('drops a document with no parent challenge', () => {
+    assert.equal(
+      membershipsByChallenge([makeMemberDoc(undefined, stored)]).size,
+      0,
     );
   });
 });

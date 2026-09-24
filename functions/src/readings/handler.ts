@@ -30,10 +30,6 @@ export function readingHandlers(
   return {
     /**
      * One user's readings, newest first, with their score.
-     *
-     * The score ships with the readings it was computed from so the two cannot
-     * disagree in the UI — a separate endpoint would let a refetch of one land
-     * without the other.
      */
     async list(
       request: CallableRequest<unknown>,
