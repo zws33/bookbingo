@@ -3,7 +3,6 @@ import { screen, act } from '@testing-library/react';
 import { render } from '../testing/test-utils';
 import { ToastProvider, useToast } from './ToastContext';
 
-// Helper component that calls useToast and exposes actions via buttons
 function ToastTrigger() {
   const { showSuccess, showError } = useToast();
   return (

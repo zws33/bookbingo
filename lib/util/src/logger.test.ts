@@ -6,7 +6,6 @@ import { log, initLogger } from './logger.js';
 
 test('log.event is a no-op when dispatch is null', () => {
   initLogger({ isDev: false, dispatch: null });
-  // should not throw
   log.event('test_event', { key: 'value' });
 });
 

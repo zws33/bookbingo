@@ -39,13 +39,7 @@ export class ProviderError extends Error {
   }
 }
 
-/**
- * Contract for a book data provider (e.g., Google Books, Open Library).
- */
 export interface BookProvider {
-  /** Search for books by title/author query */
   search(query: string): Promise<ProviderSearchResult[]>;
-
-  /** Fetch full metadata for a specific external ID */
   getDetails(externalId: string): Promise<ProviderBookDetails>;
 }

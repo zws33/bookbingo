@@ -85,9 +85,6 @@ export function calculateScore(
   return varietyPoints + volumePoints * balanceFactor;
 }
 
-/**
- * Provides a detailed breakdown of the score calculation.
- */
 export function getScoreBreakdown(
   inputs: ScoringInput[],
   strategy: ScoringStrategy = DEFAULT_STRATEGY,

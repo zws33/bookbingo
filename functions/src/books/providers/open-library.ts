@@ -38,29 +38,15 @@ const EditionsSchema = z.object({
     .optional(),
 });
 
-/** How long a cached search response stays servable. */
 const DEFAULT_SEARCH_CACHE_TTL_MS = 10 * 60 * 1000;
 
-/**
- * How long an *empty* search response stays servable.
- */
 const DEFAULT_EMPTY_SEARCH_CACHE_TTL_MS = 30 * 1000;
 
-/**
- * Upper bound on cached search queries.
- */
 const DEFAULT_SEARCH_CACHE_MAX_ENTRIES = 200;
 
 interface SearchCacheEntry {
-  /**
-   * Written optimistically at insert time with the full TTL, then
-   * revised downward if the response turns out to be
-   * empty.
-   */
+  /** Full TTL at insert, revised down if the response turns out empty. */
   expiresAt: number;
-  /**
-   * The in-flight or settled request.
-   */
   request: Promise<ProviderSearchResult[]>;
 }
 

@@ -45,15 +45,10 @@ function normalize(val: string): string {
   return val.trim().toLowerCase();
 }
 
-/**
- * Local cache to avoid redundant queries and creations for the same book within a single run.
- */
+/** Reset per run. */
 const bookCache = new Map<string, string>(); // normalizationKey -> bookId
 let newBooksCreated = 0;
 
-/**
- * Generates a consistent key for looking up books in the cache.
- */
 function getCacheKey(title: string, author: string): string {
   return `${normalize(title)}|${normalize(author)}`;
 }

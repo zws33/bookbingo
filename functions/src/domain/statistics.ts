@@ -1,8 +1,5 @@
 import type { ScoringInput } from '@bookbingo/lib-types';
 
-/**
- * Calculates the mean (average) of a list of numbers.
- */
 export function calculateMean(values: number[]): number {
   if (values.length === 0) {
     return 0;
@@ -11,9 +8,6 @@ export function calculateMean(values: number[]): number {
   return sum / values.length;
 }
 
-/**
- * Calculates the standard deviation of a list of numbers.
- */
 export function calculateStdDev(values: number[]): number {
   if (values.length < 2) {
     return 0;
@@ -24,9 +18,6 @@ export function calculateStdDev(values: number[]): number {
   return Math.sqrt(variance);
 }
 
-/**
- * Calculates the coefficient of variation (CV).
- */
 export function calculateCV(values: number[]): number {
   const mean = calculateMean(values);
   if (mean === 0) {
@@ -36,9 +27,6 @@ export function calculateCV(values: number[]): number {
   return stdDev / mean;
 }
 
-/**
- * Counts the number of books assigned to each tile.
- */
 export function calculateTileCounts(
   inputs: ScoringInput[],
 ): Map<string, number> {
@@ -51,9 +39,7 @@ export function calculateTileCounts(
   return tileCounts;
 }
 
-/**
- * Calculates the harmonic sum H(n) = 1 + 1/2 + 1/3 + ... + 1/n.
- */
+/** H(n) = 1 + 1/2 + 1/3 + ... + 1/n. */
 export function harmonicSum(n: number): number {
   if (n <= 0) {
     return 0;

@@ -3,9 +3,6 @@ import { TILES } from './constants.js';
 
 export const MAX_TILES_PER_BOOK = 3;
 
-/**
- * Checks if a tile assignment is valid for a book.
- */
 export function canAssignTile(input: ScoringInput, tileId: string): boolean {
   if (input.isFreebie) {
     return true;
@@ -23,9 +20,6 @@ export function canAssignTile(input: ScoringInput, tileId: string): boolean {
   return true;
 }
 
-/**
- * Validates the tiles assigned to a single book.
- */
 export function validateBookTiles(input: ScoringInput): void {
   if (!input.isFreebie && input.tiles.length > MAX_TILES_PER_BOOK) {
     throw new Error(`Book exceeds the maximum of ${MAX_TILES_PER_BOOK} tiles.`);
@@ -36,9 +30,6 @@ export function validateBookTiles(input: ScoringInput): void {
   }
 }
 
-/**
- * Validates the freebie book rule across a user's entire book list.
- */
 export function validateFreebie(inputs: ScoringInput[]): void {
   const freebieCount = inputs.filter((input) => input.isFreebie).length;
   if (freebieCount > 1) {

@@ -1,14 +1,7 @@
-/**
- * Shared type definitions for BookBingo
- */
-
 // =============================================================================
 // Tile Types
 // =============================================================================
 
-/**
- * A bingo tile/category that books can be assigned to.
- */
 export interface Tile {
   id: string;
   name: string;
@@ -80,9 +73,6 @@ export interface ScoringInput {
  */
 export type ScoringStrategy = 'harmonic' | 'balanced-harmonic';
 
-/**
- * Detailed breakdown of a score calculation.
- */
 export interface ScoreBreakdown {
   score: number;
   /** Number of unique tiles with at least one book (1 point each, never penalized) */

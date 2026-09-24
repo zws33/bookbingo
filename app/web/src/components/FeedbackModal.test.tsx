@@ -4,7 +4,6 @@ import userEvent from '@testing-library/user-event';
 import { render } from '../testing/test-utils';
 import { FeedbackModal } from './FeedbackModal';
 
-// Mock Firebase functions so tests don't make real network calls
 vi.mock('../lib/firebase', () => ({
   functions: {},
 }));
