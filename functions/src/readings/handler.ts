@@ -65,8 +65,7 @@ export function readingHandlers(
     /**
      * Scores every user, highest first.
      *
-     * Users with no readings still appear, with a zero score, which is what the
-     * client's join of the users collection and the readings group produced.
+     * Users with no readings still appear, with a zero score.
      */
     async leaderboard(
       request: CallableRequest<unknown>,

@@ -32,9 +32,8 @@ describe('toReading', () => {
     assert.equal(reading.updatedAt, undefined);
   });
 
-  // 49 of prod's 104 readings still carry bookTitle/bookAuthor from the
-  // pre-bookId era. Every one of them resolves through bookId, so the stored
-  // copies are ignored and the book document is the only source of a title.
+  // Readings written before bookId existed still carry bookTitle/bookAuthor.
+  // They resolve through bookId, so the book document is the only source.
   test('ignores the stale denormalized title and author', () => {
     const reading = toReading(
       makeDoc('r1', {

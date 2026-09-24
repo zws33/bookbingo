@@ -13,9 +13,8 @@ import { Spinner } from '../components/ui/Spinner.js';
 import { Tooltip } from '../components/ui/Tooltip.js';
 import { useToast } from '../lib/ToastContext.js';
 
-// This dev-only page is a LIVING reference: color and radius samples are read
-// from the actual CSS custom properties at runtime (see useCssVars), so it cannot
-// drift from the tokens in index.css the way hardcoded swatch labels did.
+// Dev-only. Color and radius samples are read from the CSS custom properties at
+// runtime (see useCssVars), so they cannot drift from the tokens in index.css.
 
 const NAV = [
   { id: 'colors', label: 'Colors' },

@@ -36,8 +36,8 @@ let db: Firestore;
 let userId: string;
 
 beforeAll(async () => {
-  // The app's own firebase module no longer creates a Firestore handle, so
-  // this suite builds a throwaway one to attempt the denied access with.
+  // The app's firebase module creates no Firestore handle, so this suite builds
+  // a throwaway one to attempt the denied access with.
   app = initializeApp(
     {
       apiKey: import.meta.env.VITE_FIREBASE_API_KEY,

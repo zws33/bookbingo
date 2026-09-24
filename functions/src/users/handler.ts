@@ -33,7 +33,7 @@ export function userHandlers(usersRepo: UserProfileRepository) {
      *
      * Name and photo come from the verified token rather than the request body,
      * so a caller cannot write someone else's name onto their own profile or
-     * post an arbitrary image URL — the client used to send both fields itself.
+     * post an arbitrary image URL.
      *
      * `picture` is a declared claim typed `string | undefined`. `name` is not:
      * it reaches us through DecodedIdToken's index signature as `any`, so the

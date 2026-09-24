@@ -5,9 +5,8 @@ import userEvent from '@testing-library/user-event';
 import { render } from '../testing/test-utils';
 import { TileSelector } from './TileSelector';
 
-// The catalog now arrives from the server through useTileCatalog, so that hook
-// is the one seam this file stubs. Everything else is props in, onChange out.
-// See CONVENTIONS.md; BookForm.test.tsx is the reference example.
+// useTileCatalog is the one seam this file stubs; everything else is props in,
+// onChange out. See CONVENTIONS.md; BookForm.test.tsx is the reference example.
 vi.mock('../hooks/useTileCatalog', async () => ({
   useTileCatalog: (await import('../testing/fixtures')).tileCatalogStub,
 }));
@@ -38,8 +37,7 @@ function renderTileSelector(overrides: Partial<TileSelectorProps> = {}) {
 }
 
 // Controlled: a real parent that owns selectedTiles, mirroring how BookForm uses
-// TileSelector. Use this to assert the UI *updates* after interaction — the
-// regression surface for the stale-memo fix.
+// TileSelector. Use this to assert the UI *updates* after interaction.
 function renderControlledTileSelector(
   overrides: { initialSelected?: string[]; isFreebie?: boolean } = {},
 ) {
@@ -167,9 +165,9 @@ describe('TileSelector', () => {
     });
   });
 
-  // These exercise the fix directly: the derived isSelected/isDisabled/order live
-  // in a useMemo keyed on [search, selectedTiles, atLimit]. With the prior
-  // [search]-only deps, none of these updated after a click.
+  // The derived isSelected/isDisabled/order live in a useMemo that must stay
+  // keyed on [search, selectedTiles, atLimit]; on [search] alone, none of these
+  // update after a click.
   describe('selection updates through interaction (stale-memo regression)', () => {
     it('shows a tile as pressed after it is clicked', async () => {
       const { user } = renderControlledTileSelector();

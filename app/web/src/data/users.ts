@@ -11,12 +11,7 @@ export const listUsers = createCallable<void, UserProfile[]>(
   ListUsersResponseSchema,
 );
 
-/**
- * Every user with their score, highest first.
- *
- * One call replaces the client's join of the users collection with every
- * user's readings, and the scoring that followed it.
- */
+/** Every user with their score, highest first. The server owns the scoring. */
 export const getLeaderboard = createCallable<void, LeaderboardRow[]>(
   'getLeaderboard',
   GetLeaderboardResponseSchema,

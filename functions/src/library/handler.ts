@@ -30,7 +30,7 @@ export function libraryHandlers(
      * Every book anyone has read, with who read it and under which tiles.
      *
      * Book-centric on purpose: the library view is a list of books, so the
-     * grouping happens here rather than in the client, which used to fetch all
+     * grouping happens here rather than in the client, which would need all
      * readings, all books and all users to assemble the same thing.
      *
      * Books with no readings are left out. They exist when a manual title or
