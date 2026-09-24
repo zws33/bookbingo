@@ -2,7 +2,7 @@ import { test, describe } from 'node:test';
 import assert from 'node:assert';
 import type { QueryDocumentSnapshot } from 'firebase-admin/firestore';
 import z from 'zod/v4';
-import { mapValid } from './firestoreDoc.js';
+import { mapValid } from './firestoreHelpers.js';
 
 function makeDoc(id: string, data: unknown): QueryDocumentSnapshot {
   return {

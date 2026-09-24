@@ -5,7 +5,7 @@ import {
 } from 'firebase-admin/firestore';
 import { db } from '../firebase.js';
 import { DomainError } from '../common/errors.js';
-import { mapValid } from '../common/firestoreDoc.js';
+import { mapValid } from '../common/firestoreHelpers.js';
 import { requireBookExists } from '../books/store.js';
 import { ReadingDocSchema } from './schema.js';
 

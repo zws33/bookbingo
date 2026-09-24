@@ -46,3 +46,8 @@ export function mapValid<T>(
   }
   return out;
 }
+
+/** Firestore reports an update to a missing document as NOT_FOUND (code 5). */
+export function isNotFound(error: unknown): boolean {
+  return (error as { code?: unknown } | null)?.code === 5;
+}

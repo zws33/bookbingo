@@ -4,7 +4,7 @@ import {
 } from 'firebase-admin/firestore';
 import { db } from '../firebase.js';
 import { DomainError } from '../common/errors.js';
-import { mapValid } from '../common/firestoreDoc.js';
+import { isNotFound, mapValid } from '../common/firestoreHelpers.js';
 import { requireBookExists } from '../books/store.js';
 import {
   newReadingFields,
@@ -71,11 +71,6 @@ function toTBREntry(doc: QueryDocumentSnapshot): TBREntry {
     addedAt: data.addedAt,
     ...(data.updatedAt !== undefined && { updatedAt: data.updatedAt }),
   };
-}
-
-/** Firestore reports an update to a missing document as NOT_FOUND (code 5). */
-function isNotFound(error: unknown): boolean {
-  return (error as { code?: unknown } | null)?.code === 5;
 }
 
 const firestoreTBREntries: TBREntryRepository = {

@@ -1,5 +1,5 @@
 import { z } from 'zod/v4';
-import { OptionalInstant } from '../common/firestoreDoc.js';
+import { OptionalInstant } from '../common/firestoreHelpers.js';
 
 const normalizeSearchQuery = (value: string) =>
   value.normalize('NFKC').replace(/\s+/g, ' ').trim();

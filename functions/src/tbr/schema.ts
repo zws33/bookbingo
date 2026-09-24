@@ -1,5 +1,5 @@
 import z from 'zod/v4';
-import { OptionalInstant, ServerInstant } from '../common/firestoreDoc.js';
+import { OptionalInstant, ServerInstant } from '../common/firestoreHelpers.js';
 
 const NotesSchema = z.string().trim().max(2000).optional();
 
