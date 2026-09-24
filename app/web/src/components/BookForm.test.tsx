@@ -152,11 +152,11 @@ describe('BookForm', () => {
       await user.click(screen.getByRole('button', { name: TILE.series.name }));
       await user.click(screen.getByRole('button', { name: TILE.long.name }));
 
-      // The three chosen tiles stay operable (they can be deselected)...
+      // Chosen tiles stay operable so they can be deselected.
       expect(
         screen.getByRole('button', { name: TILE.reread.name }),
       ).toBeEnabled();
-      // ...but any unchosen tile is disabled at the limit.
+      // Unchosen tiles are disabled at the limit.
       expect(
         screen.getByRole('button', { name: TILE.short.name }),
       ).toBeDisabled();

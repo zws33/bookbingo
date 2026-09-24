@@ -109,19 +109,12 @@ export class OpenLibraryProvider implements BookProvider {
   }
 
   /**
-   * Revises the cache entry for `key` once `request` settles.
+   * On rejection: evict, so one transient error does not blank the query for
+   * the whole TTL. On an empty result: shorten to `emptySearchCacheTtlMs`.
    *
-   * On rejection: evict. One transient Open Library error must not blank out a
-   * query for the whole TTL.
-   *
-   * On an empty result: shorten the entry's life to `emptySearchCacheTtlMs`.
-   *
-   * Both paths identity-check the entry first, so a settling request can only
-   * ever modify the entry it created — never a newer one that replaced it.
-   *
-   * Passing an `onRejected` handler here also marks `request` as handled, so
-   * the rejection still reaches the caller without an unhandled-rejection
-   * warning.
+   * Both paths identity-check the entry, so a settling request can only modify
+   * the entry it created. The `onRejected` handler also marks `request` as
+   * handled, avoiding an unhandled-rejection warning.
    */
   private trackSettlement(
     key: string,

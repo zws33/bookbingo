@@ -8,18 +8,10 @@ import { queryKeys } from '../lib/queryClient';
 const NO_TILES: Tile[] = [];
 
 /**
- * The tile catalog, shared by every component that names a tile.
- *
- * Safe to call from a leaf rendered in a long list: the query cache keys on
- * `boardConfig`, so every caller shares one request and one result. It never
- * goes stale on its own — the catalog changes with a deploy, not while the
- * page is open.
- *
- * While it loads, `getTileById` returns undefined and callers fall back to the
- * raw tile id, which is what they already did for an unknown tile.
- *
- * `getTileById` is memoized on the lookup map rather than rebuilt per render,
- * so it is safe to name in a dependency array.
+ * Safe to call from a leaf in a long list: every caller shares one cached
+ * request. `staleTime: Infinity` because the catalog changes with a deploy.
+ * While loading, `getTileById` returns undefined and callers fall back to the
+ * raw id. It is memoized, so it is safe in a dependency array.
  */
 export function useTileCatalog() {
   const { data, isPending, error } = useQuery({

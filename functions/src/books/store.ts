@@ -31,9 +31,8 @@ export interface BookRepository {
 /**
  * Reads every book in one `getAll`, keyed by id.
  *
- * Throws `MissingBookError` naming every unresolved id rather than returning
- * what it can: reporting all of them at once makes it one fix instead of a
- * game of whack-a-mole.
+ * Throws `MissingBookError` naming every unresolved id at once, rather than
+ * returning what it can.
  */
 async function getBooksById(ids: string[]): Promise<Map<string, Book>> {
   const bookIds = [...new Set(ids)];

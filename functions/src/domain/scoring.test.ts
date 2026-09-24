@@ -163,10 +163,7 @@ test('Scoring', async (t) => {
     );
   });
 
-  // Four reader profiles that together demonstrate what the scoring system rewards.
-  // Ported from the prose worked examples in the retired docs/SCORING_PLAN.md, whose
-  // hand-computed balance factors were all wrong — its own "key takeaway" cited
-  // figures that contradicted the claim they were offered as evidence for.
+  // Four reader profiles demonstrating what the scoring system rewards.
   await t.test('worked scenarios', async (t) => {
     const balanced10 = booksWithDistribution([
       [5, 2],

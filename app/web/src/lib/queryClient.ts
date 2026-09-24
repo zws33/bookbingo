@@ -16,17 +16,13 @@ export const queryKeys = {
 };
 
 /**
- * Replaces the Firestore snapshot listeners, which pushed every change as it
- * happened. Nothing streams now, so freshness comes from refetching: on mount
- * when the data is stale, on window focus, and whenever a mutation invalidates
- * a key.
+ * Nothing streams, so freshness comes from refetching on mount, on focus, and
+ * on invalidation.
  *
- * `staleTime` is the trade: at 0 every page navigation refetches through a
- * callable that may cold-start, for data that changes a few times a week. 30
- * seconds keeps navigation instant and still refreshes a tab left open.
+ * `staleTime` 30s: at 0 every navigation refetches through a callable that may
+ * cold-start, for data that changes a few times a week.
  *
- * One retry, because a cold start can fail once while the container boots;
- * more than that only delays the error the user needs to see.
+ * One retry covers a cold start failing once; more only delays the error.
  */
 export const queryClient = new QueryClient({
   defaultOptions: {
