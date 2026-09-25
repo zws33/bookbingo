@@ -18,7 +18,11 @@ import { libraryHandlers } from './library/handler.js';
 import { tbrHandlers } from './tbr/handler.js';
 import { tbrEntryRepository } from './tbr/store.js';
 
-setGlobalOptions({ region: 'northamerica-northeast1' });
+// Caps the blast radius of a runaway caller rather than the traffic: nothing
+// rate-limits these endpoints, and the platform default of 100 instances lets
+// a loop fan out until it shows up on the bill. Raise it when real concurrency
+// needs it, not before.
+setGlobalOptions({ region: 'northamerica-northeast1', maxInstances: 10 });
 
 const githubPat = defineSecret('GITHUB_PAT');
 
