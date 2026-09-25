@@ -50,11 +50,11 @@ const RANK: Record<MemberRole, number> = {
   owner: 3,
 };
 
-/** Rule 30. */
-const SUPERADMIN_RANK = 4;
+/** Rule 30: above every role, not a position in the ladder. */
+const SUPERADMIN_RANK = Number.POSITIVE_INFINITY;
 
-/** Outranks nobody and holds nothing. */
-const NON_MEMBER_RANK = 0;
+/** Below every role: outranks nobody, holds nothing. */
+const NON_MEMBER_RANK = Number.NEGATIVE_INFINITY;
 
 export function rankOf(actor: Actor): number {
   if (actor.superadmin) return SUPERADMIN_RANK;
