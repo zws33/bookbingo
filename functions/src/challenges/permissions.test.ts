@@ -3,7 +3,7 @@ import assert from 'node:assert';
 import {
   MAX_CHALLENGES_CREATED,
   PERMISSIONS,
-  can,
+  hasPermission,
   canEditOthersReading,
   canGrant,
   canRemove,
@@ -51,29 +51,32 @@ describe('can', () => {
     for (const role of MEMBER_ROLES) {
       const expected = GRANTED[permission].includes(role);
       test(`${role} ${expected ? 'holds' : 'does not hold'} ${permission}`, () => {
-        assert.equal(can({ role, superadmin: false }, permission), expected);
+        assert.equal(
+          hasPermission({ role, superadmin: false }, permission),
+          expected,
+        );
       });
     }
 
     test(`a non-member does not hold ${permission}`, () => {
-      assert.equal(can(outsider, permission), false);
+      assert.equal(hasPermission(outsider, permission), false);
     });
 
     test(`a superadmin holds ${permission}`, () => {
-      assert.equal(can(superadmin, permission), true);
+      assert.equal(hasPermission(superadmin, permission), true);
     });
   }
 });
 
 describe('rankOf', () => {
   test('orders superadmin above owner above admin above member', () => {
-    assert.ok(rankOf(superadmin) < rankOf(owner));
-    assert.ok(rankOf(owner) < rankOf(admin));
-    assert.ok(rankOf(admin) < rankOf(member));
+    assert.ok(rankOf(superadmin) > rankOf(owner));
+    assert.ok(rankOf(owner) > rankOf(admin));
+    assert.ok(rankOf(admin) > rankOf(member));
   });
 
   test('puts a non-member below every role', () => {
-    assert.ok(rankOf(outsider) > rankOf(member));
+    assert.ok(rankOf(outsider) < rankOf(member));
   });
 
   test('the superadmin claim wins over a stored role', () => {

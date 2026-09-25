@@ -52,11 +52,6 @@ export function toMembership(doc: DocumentSnapshot): Membership {
   };
 }
 
-/**
- * Keyed by the challenge id in each document's path: a collection-group read
- * carries no challenge id of its own, and a user holds at most one member doc
- * per challenge.
- */
 export function membershipsByChallenge(
   docs: QueryDocumentSnapshot[],
 ): Map<string, Membership> {

@@ -1,8 +1,4 @@
-import {
-  MEMBER_ROLES,
-  type ChallengeStatus,
-  type MemberRole,
-} from './schema.js';
+import type { ChallengeStatus, MemberRole } from './schema.js';
 
 export const PERMISSIONS = [
   'challenge.read',
@@ -21,12 +17,6 @@ export type Permission = (typeof PERMISSIONS)[number];
 
 /**
  * The lowest role that holds each permission.
- *
- * The permission table is a staircase — every permission a role holds is also
- * held by every higher role — so a threshold encodes it exactly. A permission
- * that admins held but owners did not could not be written here at all, which
- * is the intended failure: it would break rule 5, where an actor acts only on
- * targets of strictly lower rank.
  */
 const MINIMUM_ROLE: Record<Permission, MemberRole> = {
   'challenge.read': 'member',
@@ -53,36 +43,37 @@ export interface Actor {
   readonly superadmin: boolean;
 }
 
-/** Above owner, so a superadmin outranks every member (rule 30). */
-const SUPERADMIN_RANK = -1;
+/** Declared apart from the `MEMBER_ROLES` order, which exists for display. */
+const RANK: Record<MemberRole, number> = {
+  member: 1,
+  admin: 2,
+  owner: 3,
+};
 
-/** Below every role, so a non-member outranks nobody and holds nothing. */
-const NON_MEMBER_RANK = Number.POSITIVE_INFINITY;
+/** Rule 30. */
+const SUPERADMIN_RANK = 4;
 
-/** Lower is higher: `MEMBER_ROLES` is ordered highest-rank-first. */
+/** Outranks nobody and holds nothing. */
+const NON_MEMBER_RANK = 0;
+
 export function rankOf(actor: Actor): number {
   if (actor.superadmin) return SUPERADMIN_RANK;
   if (actor.role === undefined) return NON_MEMBER_RANK;
-  return MEMBER_ROLES.indexOf(actor.role);
+  return RANK[actor.role];
 }
 
-/**
- * Rule 5: strictly lower rank. Owner-on-owner is false, which is rule 7 —
- * owners cannot remove or demote each other.
- */
+/** Rule 5: strictly above, so owner-on-owner is false — that is rule 7. */
 export function outranks(actor: Actor, target: MemberRole): boolean {
-  return rankOf(actor) < MEMBER_ROLES.indexOf(target);
+  return rankOf(actor) > RANK[target];
 }
 
-export function can(actor: Actor, permission: Permission): boolean {
-  return rankOf(actor) <= MEMBER_ROLES.indexOf(MINIMUM_ROLE[permission]);
+export function hasPermission(actor: Actor, permission: Permission): boolean {
+  return rankOf(actor) >= RANK[MINIMUM_ROLE[permission]];
 }
 
-/** Rule 6: any role up to and including the actor's own — inclusive, unlike rule 5. */
+/** Rule 6: up to and including the actor's own role — inclusive, unlike rule 5. */
 export function canGrant(actor: Actor, role: MemberRole): boolean {
-  return (
-    can(actor, 'member.setRole') && rankOf(actor) <= MEMBER_ROLES.indexOf(role)
-  );
+  return hasPermission(actor, 'member.setRole') && rankOf(actor) >= RANK[role];
 }
 
 /**
@@ -109,11 +100,11 @@ export function canSelfDemote(
   currentRole: MemberRole,
   newRole: MemberRole,
 ): boolean {
-  return MEMBER_ROLES.indexOf(newRole) > MEMBER_ROLES.indexOf(currentRole);
+  return RANK[newRole] < RANK[currentRole];
 }
 
 export function canRemove(actor: Actor, target: MemberRole): boolean {
-  return can(actor, 'member.remove') && outranks(actor, target);
+  return hasPermission(actor, 'member.remove') && outranks(actor, target);
 }
 
 /** Rule 5 covers another player's readings, not just their membership. */
@@ -121,7 +112,7 @@ export function canEditOthersReading(
   actor: Actor,
   author: MemberRole,
 ): boolean {
-  return can(actor, 'reading.write.any') && outranks(actor, author);
+  return hasPermission(actor, 'reading.write.any') && outranks(actor, author);
 }
 
 /** Rule 28. */
