@@ -1,73 +1,58 @@
-# Challenge Handlers Checklist
+# Challenge Implementation Checklist
 
-Implementation order for the challenge callables. Numbered rules are in `docs/firestore-challenge-model-plan.md`. Module shape is in CLAUDE.md, `## functions/ Architecture`.
+Storage-agnostic challenge work ships now. Firestore-specific work is parked until the Postgres decision. Numbered rules are in `docs/firestore-challenge-model-plan.md`; module shape is in CLAUDE.md, `## functions/ Architecture`.
 
-Done: `challenges/schema.ts`, `challenges/store.ts`, `challenges/present.ts`, tests for all three (`c0bb056`), plus the membership reads. The repository has no write path for member docs yet — both writers are transactional and land in step 3.
+## Why the split
 
-## 0. Conform the existing module
+- Rule 1 re-roots readings to `/challenges/{cid}/readings/{rid}` — a full backfill. Running it into Firestore and again into Postgres is the same migration twice, and the Firestore one has no constraints to catch what it breaks.
+- Unit of Work (CLAUDE.md) is triggered only by Firestore scoping transactions to a callback. The decision does not exist in Postgres.
+- Pure rules — permissions, lifecycle, join codes, request schemas, validation — survive either store unchanged.
 
-- [x] `store.ts` — entities carry `Date`; `ChallengeRepository` + private `firestoreChallenges` + `challengeRepository()`; `ChallengeFields` for writes; `setChallengeStatus` split out of `update`
-- [x] `challenges/present.ts` — `ChallengeDTO`, `MembershipDTO`, owns ISO encoding
-- [x] `store.ts` — `toMembership` reads `userId` from `doc.id`, pinned by a test where the key and the stored field disagree
-- [x] `schema.ts` — typos fixed; requests constrained; `maxTagsPerBook` → `tagCap` (rule 6)
-- [ ] `handler.ts` — `challengeHandlers(challengesRepo, usersRepo)` factory; delete `getChallengesCallback`
-- [ ] `handler.ts` — import `CallableRequest` from `firebase-functions/v2/https`, as every other handler does
-- [x] `store.ts` — membership reads: `getMembership`, `listActiveMemberships`, `membersCollection` / `memberDoc` re-added
-- [ ] `store.ts` — membership writes. Both writers are transactional and blocked: the member doc for `createChallenge` belongs in step 3's transaction, `joinChallenge` needs `/joinCodes`
-- [ ] `store.ts` — `getMany(challengeIds)` over `db.getAll`, for `listMyChallenges`
+## Done
 
-## 1. Error taxonomy
+Branch `feat/challenge-forbidden-error`. Earlier work on `main`: `challenges/schema.ts`, `store.ts`, `present.ts`, membership reads (`c0bb056`, `c907d07`).
 
-- [ ] `common/errors.ts` — add `'forbidden'` to `DomainErrorKind`
-- [ ] `callable.ts` — map `forbidden` → `permission-denied`. The switch has no `default`, so the build fails until this lands
-- [ ] Rule 18 then maps cleanly: `not-found` → `not-found`, `conflict` → `failed-precondition`, `forbidden` → `permission-denied`
+| Commit    | Scope                                                                                               |
+| --------- | --------------------------------------------------------------------------------------------------- |
+| `9685eef` | `forbidden` `DomainErrorKind`, mapped to `permission-denied` in `callable.ts`                       |
+| `c65cd0d` | deleted the unwired `challenges/handler.ts` stub                                                    |
+| `e3ca7ad` | `challenges/permissions.ts` — roles, ranks, permission table, creation cap, superadmin (5–7, 26–32) |
+| `b63ad84` | `statusAllows` + `canTransition`, same file (18, 20–23)                                             |
 
-## 2. Pure permission logic
+## Remaining — storage-agnostic
 
-- [ ] `challenges/permissions.ts` (new) — role → permission map, rank comparison (rules 5–7), superadmin claim (rules 29–32). No `firebase-admin` import; unit-tested like `domain/`
-- [ ] `canTransition(from, to)` beside the permission map. `setChallengeStatus` writes any value today, so rule 20's one-way lifecycle is unenforced
-- [ ] Guards that query Firestore (`requireMembership`, `requireReadAccess`) go in `challenges/store.ts`, **not** a `guards.ts`. `guards.ts` was deleted in `49bbdfc` to break a store↔guards cycle; the plan's "Server — storage and rules" bullet predates that
+- [ ] **5.** `challenges/joinCode.ts` — `generateJoinCode()` (8 chars, Crockford base32, 5 bits per char from `randomBytes`, so no modulo bias), `JOIN_CODE_TTL_MS`, `isExpired` (16–17)
+- [ ] **6.** `challenges/schema.ts` request schemas: `joinChallenge`, `leaveChallenge`, `removeMember`, `setMemberRole`, `setChallengeStatus`, `updateChallengeConfig`, `deleteChallenge`, `createJoinCode`, `revokeJoinCode`. `updateChallengeConfig` carries `{ name, tagCap }` only
+- [ ] **7a.** Delete `domain/index.ts`, `domain/tiles.ts`, and `canAssignTile` / `validateBookTiles` / `validateFreebie` — all have zero callers. Move `MAX_TILES_PER_BOOK` to `domain/constants.ts` beside `TILES`; delete `domain/validation.ts`
+- [ ] **7b.** `readings/validate.ts` — `validateTileIds(tiles, validIds)` and `validateReadingTiles(tiles, isFreebie, validIds, maxTiles)`. The five call sites pass the constants directly
 
-## 3. Buildable callables
+Not in 7b: injecting the catalog into the handler factories. It becomes a per-request lookup keyed by `challengeId`, so a factory parameter would be written twice.
 
-- [ ] `listMyChallenges` — collection-group on `members` (`userId ==`, `status == 'active'`), `cid` from `doc.ref.parent.parent.id`, challenges loaded with `db.getAll`
-- [ ] `createChallenge` — transaction below
-- [ ] `getChallenge(challengeId)` — gated by `requireMembership`
-- [ ] `leaveChallenge` — last-owner check (rule 8) inside the same transaction as the write
+## Parked — needs the storage decision
 
-### `createChallenge` transaction
-
-1. [ ] Read `/users/{uid}`; throw `conflict` when `challengesCreated >= 5`, unless the token has `superadmin` (rules 26–28, 32)
-2. [ ] Write the challenge doc: `status: 'draft'`, `createdBy: uid`
-3. [ ] Write `/members/{uid}`: `{ userId, role: 'owner', status: 'active' }`
-4. [ ] Increment `challengesCreated`
-5. [ ] `logEvent` / `reportWriteFailure` under `challenge.create`; return `{ challengeId }`
-
-## 4. Wire
-
-- [ ] `index.ts` — `challengeRepository()`, then `challengeHandlers(...)`, then each endpoint as `onCall({ invoker: 'public' }, callable(challenges.x, '…'))`. The `callable` wrapper is the only place `DomainError` becomes an `HttpsError`
-- [ ] `firestore.indexes.json` — collection-group index on `members` for `userId` + `status`. Collection-group queries get no automatic single-field index, so `listMyChallenges` fails in production without it
-
-## Blocked
-
-- [ ] `joinChallenge`, `createJoinCode`, `revokeJoinCode` — need `/joinCodes` storage and code generation (rules 15–19)
-- [ ] `removeMember`, `setMemberRole`, `setChallengeStatus`, `updateChallengeConfig`, `deleteChallenge` — need step 2
-- [ ] Tag CRUD — needs `TagDocSchema` and the tile-vs-tag naming decision
+- `store.ts` membership writes, `getMany`, `requireMembership` / `requireReadAccess`
+- The `createChallenge` transaction: cap check, challenge doc, owner member doc, counter increment
+- Every handler body that calls a repository, and the `index.ts` wiring
+- `firestore.indexes.json` — collection-group `members` (`userId` + `status`); `readings` (`userId` + `isFreebie`, `userId` + `readAt desc`); TTL on `joinCodes.expiresAt`
+- `getBoardConfig(challengeId)` — needs stored tags
+- Tag CRUD — also blocked on `TagDocSchema`
+- Unit of Work — a Firestore-only problem
 
 ## Open decisions
 
-- [ ] `listMyChallenges` return shape: `ChallengeDTO[]`, or each challenge plus the caller's `role`. The UI needs the role to pick which admin controls to show
-- [ ] `freebieRule` shape is undefined, so leave it off `createChallenge` rather than writing a placeholder into stored docs
-- [x] Whether `Membership` carries `challengeId` — no. `listActiveMemberships` returns `Map<challengeId, Membership>`, keyed from the document path, matching `readingsByUser`. A point read already knows the path it asked for
+- [ ] **tile vs tag.** Blocks 6 and 7. `tile` has ~50 call sites and user-facing presence; `tag` has one field (`tagCap`) with no stored documents. Recommendation: standardize on `tile` and rename `tagCap` → `tileCap` in commit 6, while it costs one line
+- [ ] **Leaving a `complete` challenge.** Rule 23 freezes membership but does not say whether self-service leave counts. `leave` is deliberately absent from `ChallengeAction` rather than guessed
+- [ ] **Freebie scope** — per-user, per-challenge or global. Determines the guard's query
+- [ ] **`freebieRule` shape** — undefined, so it stays off `createChallenge` and `updateChallengeConfig`
+- [ ] **`listMyChallenges` return shape** — `ChallengeDTO[]`, or each challenge plus the caller's role, which the UI needs to pick admin controls
 
 ## Validation
 
-- [ ] Handler tests use a fake repository whose methods reject unless overridden, so an unexpected call fails loudly
-- [ ] Unauthenticated and invalid-argument cases for each callable
-- [ ] Creation cap: sixth create rejected; delete then create still rejected; superadmin exempt
-- [ ] Non-member, `left` and `removed` callers all fail `requireMembership`
-- [ ] Deploy functions before hosting on every signature change
+- `pnpm run verify` after every commit.
+- New tests are `node:test` units beside each file. No emulator, no fake repositories — nothing here touches storage.
+- Tables get a cell-by-cell loop against a transcription of the doc, not spot checks. Done for permissions and lifecycle; join codes still need alphabet, length, distinctness and the expiry boundary.
 
-## Risk
+## Risks
 
-Reading writes will need `requireMembership` inside their transaction, which makes it a **second cross-aggregate transaction** — the recorded trigger for introducing Unit of Work (CLAUDE.md). Decide before step 3 rather than during it.
+- The last-owner invariant (rule 8) counts active owners, so it stays in the write transaction and cannot move into `permissions.ts`.
+- If the Postgres migration is declined, the parked list resumes as written. Nothing in commits 1–7 needs reverting either way.
