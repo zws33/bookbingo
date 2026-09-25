@@ -32,7 +32,7 @@ const member = { role: 'member' as const, superadmin: false };
 const outsider = { role: undefined, superadmin: false };
 const superadmin = { role: undefined, superadmin: true };
 
-/** The table in docs/firestore-challenge-model-plan.md, one row per permission. */
+/** Transcribed from the spec, not from `MINIMUM_ROLE`: deriving it would assert nothing. */
 const GRANTED: Record<Permission, MemberRole[]> = {
   'challenge.read': ['owner', 'admin', 'member'],
   'reading.write.own': ['owner', 'admin', 'member'],
@@ -240,7 +240,7 @@ describe('isSuperadmin', () => {
   });
 });
 
-/** The lifecycle table in docs/firestore-challenge-model-plan.md, rules 18 and 21-23. */
+/** Transcribed from the spec, not from `STATUS_ALLOWS`, for the same reason. */
 const ALLOWED: Record<ChallengeStatus, ChallengeAction[]> = {
   draft: ['join', 'configEdit', 'rename', 'memberManage', 'delete'],
   active: ['join', 'readingWrite', 'rename', 'memberManage', 'delete'],

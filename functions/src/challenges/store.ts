@@ -152,8 +152,8 @@ const firestoreChallenges: ChallengeRepository = {
     await challengeDoc(challengeId).delete();
   },
 
-  // Absent and non-`active` are the same answer to the caller (rule 14), so
-  // both are left for the guard to reject rather than thrown on here.
+  // Absent and non-`active` are the same answer to the caller, so both are
+  // left for the guard to reject rather than thrown on here.
   async getMembership(challengeId, userId) {
     const doc = await memberDoc(challengeId, userId).get();
     if (!doc.exists) return undefined;
