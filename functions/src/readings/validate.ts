@@ -1,7 +1,6 @@
 import type { ScoreBreakdown, ScoringInput } from '@bookbingo/lib-types';
 import { DomainError } from '../common/errors.js';
-import { TILES } from '../domain/constants.js';
-import { MAX_TILES_PER_BOOK } from '../domain/validation.js';
+import { MAX_TILES_PER_BOOK, TILES } from '../domain/constants.js';
 import { getScoreBreakdown } from '../domain/scoring.js';
 
 const TILE_IDS = new Set(TILES.map((tile) => tile.id));

@@ -20,8 +20,8 @@ test('TILES', async (t) => {
   });
 
   await t.test('ids are unique', () => {
-    // Scoring keys its tile counts by id and getTileById returns the first match,
-    // so a duplicate would silently merge two categories.
+    // Scoring keys its tile counts by id, so a duplicate would silently merge
+    // two categories.
     assert.equal(new Set(TILES.map((tile) => tile.id)).size, TILES.length);
   });
 

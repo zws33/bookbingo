@@ -2,8 +2,7 @@ import { test, describe } from 'node:test';
 import assert from 'node:assert';
 import type { CallableRequest } from 'firebase-functions/v2/https';
 import { getBoardConfigHandler } from './handler.js';
-import { TILES } from '../domain/constants.js';
-import { MAX_TILES_PER_BOOK } from '../domain/validation.js';
+import { MAX_TILES_PER_BOOK, TILES } from '../domain/constants.js';
 
 const AUTH = { uid: 'user-1', token: {}, rawToken: 'test' };
 

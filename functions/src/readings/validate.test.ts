@@ -1,8 +1,7 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert';
 import { scoreOf, validateReadingTiles, validateTileIds } from './validate.js';
-import { TILES } from '../domain/constants.js';
-import { MAX_TILES_PER_BOOK } from '../domain/validation.js';
+import { MAX_TILES_PER_BOOK, TILES } from '../domain/constants.js';
 
 const [t1, t2, t3, t4] = TILES.map((tile) => tile.id);
 

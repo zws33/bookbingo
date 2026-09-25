@@ -1,5 +1,7 @@
 import type { Tile } from '@bookbingo/lib-types';
 
+export const MAX_TILES_PER_BOOK = 3;
+
 export const TILES: Tile[] = [
   { id: 't01', name: 'unfinished reread' },
   { id: 't02', name: 'part of a series' },
