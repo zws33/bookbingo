@@ -2,10 +2,7 @@ import { test, describe } from 'node:test';
 import assert from 'node:assert';
 import {
   JOIN_CODE_LENGTH,
-  JOIN_CODE_TTL_MS,
-  expiresAtFrom,
   generateJoinCode,
-  isExpired,
   normalizeJoinCode,
 } from './joinCode.js';
 
@@ -74,39 +71,5 @@ describe('normalizeJoinCode', () => {
     for (const code of SAMPLE) {
       assert.equal(normalizeJoinCode(code), code);
     }
-  });
-});
-
-describe('expiresAtFrom', () => {
-  test('is 72 hours after creation', () => {
-    const createdAt = new Date('2026-01-01T00:00:00Z');
-    assert.equal(
-      expiresAtFrom(createdAt).toISOString(),
-      '2026-01-04T00:00:00.000Z',
-    );
-  });
-
-  test('matches the exported TTL', () => {
-    const createdAt = new Date('2026-06-15T09:30:00Z');
-    assert.equal(
-      expiresAtFrom(createdAt).getTime() - createdAt.getTime(),
-      JOIN_CODE_TTL_MS,
-    );
-  });
-});
-
-describe('isExpired', () => {
-  const expiresAt = new Date('2026-01-04T00:00:00Z');
-
-  test('a code before its expiry is usable', () => {
-    assert.equal(isExpired(expiresAt, new Date('2026-01-03T23:59:59Z')), false);
-  });
-
-  test('the expiry instant itself is expired', () => {
-    assert.ok(isExpired(expiresAt, new Date('2026-01-04T00:00:00Z')));
-  });
-
-  test('after expiry is expired', () => {
-    assert.ok(isExpired(expiresAt, new Date('2026-01-04T00:00:01Z')));
   });
 });

@@ -17,11 +17,11 @@ Post-#89 premise: `functions/` is the only reader and writer of Firestore. `fire
 ## Target layout
 
 ```text
-/challenges/{cid}                     { name, status, createdBy, tagCap, freebieRule, createdAt }
+/challenges/{cid}                     { name, status, createdBy, tagCap, freebieRule, joinCode, createdAt }
 /challenges/{cid}/tags/{tagId}        { label }
 /challenges/{cid}/members/{userId}    { userId, role, status, joinedAt }
 /challenges/{cid}/readings/{rid}      { userId, bookId, tags[], isFreebie, readAt, createdAt }
-/joinCodes/{code}                     { cid, createdBy, createdAt, expiresAt }
+/joinCodes/{code}                     { cid, createdBy, createdAt }
 /books/{bookId}                       unchanged (global, deterministic id)
 /users/{userId}                       profile + challengesCreated
 /users/{userId}/tbr/{tbrId}           unchanged (TBR stays user-scoped)
@@ -72,10 +72,12 @@ Post-#89 premise: `functions/` is the only reader and writer of Firestore. `fire
 ### Join codes
 
 15. Joining is by code only. There is no user-facing challenge identifier; `cid` stays an opaque Firestore id.
-16. A code is a `/joinCodes/{code}` doc: 8 characters, Crockford base32 from `crypto.randomBytes` (~40 bits).
-17. Codes are multi-use and expire 72h after creation. Revoke = delete the doc. A Firestore TTL policy on `expiresAt` cleans up expired docs; handlers still check `expiresAt` because TTL deletion is delayed.
-18. `joinChallenge(code)`: missing or expired → `not-found`; challenge `complete` → `failed-precondition`; member `removed` → `permission-denied`; `active` → no-op; `left` or absent → `active` `member`.
+16. A code is a `/joinCodes/{code}` doc: 6 characters, Crockford base32 from `crypto.randomBytes` (~30 bits). The challenge doc stores its current `joinCode`, so rotation needs no query.
+17. Codes are multi-use and never expire. A challenge has exactly one live code, written with the challenge. `rotateJoinCode` replaces it in one transaction — delete the old doc, write the new one. There is no revoke without replacement: it would leave a challenge unjoinable.
+18. `joinChallenge(code)`: missing → `not-found`, which also covers a rotated-away code; challenge `complete` → `failed-precondition`; member `removed` → `permission-denied`; `active` → no-op; `left` or absent → `active` `member`.
 19. Joining always grants `member`.
+
+Expiry was considered and dropped: a window short enough to bound a leak also kills codes for anyone opening a group chat a day late, while an attacker brute-forcing works in seconds. Rotation bounds a leak on demand, and membership is visible, so a leak announces itself.
 
 ### Challenge lifecycle
 
@@ -124,7 +126,7 @@ Post-#89 premise: `functions/` is the only reader and writer of Firestore. `fire
 ### Server — contracts
 
 - `functions/src/config/handler.ts` — `getBoardConfig` takes a `challengeId` and serves that challenge's tags + `tagCap` from stored docs, not `TILES` + `MAX_TILES_PER_BOOK`. This is the client's only source of vocabulary and cap; nothing else can move until it does.
-- `functions/src/index.ts` — new callables: `listMyChallenges`, `createChallenge`, `joinChallenge`, `leaveChallenge`, `removeMember`, `setMemberRole`, `setChallengeStatus`, `updateChallengeConfig`, `deleteChallenge`, `createJoinCode`, `revokeJoinCode`, tag CRUD. `challengeId` added to `listReadings`, `getLeaderboard`, `getLibrary`, `createReading`, `updateReading`, `deleteReading`, `promoteTBREntry`.
+- `functions/src/index.ts` — new callables: `listMyChallenges`, `createChallenge`, `joinChallenge`, `leaveChallenge`, `removeMember`, `setMemberRole`, `setChallengeStatus`, `updateChallengeConfig`, `deleteChallenge`, `rotateJoinCode`, tag CRUD. `challengeId` added to `listReadings`, `getLeaderboard`, `getLibrary`, `createReading`, `updateReading`, `deleteReading`, `promoteTBREntry`.
 - `functions/src/readings/schema.ts` — `ReadingDocSchema` gains `userId` and `tags`, both **optional** until Phase 5 completes. A required field here silently drops every legacy doc through `mapValid` — a blank leaderboard with no error.
 - `functions/src/challenges/schema.ts` — new `ChallengeDocSchema`, `MembershipDocSchema`, `TagDocSchema`. Doc schemas live beside the store that parses them; only cross-domain primitives go in `functions/src/common/`.
 
@@ -139,7 +141,7 @@ Post-#89 premise: `functions/` is the only reader and writer of Firestore. `fire
 - `functions/src/library/handler.ts`, `readings/handler.ts` (leaderboard) — both consume `allReadingsQuery()` + `readingsByUser`; both become per-challenge, gated by `requireReadAccess`, and drop readings whose `userId` is not an `active` member (rule 11).
 - `functions/src/tbr/handler.ts` — `promoteTBREntry` needs a `challengeId` it does not have today; TBR stays user-scoped, so the challenge is chosen at promote time.
 - `firestore.rules` — **no change.** Deny-all already covers a new collection by construction.
-- `firestore.indexes.json` — composite index on `readings` for `userId` + `isFreebie` (the freebie guard) and `userId` + `readAt desc` (per-user listing within a challenge). Collection-scoped, not collection-group. Plus a collection-group index on `members` for `userId` + `status` (`listMyChallenges`), and a TTL policy on `joinCodes.expiresAt`.
+- `firestore.indexes.json` — composite index on `readings` for `userId` + `isFreebie` (the freebie guard) and `userId` + `readAt desc` (per-user listing within a challenge). Collection-scoped, not collection-group. Plus a collection-group index on `members` for `userId` + `status` (`listMyChallenges`). No TTL policy: codes do not expire (rule 17).
 
 ### Client
 
@@ -171,7 +173,7 @@ Post-#89 premise: `functions/` is the only reader and writer of Firestore. `fire
 - `functions/src/readings/handler.test.ts` — a non-member's read and write are both rejected; so are a `left` or `removed` member's.
 - Permission matrix: one test per table row × role, plus the rank cases — admin cannot edit an owner's reading, owner cannot demote an owner, admin can promote to admin but not owner.
 - Last-owner invariant: sole owner's leave and self-demotion are rejected; with two owners, both succeed.
-- Join codes: expired, revoked, `removed` user, and `complete` challenge are rejected; `left` user rejoins as `member` with readings restored to the leaderboard.
+- Join codes: rotated-away code, `removed` user, and `complete` challenge are rejected; rotation leaves exactly one live code; `left` user rejoins as `member` with readings restored to the leaderboard.
 - Lifecycle: reading write in `draft` rejected; `tagCap`/tag edit in `active` rejected; any write in `complete` rejected; status cannot move backward.
 - Creation cap: sixth create rejected; delete then create still rejected; superadmin exempt.
 - `app/web/src/data/readings.int.test.ts`, `tbr.int.test.ts` — the existing emulator harness, extended: create challenge → join → log reading → leaderboard reflects it.

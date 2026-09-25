@@ -21,8 +21,8 @@ Branch `feat/challenge-forbidden-error`. Earlier work on `main`: `challenges/sch
 
 ## Remaining — storage-agnostic
 
-- [ ] **5.** `challenges/joinCode.ts` — `generateJoinCode()` (8 chars, Crockford base32, 5 bits per char from `randomBytes`, so no modulo bias), `JOIN_CODE_TTL_MS`, `isExpired` (16–17)
-- [ ] **6.** `challenges/schema.ts` request schemas: `joinChallenge`, `leaveChallenge`, `removeMember`, `setMemberRole`, `setChallengeStatus`, `updateChallengeConfig`, `deleteChallenge`, `createJoinCode`, `revokeJoinCode`. `updateChallengeConfig` carries `{ name, tagCap }` only
+- [x] **5.** `challenges/joinCode.ts` — `generateJoinCode()` (6 chars, Crockford base32, one byte masked to 5 bits) and `normalizeJoinCode()` (16–17)
+- [ ] **6.** `challenges/schema.ts` request schemas: `joinChallenge`, `leaveChallenge`, `removeMember`, `setMemberRole`, `setChallengeStatus`, `updateChallengeConfig`, `deleteChallenge`, `rotateJoinCode`. `updateChallengeConfig` carries `{ name, tagCap }` only
 - [ ] **7a.** Delete `domain/index.ts`, `domain/tiles.ts`, and `canAssignTile` / `validateBookTiles` / `validateFreebie` — all have zero callers. Move `MAX_TILES_PER_BOOK` to `domain/constants.ts` beside `TILES`; delete `domain/validation.ts`
 - [ ] **7b.** `readings/validate.ts` — `validateTileIds(tiles, validIds)` and `validateReadingTiles(tiles, isFreebie, validIds, maxTiles)`. The five call sites pass the constants directly
 
@@ -33,7 +33,7 @@ Not in 7b: injecting the catalog into the handler factories. It becomes a per-re
 - `store.ts` membership writes, `getMany`, `requireMembership` / `requireReadAccess`
 - The `createChallenge` transaction: cap check, challenge doc, owner member doc, counter increment
 - Every handler body that calls a repository, and the `index.ts` wiring
-- `firestore.indexes.json` — collection-group `members` (`userId` + `status`); `readings` (`userId` + `isFreebie`, `userId` + `readAt desc`); TTL on `joinCodes.expiresAt`
+- `firestore.indexes.json` — collection-group `members` (`userId` + `status`); `readings` (`userId` + `isFreebie`, `userId` + `readAt desc`)
 - `getBoardConfig(challengeId)` — needs stored tags
 - Tag CRUD — also blocked on `TagDocSchema`
 - Unit of Work — a Firestore-only problem
