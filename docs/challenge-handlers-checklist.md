@@ -24,7 +24,7 @@ Branch `feat/challenge-forbidden-error`. Earlier work on `main`: `challenges/sch
 - [x] **5.** `challenges/joinCode.ts` — `generateJoinCode()` (6 chars, Crockford base32, one byte masked to 5 bits) and `normalizeJoinCode()` (16–17)
 - [x] **6.** `challenges/schema.ts` request schemas for `joinChallenge`, `leaveChallenge`, `removeMember`, `setMemberRole`, `setChallengeStatus`, `updateChallengeConfig`, `deleteChallenge`, `rotateJoinCode`. `updateChallengeConfig` carries `{ name?, tagCap? }`, one required; `joinChallenge` normalizes the code in the schema
 - [x] **7a.** Deleted `domain/index.ts`, `domain/tiles.ts` and `domain/validation.ts` — `getTileById`, `canAssignTile`, `validateBookTiles` and `validateFreebie` had no non-test callers. `MAX_TILES_PER_BOOK` moved to `domain/constants.ts`. The deploy constraint that `domain/` cannot move to `lib/` is enforced by `deploy-manifest.test.ts`, so deleting the barrel's docblock lost nothing
-- [ ] **7b.** `readings/validate.ts` — `validateTileIds(tiles, validIds)` and `validateReadingTiles(tiles, isFreebie, validIds, maxTiles)`. The five call sites pass the constants directly
+- [x] **7b.** `readings/validate.ts` — `validateTileIds(tiles, validIds)` and `validateReadingTiles(tiles, isFreebie, validIds, maxTiles)`. The five call sites pass `TILE_IDS` and `MAX_TILES_PER_BOOK` from `domain/constants.ts`; swapping in per-challenge values touches only those lines
 
 Not in 7b: injecting the catalog into the handler factories. It becomes a per-request lookup keyed by `challengeId`, so a factory parameter would be written twice.
 

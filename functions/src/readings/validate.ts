@@ -1,9 +1,6 @@
 import type { ScoreBreakdown, ScoringInput } from '@bookbingo/lib-types';
 import { DomainError } from '../common/errors.js';
-import { MAX_TILES_PER_BOOK, TILES } from '../domain/constants.js';
 import { getScoreBreakdown } from '../domain/scoring.js';
-
-const TILE_IDS = new Set(TILES.map((tile) => tile.id));
 
 /**
  * Tiles must be real and distinct. Applies to any tile list, planned or read.
@@ -11,9 +8,15 @@ const TILE_IDS = new Set(TILES.map((tile) => tile.id));
  * The client only offers catalog tiles, but that is a convenience for the
  * person typing. Once the security rules deny direct writes, this is the only
  * thing that decides what a tile list may contain.
+ *
+ * `validIds` is a parameter rather than the global catalog because the
+ * vocabulary becomes per-challenge.
  */
-export function validateTileIds(tiles: string[]): void {
-  const unknown = tiles.filter((tile) => !TILE_IDS.has(tile));
+export function validateTileIds(
+  tiles: string[],
+  validIds: ReadonlySet<string>,
+): void {
+  const unknown = tiles.filter((tile) => !validIds.has(tile));
   if (unknown.length > 0) {
     throw new DomainError(
       'invalid-input',
@@ -30,8 +33,8 @@ export function validateTileIds(tiles: string[]): void {
 }
 
 /**
- * The rules for a reading: real, distinct tiles, and at most
- * `MAX_TILES_PER_BOOK` of them unless the reading is a freebie.
+ * The rules for a reading: real, distinct tiles, and at most `maxTiles` of them
+ * unless the reading is a freebie.
  *
  * A planned TBR entry uses `validateTileIds` instead — the cap applies when
  * the plan becomes a reading, not while it is still a plan.
@@ -39,13 +42,15 @@ export function validateTileIds(tiles: string[]): void {
 export function validateReadingTiles(
   tiles: string[],
   isFreebie: boolean,
+  validIds: ReadonlySet<string>,
+  maxTiles: number,
 ): void {
-  validateTileIds(tiles);
+  validateTileIds(tiles, validIds);
 
-  if (!isFreebie && tiles.length > MAX_TILES_PER_BOOK) {
+  if (!isFreebie && tiles.length > maxTiles) {
     throw new DomainError(
       'invalid-input',
-      `A reading can use at most ${MAX_TILES_PER_BOOK} tiles unless it is a freebie.`,
+      `A reading can use at most ${maxTiles} tiles unless it is a freebie.`,
     );
   }
 }

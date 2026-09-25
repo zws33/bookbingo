@@ -13,6 +13,7 @@ import { toReadingDTO, type ReadingDTO } from './present.js';
 import { attachBooks } from '../books/join.js';
 import { MissingBookError, type BookRepository } from '../books/store.js';
 import { scoreOf, validateReadingTiles, type ScoreDTO } from './validate.js';
+import { MAX_TILES_PER_BOOK, TILE_IDS } from '../domain/constants.js';
 
 export interface LeaderboardRow {
   userId: string;
@@ -95,7 +96,7 @@ export function readingHandlers(
         ReadingFieldsSchema,
         request.data,
       );
-      validateReadingTiles(tiles, isFreebie);
+      validateReadingTiles(tiles, isFreebie, TILE_IDS, MAX_TILES_PER_BOOK);
 
       let readingId: string;
       try {
@@ -129,7 +130,7 @@ export function readingHandlers(
         UpdateReadingRequestSchema,
         request.data,
       );
-      validateReadingTiles(tiles, isFreebie);
+      validateReadingTiles(tiles, isFreebie, TILE_IDS, MAX_TILES_PER_BOOK);
 
       try {
         await readingsRepo.update(uid, readingId, { bookId, tiles, isFreebie });

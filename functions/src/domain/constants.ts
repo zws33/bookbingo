@@ -53,3 +53,7 @@ export const TILES: Tile[] = [
   { id: 'm05', name: 'from 2026 awards list' },
   { id: 'm06', name: 'inspiration of 2 favorite authors' },
 ];
+
+export const TILE_IDS: ReadonlySet<string> = new Set(
+  TILES.map((tile) => tile.id),
+);

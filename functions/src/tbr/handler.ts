@@ -10,6 +10,7 @@ import {
 import type { PromotionOutcome, TBREntryRepository } from './store.js';
 import { toTBREntryDTO, type TBREntryDTO } from './present.js';
 import { validateReadingTiles, validateTileIds } from '../readings/validate.js';
+import { MAX_TILES_PER_BOOK, TILE_IDS } from '../domain/constants.js';
 import { attachBooks } from '../books/join.js';
 import { MissingBookError, type BookRepository } from '../books/store.js';
 
@@ -54,7 +55,7 @@ export function tbrHandlers(
       );
       // A plan is not a reading, so the cap does not apply — but the tiles still
       // have to be real ones, or promoting the entry would fail later.
-      validateTileIds(plannedTiles);
+      validateTileIds(plannedTiles, TILE_IDS);
 
       let tbrId: string;
       try {
@@ -73,7 +74,7 @@ export function tbrHandlers(
         UpdateTBRRequestSchema,
         request.data,
       );
-      validateTileIds(plannedTiles);
+      validateTileIds(plannedTiles, TILE_IDS);
 
       try {
         await tbrRepo.update(uid, tbrId, { plannedTiles, notes });
@@ -105,7 +106,7 @@ export function tbrHandlers(
         PromoteTBRRequestSchema,
         request.data,
       );
-      validateReadingTiles(tiles, isFreebie);
+      validateReadingTiles(tiles, isFreebie, TILE_IDS, MAX_TILES_PER_BOOK);
 
       let outcome: PromotionOutcome;
       try {
