@@ -3,41 +3,25 @@ import { randomBytes } from 'node:crypto';
 /** Crockford base32: no I, L, O or U, so a code survives being read aloud. */
 const ALPHABET = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
 
-export const JOIN_CODE_LENGTH = 8;
+export const JOIN_CODE_LENGTH = 6;
 
 /** Rule 17. */
 export const JOIN_CODE_TTL_MS = 72 * 60 * 60 * 1000;
 
-const BYTE_COUNT = (JOIN_CODE_LENGTH * 5) / 8;
-
 /**
- * Rule 16: 8 characters, ~40 bits.
+ * Rule 16, at 30 bits.
  *
- * The alphabet is 32 characters, so each one consumes exactly 5 bits of the 40
- * drawn and no value is reachable by more paths than another — a modulo over a
- * non-power-of-two would skew the first few characters instead.
+ * One byte per character, masked to the low 5 bits. 256 is a whole multiple of
+ * 32, so every character has the same number of byte values behind it and the
+ * mask is already uniform — an alphabet that was not a power of two would need
+ * rejection sampling here instead.
  *
  * Uniqueness is the store's job: codes are written with `create`, which fails
  * on an id that already exists.
  */
 export function generateJoinCode(): string {
-  const bytes = randomBytes(BYTE_COUNT);
-
-  let code = '';
-  let buffer = 0;
-  let bits = 0;
-
-  for (const byte of bytes) {
-    buffer = (buffer << 8) | byte;
-    bits += 8;
-
-    while (bits >= 5) {
-      bits -= 5;
-      code += ALPHABET[(buffer >>> bits) & 31];
-    }
-  }
-
-  return code;
+  const bytes = randomBytes(JOIN_CODE_LENGTH);
+  return Array.from(bytes, (byte) => ALPHABET.charAt(byte & 31)).join('');
 }
 
 /**
