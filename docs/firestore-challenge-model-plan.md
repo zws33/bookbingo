@@ -12,7 +12,7 @@ Post-#89 premise: `functions/` is the only reader and writer of Firestore. `fire
 4. **Tags become stored, challenge-scoped documents.** `/challenges/{cid}/tags/{tagId}` with `{ label }`. The global `TILES` constant becomes seed data for one challenge's vocabulary.
 5. **Membership is a doc keyed by userId.** `/challenges/{cid}/members/{userId}` gives an O(1) point read in `requireMembership`. It also stores `userId` as a field: `listMyChallenges` is a collection-group query, which cannot filter on the doc id.
 6. **Tag cap + freebie rule are per-challenge config** on the `/challenges/{cid}` doc, not `functions/src/domain/` constants.
-7. **Vocabulary renames to "tag" at the storage layer only.** Wire and UI keep `tile` until Phase 6. See Open question 1 — this is provisional.
+7. **"Tag" is the domain and storage noun; "tile" is client presentation.** Scoring and ranking read tag ids as opaque strings and never consult the catalog, so nothing persisted depends on how progress is displayed — a future iteration could drop the board and render a list. Wire and UI keep `tile`, with shims at the boundary; a later client refactor narrows `tile` to the bingo-board view.
 
 ## Target layout
 
@@ -187,7 +187,7 @@ Expiry was considered and dropped: a window short enough to bound a leak also ki
 - **Migration is irreversible** (new document paths). Stage it; keep `/users/{uid}/readings` until parity is verified — subject to the hazard above.
 - **`freebieRule` shape is undefined in the sketch.** Blocks Phase 1's `ChallengeConfig`.
 - **Freebie scope is undecided** — per-user (today), per-challenge, or global. Determines the guard's query and whether the Phase 4 parity check is well-defined. Blocks Phase 3, ahead of `freebieRule`'s shape.
-- **tile vs. tag, name vs. label.** Three names for one concept across `getBoardConfig`'s `Tile { id, name }`, the plan's `Tag { label }`, and every component (`TileSelector`, `TileBadge`, `useTileCatalog`). Pick one before Phase 1 or the rename leaks everywhere.
+- **`name` vs. `label`.** Settled for tile vs. tag by rule 7, but `getBoardConfig` returns `Tile { id, name }` against the plan's `Tag { label }`. Pick one before Phase 1.
 - **Write cost per reading.** Each write already reads the book doc in its transaction; membership + config add two more. Three point reads per write — acceptable, but it is the number to watch.
 - **Leaderboard reads the member list.** Excluding non-`active` members adds one `members` collection read per leaderboard/library call. Small at current scale; the number to watch alongside write cost.
 - **Removal is not revocation of past data.** A `removed` user's readings stay stored indefinitely. Deleting them is a separate, unscoped decision.

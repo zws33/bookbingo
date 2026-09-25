@@ -5,6 +5,11 @@ const ALPHABET = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
 
 export const JOIN_CODE_LENGTH = 6;
 
+/** Built from the alphabet so a change there cannot leave the check behind. */
+export const JOIN_CODE_PATTERN = new RegExp(
+  `^[${ALPHABET}]{${JOIN_CODE_LENGTH}}$`,
+);
+
 export function generateJoinCode(): string {
   const bytes = randomBytes(JOIN_CODE_LENGTH);
   return Array.from(bytes, (byte) => ALPHABET.charAt(byte & 31)).join('');

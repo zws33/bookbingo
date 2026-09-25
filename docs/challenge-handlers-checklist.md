@@ -22,7 +22,7 @@ Branch `feat/challenge-forbidden-error`. Earlier work on `main`: `challenges/sch
 ## Remaining — storage-agnostic
 
 - [x] **5.** `challenges/joinCode.ts` — `generateJoinCode()` (6 chars, Crockford base32, one byte masked to 5 bits) and `normalizeJoinCode()` (16–17)
-- [ ] **6.** `challenges/schema.ts` request schemas: `joinChallenge`, `leaveChallenge`, `removeMember`, `setMemberRole`, `setChallengeStatus`, `updateChallengeConfig`, `deleteChallenge`, `rotateJoinCode`. `updateChallengeConfig` carries `{ name, tagCap }` only
+- [x] **6.** `challenges/schema.ts` request schemas for `joinChallenge`, `leaveChallenge`, `removeMember`, `setMemberRole`, `setChallengeStatus`, `updateChallengeConfig`, `deleteChallenge`, `rotateJoinCode`. `updateChallengeConfig` carries `{ name?, tagCap? }`, one required; `joinChallenge` normalizes the code in the schema
 - [ ] **7a.** Delete `domain/index.ts`, `domain/tiles.ts`, and `canAssignTile` / `validateBookTiles` / `validateFreebie` — all have zero callers. Move `MAX_TILES_PER_BOOK` to `domain/constants.ts` beside `TILES`; delete `domain/validation.ts`
 - [ ] **7b.** `readings/validate.ts` — `validateTileIds(tiles, validIds)` and `validateReadingTiles(tiles, isFreebie, validIds, maxTiles)`. The five call sites pass the constants directly
 
@@ -40,7 +40,7 @@ Not in 7b: injecting the catalog into the handler factories. It becomes a per-re
 
 ## Open decisions
 
-- [ ] **tile vs tag.** Blocks 6 and 7. `tile` has ~50 call sites and user-facing presence; `tag` has one field (`tagCap`) with no stored documents. Recommendation: standardize on `tile` and rename `tagCap` → `tileCap` in commit 6, while it costs one line
+- [x] **tile vs tag — `tag` wins server-side.** Scoring reads tag ids as opaque strings, so nothing persisted depends on the display; `tile` couples a book-attribute relation to one visual form the product may drop. The client keeps `tile` with shims at the boundary, and a later refactor narrows it to the board view. No rename in `challenges/`
 - [ ] **Leaving a `complete` challenge.** Rule 23 freezes membership but does not say whether self-service leave counts. `leave` is deliberately absent from `ChallengeAction` rather than guessed
 - [ ] **Freebie scope** — per-user, per-challenge or global. Determines the guard's query
 - [ ] **`freebieRule` shape** — undefined, so it stays off `createChallenge` and `updateChallengeConfig`
