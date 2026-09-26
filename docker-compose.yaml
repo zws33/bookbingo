@@ -1,0 +1,12 @@
+services:
+  postgres:
+    image: postgres:18-alpine
+    environment: { POSTGRES_PASSWORD: postgres, POSTGRES_DB: bookbingo_test }
+    ports: ['5433:5432']
+    # On 18+ the data dir is version specific (/var/lib/postgresql/18/docker);
+    # a mount at the old /var/lib/postgresql/data makes the image refuse to boot.
+    tmpfs: ['/var/lib/postgresql']
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres']
+      interval: 1s
+      retries: 30

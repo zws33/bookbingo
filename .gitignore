@@ -164,3 +164,6 @@ pre-migration-backup/
 **/.claude/settings.local.json
 firebase-export-*/
 **/.claude/worktrees/*
+
+# nvim
+.lazy.lua
