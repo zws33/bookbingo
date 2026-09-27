@@ -1,5 +1,3 @@
--- Player-defined vocabulary, scoped to one challenge. The global `TILES`
--- constant becomes seed rows for a single challenge.
 create table tags (
   id uuid primary key default gen_random_uuid(),
   challenge_id uuid not null references challenges (id) on delete cascade,

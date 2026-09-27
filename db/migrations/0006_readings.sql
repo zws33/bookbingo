@@ -22,9 +22,7 @@ create index readings_challenge_user_read_at_idx on readings (challenge_id, user
 
 create index readings_book_idx on readings (book_id);
 
--- A freebie is the tag cap's one exemption, and a member gets one per
--- challenge. It read as one per user while readings were user-rooted, because
--- there was a single implicit challenge.
+-- A freebie is the tag cap's one exemption. A member gets one per challenge.
 create unique index readings_one_freebie_idx on readings (challenge_id, user_id) where is_freebie;
 
 -- A tag on one specific reading. The aggregate book-to-tag relationship is
@@ -38,13 +36,8 @@ create table reading_tags (
   primary key (reading_id, tag_id),
   foreign key (reading_id, challenge_id) references readings (id, challenge_id) on delete cascade,
   -- Restrict, not cascade: deleting a tag must not silently drop reading
-  -- history and change scores. `tag.delete` is superadmin-only in
-  -- permissions.ts pending a tag-deletion policy; this is the same rule
-  -- enforced at the database.
+  -- history and change scores. `tag.delete` is superadmin-only
   foreign key (tag_id, challenge_id) references tags (id, challenge_id) on delete restrict
 );
 
 create index reading_tags_tag_idx on reading_tags (tag_id);
-
--- The per-reading tag cap counts rows against `challenges.tag_cap` and is
--- enforced in the write transaction, not here.

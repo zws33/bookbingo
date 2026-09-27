@@ -11,11 +11,6 @@ create table challenges (
   updated_at timestamptz
 );
 
--- The alphabet and length duplicate `JOIN_CODE_PATTERN` in `joinCode.ts` and
--- must move together. The alphabet omits I, L, O and U for ease of being read
--- aloud; `normalizeJoinCode` folds O to 0 and I/L to 1 before matching, but U
--- is simply absent from the alphabet, so a code containing it is rejected,
--- not corrected.
 create table join_codes (
   code text primary key check (code ~ '^[0-9ABCDEFGHJKMNPQRSTVWXYZ]{8}$'),
   -- Unique: a challenge has exactly one live code. Rotation deletes the old
