@@ -42,7 +42,7 @@ Not in 7b: injecting the catalog into the handler factories. It becomes a per-re
 
 - [x] **tile vs tag — `tag` wins server-side.** Scoring reads tag ids as opaque strings, so nothing persisted depends on the display; `tile` couples a book-attribute relation to one visual form the product may drop. The client keeps `tile` with shims at the boundary, and a later refactor narrows it to the board view. No rename in `challenges/`
 - [ ] **Leaving a `complete` challenge.** Rule 23 freezes membership but does not say whether self-service leave counts. `leave` is deliberately absent from `ChallengeAction` rather than guessed
-- [ ] **Freebie scope** — per-user, per-challenge or global. Determines the guard's query
+- [x] **Freebie scope — one per user per challenge.** Fixed by the domain, not chosen between options. `requireNoOtherFreebie` filters on `challengeId` + `userId` + `isFreebie`; the old per-user query read the same only because there was one implicit challenge
 - [ ] **`freebieRule` shape** — undefined, so it stays off `createChallenge` and `updateChallengeConfig`
 - [ ] **`listMyChallenges` return shape** — `ChallengeDTO[]`, or each challenge plus the caller's role, which the UI needs to pick admin controls
 

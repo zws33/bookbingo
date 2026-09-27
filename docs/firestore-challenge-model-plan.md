@@ -11,7 +11,7 @@ Post-#89 premise: `functions/` is the only reader and writer of Firestore. `fire
 3. **The `ReadingTag` join is an embedded array.** Per-reading tags are tiny and capped, so `tags: string[]` on the Reading doc replaces a join collection. Promote to a subcollection only if per-association metadata or challenge-wide tag queries are needed (both deferred).
 4. **Tags become stored, challenge-scoped documents.** `/challenges/{cid}/tags/{tagId}` with `{ label }`. The global `TILES` constant becomes seed data for one challenge's vocabulary.
 5. **Membership is a doc keyed by userId.** `/challenges/{cid}/members/{userId}` gives an O(1) point read in `requireMembership`. It also stores `userId` as a field: `listMyChallenges` is a collection-group query, which cannot filter on the doc id.
-6. **Tag cap + freebie rule are per-challenge config** on the `/challenges/{cid}` doc, not `functions/src/domain/` constants.
+6. **Tag cap + freebie rule are per-challenge config** on the `/challenges/{cid}` doc, not `functions/src/domain/` constants. A freebie is the cap's exemption and a member gets one per challenge; the pre-challenge rule of one per user was the same statement under a single implicit challenge.
 7. **"Tag" is the domain and storage noun; "tile" is client presentation.** Scoring and ranking read tag ids as opaque strings and never consult the catalog, so nothing persisted depends on how progress is displayed — a future iteration could drop the board and render a list. Wire and UI keep `tile`, with shims at the boundary; a later client refactor narrows `tile` to the bingo-board view.
 
 ## Target layout
@@ -45,13 +45,17 @@ Post-#89 premise: `functions/` is the only reader and writer of Firestore. `fire
 | Generate / revoke join codes                  | ✓     | ✓     |        |
 | Remove members                                | ✓     | ✓     |        |
 | Edit / delete other players' readings         | ✓     | ✓     |        |
-| CRUD tags                                     | ✓     | ✓     |        |
+| Create / update tags                          | ✓     | ✓     |        |
+| Delete tags †                                 |       |       |        |
 | Edit config (`name`, `tagCap`, `freebieRule`) | ✓     | ✓     |        |
 | Change roles                                  | ✓     | ✓\*   |        |
 | Change status (start, complete)               | ✓     |       |        |
 | Delete challenge                              | ✓     |       |        |
 
 \* Admins can only promote a member to admin (rule 6).
+† Superadmin only, no role grants it. Deleting a tag mid-challenge drops
+`reading_tags` rows and changes scores; superadmin-only until a
+tag-deletion policy exists.
 
 ### Rank rules
 
@@ -156,7 +160,7 @@ Expiry was considered and dropped: a window short enough to bound a leak also ki
 ### Types and scripts
 
 - `lib/types/src/index.ts` — add `Challenge`, `ChallengeConfig`, `Membership`, `Tag`. It has no `Reading` to amend; that type lives in three places now (`functions/src/readings/store.ts`, `functions/src/readings/schema.ts`, `app/web/src/types/schemas.ts`), so Parallel Change has three sites.
-- `scripts/` — new `migrate-readings-to-challenge.ts` modeled on `migrate-book-identity.ts`; a read-back verify script; update `seed-emulator.ts`, `seed-staging.ts`, **and `mirror-prod-to-staging.ts`** (the tool that stages the rehearsal). New `set-superadmin.ts` sets the custom claim per project.
+- `scripts/` — new `migrate-readings-to-challenge.ts` modeled on `migrate-book-identity.ts`; a read-back verify script; update `seed-emulator.ts` **and `mirror-prod-to-staging.ts`** (the tool that stages the rehearsal, and now the only way to populate staging). New `set-superadmin.ts` sets the custom claim per project.
 
 ## Ordered phases
 
@@ -185,8 +189,7 @@ Expiry was considered and dropped: a window short enough to bound a leak also ki
 
 - **Double-counting during Parallel Change.** `collectionGroup('readings')` matches by collection id, so while both trees exist the leaderboard and library count every reading twice. Cut `allReadingsQuery` over to the per-challenge query _before_ the copy runs, or name the new subcollection differently.
 - **Migration is irreversible** (new document paths). Stage it; keep `/users/{uid}/readings` until parity is verified — subject to the hazard above.
-- **`freebieRule` shape is undefined in the sketch.** Blocks Phase 1's `ChallengeConfig`.
-- **Freebie scope is undecided** — per-user (today), per-challenge, or global. Determines the guard's query and whether the Phase 4 parity check is well-defined. Blocks Phase 3, ahead of `freebieRule`'s shape.
+- **`freebieRule` shape is undefined in the sketch.** Blocks Phase 1's `ChallengeConfig`. Scope is settled (Decision 6), so the open part is only what the field holds — a count of exemptions is the shape the rest of the model implies.
 - **`name` vs. `label`.** Settled for tile vs. tag by rule 7, but `getBoardConfig` returns `Tile { id, name }` against the plan's `Tag { label }`. Pick one before Phase 1.
 - **Write cost per reading.** Each write already reads the book doc in its transaction; membership + config add two more. Three point reads per write — acceptable, but it is the number to watch.
 - **Leaderboard reads the member list.** Excluding non-`active` members adds one `members` collection read per leaderboard/library call. Small at current scale; the number to watch alongside write cost.
