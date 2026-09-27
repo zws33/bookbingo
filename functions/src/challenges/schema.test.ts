@@ -273,8 +273,8 @@ describe('JoinChallengeRequestSchema', () => {
   });
 
   test('normalizes case, separators and look-alike characters', () => {
-    assert.equal(parse(' abc-de2 '), 'ABCDE2');
-    assert.equal(parse('oil234'), '011234');
+    assert.equal(parse(' abc-de234 '), 'ABCDE234');
+    assert.equal(parse('oil23456'), '01123456');
   });
 
   test('rejects a code of the wrong length', () => {
@@ -284,10 +284,10 @@ describe('JoinChallengeRequestSchema', () => {
   });
 
   test('rejects a character outside the alphabet', () => {
-    assert.throws(() => parse('ABCD$2'));
+    assert.throws(() => parse('ABCDEFG$'));
   });
 
   test('rejects U, which the alphabet omits and normalization does not fold', () => {
-    assert.throws(() => parse('ABCDU2'));
+    assert.throws(() => parse('ABCDEFU2'));
   });
 });

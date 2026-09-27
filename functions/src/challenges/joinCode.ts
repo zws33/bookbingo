@@ -3,7 +3,7 @@ import { randomBytes } from 'node:crypto';
 /** no I, L, O or U for ease of being read aloud. */
 const ALPHABET = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
 
-export const JOIN_CODE_LENGTH = 6;
+export const JOIN_CODE_LENGTH = 8;
 
 /** Built from the alphabet so a change there cannot leave the check behind. */
 export const JOIN_CODE_PATTERN = new RegExp(
