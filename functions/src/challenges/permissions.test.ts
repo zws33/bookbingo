@@ -40,7 +40,8 @@ const GRANTED: Record<Permission, MemberRole[]> = {
   'member.remove': ['owner', 'admin'],
   'member.setRole': ['owner', 'admin'],
   'joinCode.manage': ['owner', 'admin'],
-  'tag.crud': ['owner', 'admin'],
+  'tag.write': ['owner', 'admin'],
+  'tag.delete': [],
   'config.edit': ['owner', 'admin'],
   'status.change': ['owner'],
   'challenge.delete': ['owner'],
@@ -66,6 +67,24 @@ describe('can', () => {
       assert.equal(hasPermission(superadmin, permission), true);
     });
   }
+});
+
+/**
+ * A non-`MemberRole` minimum, spelled out beyond the generic matrix above:
+ * tag deletion is the one permission no member role holds at all.
+ */
+describe('tag.delete is superadmin-only', () => {
+  test('an owner cannot delete a tag', () => {
+    assert.equal(hasPermission(owner, 'tag.delete'), false);
+  });
+
+  test('an admin can create and update a tag', () => {
+    assert.ok(hasPermission(admin, 'tag.write'));
+  });
+
+  test('a superadmin can delete a tag', () => {
+    assert.ok(hasPermission(superadmin, 'tag.delete'));
+  });
 });
 
 describe('rankOf', () => {

@@ -7,7 +7,8 @@ export const PERMISSIONS = [
   'member.remove',
   'member.setRole',
   'joinCode.manage',
-  'tag.crud',
+  'tag.write',
+  'tag.delete',
   'config.edit',
   'status.change',
   'challenge.delete',
@@ -16,16 +17,22 @@ export const PERMISSIONS = [
 export type Permission = (typeof PERMISSIONS)[number];
 
 /**
- * The lowest role that holds each permission.
+ * The lowest role that holds each permission. `'superadmin'` is not a
+ * `MemberRole` — it widens this table rather than adding a side-channel
+ * predicate, so this stays the single place a handler needs to check.
  */
-const MINIMUM_ROLE: Record<Permission, MemberRole> = {
+const MINIMUM_ROLE: Record<Permission, MemberRole | 'superadmin'> = {
   'challenge.read': 'member',
   'reading.write.own': 'member',
   'reading.write.any': 'admin',
   'member.remove': 'admin',
   'member.setRole': 'admin',
   'joinCode.manage': 'admin',
-  'tag.crud': 'admin',
+  'tag.write': 'admin',
+  // Deleting a tag mid-challenge silently drops its `reading_tags` rows and
+  // changes every member's score. Superadmin-only until a tag-deletion
+  // policy exists.
+  'tag.delete': 'superadmin',
   'config.edit': 'admin',
   'status.change': 'owner',
   'challenge.delete': 'owner',
@@ -60,8 +67,13 @@ export function outranks(actor: Actor, target: MemberRole): boolean {
   return rankOf(actor) > RANK[target];
 }
 
+/** `MINIMUM_ROLE` values are ranked the same way actors are, so the two compare directly. */
+function rankOfMinimum(minimum: MemberRole | 'superadmin'): number {
+  return minimum === 'superadmin' ? SUPERADMIN_RANK : RANK[minimum];
+}
+
 export function hasPermission(actor: Actor, permission: Permission): boolean {
-  return rankOf(actor) >= RANK[MINIMUM_ROLE[permission]];
+  return rankOf(actor) >= rankOfMinimum(MINIMUM_ROLE[permission]);
 }
 
 /** Up to and including the actor's own role — inclusive, unlike `outranks`. */
