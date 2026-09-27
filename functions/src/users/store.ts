@@ -1,6 +1,7 @@
 import { FieldValue, type DocumentSnapshot } from 'firebase-admin/firestore';
 import { db } from '../firebase.js';
 import { mapValid } from '../common/firestoreHelpers.js';
+import { MAX_USERS_SCAN, requireCompleteScan } from '../common/limits.js';
 import { UserProfileDocSchema } from './schema.js';
 import type { UserProfile } from '@bookbingo/lib-types';
 
@@ -28,7 +29,11 @@ export function toUserProfile(doc: DocumentSnapshot): UserProfile {
 
 const firestoreUserProfiles: UserProfileRepository = {
   async list() {
-    const snapshot = await db.collection('users').get();
+    const snapshot = await db
+      .collection('users')
+      .limit(MAX_USERS_SCAN + 1)
+      .get();
+    requireCompleteScan('users', snapshot.docs, MAX_USERS_SCAN);
     return mapValid('users', snapshot.docs, toUserProfile);
   },
 

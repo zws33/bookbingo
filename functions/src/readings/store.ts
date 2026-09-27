@@ -6,6 +6,11 @@ import {
 import { db } from '../firebase.js';
 import { DomainError } from '../common/errors.js';
 import { mapValid } from '../common/firestoreHelpers.js';
+import {
+  MAX_READINGS_PER_USER,
+  MAX_READINGS_SCAN,
+  requireCompleteScan,
+} from '../common/limits.js';
 import { requireBookExists } from '../books/store.js';
 import { ReadingDocSchema } from './schema.js';
 
@@ -119,12 +124,17 @@ const firestoreReadings: ReadingRepository = {
   async list(userId) {
     const snapshot = await readingsCollection(userId)
       .orderBy('readAt', 'desc')
+      .limit(MAX_READINGS_PER_USER)
       .get();
     return mapValid('readings', snapshot.docs, toReading);
   },
 
   async listAllByUser() {
-    const snapshot = await db.collectionGroup('readings').get();
+    const snapshot = await db
+      .collectionGroup('readings')
+      .limit(MAX_READINGS_SCAN + 1)
+      .get();
+    requireCompleteScan('readings', snapshot.docs, MAX_READINGS_SCAN);
     return readingsByUser(snapshot.docs);
   },
 

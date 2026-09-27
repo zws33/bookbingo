@@ -5,6 +5,7 @@ import {
 import { db } from '../firebase.js';
 import { DomainError } from '../common/errors.js';
 import { isNotFound, mapValid } from '../common/firestoreHelpers.js';
+import { MAX_TBR_PER_USER } from '../common/limits.js';
 import { requireBookExists } from '../books/store.js';
 import {
   newReadingFields,
@@ -75,7 +76,10 @@ function toTBREntry(doc: QueryDocumentSnapshot): TBREntry {
 
 const firestoreTBREntries: TBREntryRepository = {
   async list(uid) {
-    const snapshot = await tbrCollection(uid).orderBy('addedAt', 'desc').get();
+    const snapshot = await tbrCollection(uid)
+      .orderBy('addedAt', 'desc')
+      .limit(MAX_TBR_PER_USER)
+      .get();
     return mapValid('tbr', snapshot.docs, toTBREntry);
   },
 

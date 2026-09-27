@@ -5,6 +5,7 @@ import {
 } from 'firebase-admin/firestore';
 import { DomainError } from '../common/errors.js';
 import { isNotFound, mapValid } from '../common/firestoreHelpers.js';
+import { MAX_ACTIVE_MEMBERSHIPS } from '../common/limits.js';
 import { db } from '../firebase.js';
 import {
   ChallengeDocSchema,
@@ -167,6 +168,7 @@ const firestoreChallenges: ChallengeRepository = {
       .collectionGroup('members')
       .where('userId', '==', userId)
       .where('status', '==', 'active' satisfies MembershipStatus)
+      .limit(MAX_ACTIVE_MEMBERSHIPS)
       .get();
     return membershipsByChallenge(snapshot.docs);
   },
