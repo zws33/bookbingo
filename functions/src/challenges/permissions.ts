@@ -115,20 +115,6 @@ export function canEditOthersReading(
   return hasPermission(actor, 'reading.write.any') && outranks(actor, author);
 }
 
-export const MAX_CHALLENGES_CREATED = 5;
-
-/**
- * The cap counts creations, not challenges currently owned, so deleting one
- * does not free a slot and being promoted to owner never consumes one.
- */
-export function exceedsCreationCap(
-  actor: Actor,
-  challengesCreated: number,
-): boolean {
-  if (actor.superadmin) return false;
-  return challengesCreated >= MAX_CHALLENGES_CREATED;
-}
-
 /** A custom claim on the verified token. No document read. */
 export function isSuperadmin(token: Record<string, unknown>): boolean {
   return token['superadmin'] === true;

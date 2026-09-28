@@ -1,7 +1,6 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert';
 import {
-  MAX_CHALLENGES_CREATED,
   PERMISSIONS,
   hasPermission,
   canEditOthersReading,
@@ -13,7 +12,6 @@ import {
   statusAllows,
   CHALLENGE_ACTIONS,
   type ChallengeAction,
-  exceedsCreationCap,
   isSuperadmin,
   outranks,
   rankOf,
@@ -226,27 +224,6 @@ describe('canEditOthersReading', () => {
 
   test('a member edits nobody else’s reading', () => {
     assert.equal(canEditOthersReading(member, 'member'), false);
-  });
-});
-
-describe('exceedsCreationCap', () => {
-  test('allows the create that reaches the cap', () => {
-    assert.equal(exceedsCreationCap(member, MAX_CHALLENGES_CREATED - 1), false);
-  });
-
-  test('rejects the create after the cap', () => {
-    assert.ok(exceedsCreationCap(member, MAX_CHALLENGES_CREATED));
-  });
-
-  test('a count above the cap stays rejected, so deleting frees no slot', () => {
-    assert.ok(exceedsCreationCap(member, MAX_CHALLENGES_CREATED + 3));
-  });
-
-  test('a superadmin is exempt', () => {
-    assert.equal(
-      exceedsCreationCap(superadmin, MAX_CHALLENGES_CREATED + 3),
-      false,
-    );
   });
 });
 
