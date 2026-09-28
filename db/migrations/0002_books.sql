@@ -5,14 +5,22 @@ create table books (
   id text primary key check (id ~ '^[0-9a-f]{32}$'),
   title text not null check (length(btrim(title)) > 0),
   author text not null check (length(btrim(author)) > 0),
-  -- The nested `metadata` object is flattened
-  page_count integer check (page_count >= 0),
-  published_date text,
-  categories text[] not null default '{}',
-  language text,
-  isbn text,
   thumbnail_url text,
   -- Null for a book sourced from Open Library rather than entered by hand.
   created_by text references users (id) on delete restrict,
   created_at timestamptz not null default now()
+);
+
+-- A book's identity in an external catalog. One row per identity; a source may
+-- hold more than one for a book, such as an Open Library work and an edition.
+create table book_external_refs (
+  book_id text not null references books (id) on delete cascade,
+  source text not null,
+  external_id text not null,
+  -- Provider-specific fields carried back to that provider, such as an Open
+  -- Library cover id. Unindexed and never filtered on.
+  details jsonb not null default '{}',
+  created_at timestamptz not null default now(),
+  primary key (book_id, source, external_id),
+  unique (source, external_id)
 );
