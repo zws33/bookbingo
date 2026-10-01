@@ -7,6 +7,10 @@
   },
   "dependencies": {
     "firebase-admin": "^13.7.0",
+    "pg": "^8.23.0",
     "zod": "^4.4.2"
+  },
+  "devDependencies": {
+    "@types/pg": "^8.23.1"
   }
 }

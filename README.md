@@ -43,6 +43,19 @@ Open http://localhost:5173 in your browser.
 If you prefer separate terminals, run `pnpm run emulator:start` in one and
 `pnpm run dev:web:emulator` in another.
 
+### Local Postgres
+
+Postgres is being introduced alongside Firestore; no handler reads it yet.
+
+```bash
+docker compose up -d --wait              # Postgres on 5433, database bookbingo_test
+cp functions/.env.example functions/.env.local
+pnpm run db:migrate                      # Apply db/migrations/
+```
+
+The container uses `tmpfs`, so stopping it discards the data and the migrations
+run again from empty.
+
 For local runs against a real Firebase project, copy `app/web/.env.example` to
 `app/web/.env.staging` or `app/web/.env.prod`, fill in the values, and use the
 matching script: `pnpm run dev:web:staging` or `pnpm run dev:web:prod`.
@@ -98,6 +111,7 @@ pnpm run typecheck         # Type-check workspace packages with tsc --noEmit
 pnpm run lint              # Lint the repo
 pnpm run format            # Format with Prettier
 pnpm run build             # Compile all packages with tsc --build
+pnpm run db:migrate        # Apply db/migrations/ to DATABASE_URL (--dry-run lists pending)
 ```
 
 ### Environments

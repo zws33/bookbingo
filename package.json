@@ -30,6 +30,7 @@
     "deploy:all:prod": "pnpm --filter @bookbingo/web build:prod && firebase deploy --project prod",
     "emulator:start": "firebase emulators:start --project demo-bookbingo --import=./emulator-data --export-on-exit ./emulator-data",
     "emulator:seed": "FIRESTORE_EMULATOR_HOST=localhost:8080 FIREBASE_AUTH_EMULATOR_HOST=localhost:9099 tsx scripts/seed-emulator.ts",
+    "db:migrate": "node --env-file-if-exists=functions/.env.local --import tsx scripts/migrate.ts",
     "mirror:staging": "tsx scripts/mirror-prod-to-staging.ts",
     "test:integration": "pnpm --filter @bookbingo/functions run build && firebase emulators:exec --project demo-bookbingo 'pnpm --filter @bookbingo/web test:integration'",
     "verify": "pnpm run format:check && pnpm run lint && pnpm run build && pnpm test && pnpm run typecheck",
