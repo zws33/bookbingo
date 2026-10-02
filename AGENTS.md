@@ -33,6 +33,11 @@ strict + ESM only. Deeper context lives in `CLAUDE.md`,
     (Vitest; add `-t "..."` for one case)
 - `pnpm run test:integration` runs web integration tests against the emulators.
   Unit tests exclude `*.int.test.*`; integration uses `vitest.config.int.ts`.
+- `pnpm run test:db` runs the Postgres repository tests: migrates, then the
+  `functions/src/**/*.db.test.ts` suite. Needs `docker compose up -d --wait` and
+  `functions/.env.local`. Local only, not in `verify` and not in CI. Each test
+  truncates every table, so the harness refuses a database not named `*_test`,
+  and the files run serially (`--test-concurrency=1`) because they share it.
 - `prettier --write .` after editing; `verify` fails on unformatted files.
 
 ## Architecture
