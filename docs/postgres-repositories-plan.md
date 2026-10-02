@@ -35,7 +35,7 @@ Where the implementation departed from the plan below:
 
 New:
 
-- `functions/src/db/transaction.ts` — `inTransaction(db, work)`, `withTransaction(work)`, and the `Db` query interface both a pool and a client satisfy. Repository factories take `Db`, defaulting to `getPool()`, so a cross-aggregate write composes without a Unit of Work.
+- `functions/src/db/transaction.ts` — `inTransaction(db, work)`, `withTransaction(work)`, and the `Db` query interface both a pool and a client satisfy. Repository factories take `Db`, defaulting to `getPool()`, so a cross-aggregate write composes by passing one client to each repository.
 - `functions/src/common/pgErrors.ts` — SQLSTATE to `DomainError`, keyed by constraint name for `23505`, `23503`, `23001`, `23514` and `23502`. `22P02` is the exception, mapped by position: Firestore accepted any string id, Postgres raises on a non-uuid `challengeId`, and an unmapped raise is a 500 on client input.
 - `functions/src/testing/db.ts` — `connectTestDatabase()`, returning a handle that carries `db`, `reset()` and `close()`.
 - `db/testing/mark-test-database.sql` — bind-mounted into the container's `/docker-entrypoint-initdb.d/`, marking the database disposable.

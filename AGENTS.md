@@ -77,8 +77,6 @@ strict + ESM only. Deeper context lives in `CLAUDE.md`,
 - `/books` is a shared catalog (deterministic id, never overwritten). Edit a
   reading/TBR via its own doc or by repointing `bookId`; use `promoteTBREntry()`
   for a single-batch promote.
-- No Unit of Work: `tbr/store.ts` imports `readings/store.ts` (one cross-collection
-  transaction). A second cross-aggregate transaction is the trigger to add one.
 
 ## Web tests
 
