@@ -2,127 +2,182 @@ import { test, describe, before, beforeEach, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { DomainError } from '../common/errors.js';
 import { toDomainError } from '../common/pgErrors.js';
-import { getPool, closePool } from '../db/pool.js';
-import { withTransaction } from '../db/transaction.js';
-import { requireTestDatabase, resetDatabase } from './db.js';
+import { inTransaction } from '../db/transaction.js';
+import {
+  connectTestDatabase,
+  requireTestDatabaseUrl,
+  type TestDatabase,
+} from './db.js';
 import { seedBook, seedChallenge, seedTag, seedUser } from './factories.js';
 
-describe('requireTestDatabase', () => {
-  test('accepts a database named for testing', () => {
-    requireTestDatabase('postgres://postgres@localhost:5433/bookbingo_test');
+const LOCAL = 'postgres://postgres:postgres@localhost:5433';
+
+describe('requireTestDatabaseUrl', () => {
+  test('returns a url naming a database for testing', () => {
+    const url = `${LOCAL}/bookbingo_test`;
+    assert.equal(requireTestDatabaseUrl(url), url);
   });
 
   test('refuses a database that is not named for testing', () => {
     assert.throws(
       () =>
-        requireTestDatabase('postgres://user@db.example.com:5432/bookbingo'),
+        requireTestDatabaseUrl('postgres://user@db.example.com:5432/bookbingo'),
       /_test/,
     );
   });
 
-  test('refuses an unset connection string with the command to fix it', () => {
-    const configured = process.env.DATABASE_URL;
-    delete process.env.DATABASE_URL;
+  test('refuses a connection string that is not a url', () => {
+    assert.throws(
+      () => requireTestDatabaseUrl('host=localhost dbname=bookbingo_test'),
+      /postgres:\/\/ URL/,
+    );
+  });
+
+  test('names TEST_DATABASE_URL, not DATABASE_URL, when it is unset', () => {
+    const configured = process.env.TEST_DATABASE_URL;
+    delete process.env.TEST_DATABASE_URL;
     try {
-      assert.throws(() => requireTestDatabase(), /DATABASE_URL/);
+      assert.throws(() => requireTestDatabaseUrl(), /TEST_DATABASE_URL/);
     } finally {
-      process.env.DATABASE_URL = configured;
+      process.env.TEST_DATABASE_URL = configured;
     }
   });
 });
 
 describe('the database harness', () => {
-  before(() => {
-    requireTestDatabase();
+  let testDb: TestDatabase;
+
+  before(async () => {
+    testDb = await connectTestDatabase();
   });
-  beforeEach(resetDatabase);
-  after(closePool);
+  beforeEach(() => testDb.reset());
+  after(() => testDb.close());
 
   test('the schema is applied', async () => {
-    const { rows } = await getPool().query<{ count: string }>(
+    const { rows } = await testDb.db.query<{ count: string }>(
       'select count(*)::text as count from schema_migrations',
     );
     assert.ok(Number(rows[0]?.count) > 0, 'run pnpm run db:migrate');
   });
 
-  test('resetDatabase empties the tables but keeps the migration history', async () => {
-    const pool = getPool();
-    await seedUser(pool);
+  test('hands back the same handle for the whole process', async () => {
+    assert.equal(await connectTestDatabase(), testDb);
+  });
 
-    await resetDatabase();
+  test('refuses a database without the marker, however it is named', async () => {
+    await testDb.db.query('create database bookbingo_unmarked_test');
 
-    const users = await pool.query('select 1 from users');
+    try {
+      await assert.rejects(
+        connectTestDatabase(`${LOCAL}/bookbingo_unmarked_test`),
+        /marker/,
+      );
+    } finally {
+      await testDb.db.query(
+        'drop database bookbingo_unmarked_test with (force)',
+      );
+    }
+  });
+
+  test('reset empties the tables but keeps the migration history', async () => {
+    await seedUser(testDb.db);
+
+    await testDb.reset();
+
+    const users = await testDb.db.query('select 1 from users');
     assert.equal(users.rowCount, 0);
-    const applied = await pool.query('select 1 from schema_migrations');
+    const applied = await testDb.db.query('select 1 from schema_migrations');
     assert.ok((applied.rowCount ?? 0) > 0);
   });
 
-  test('resetDatabase clears a table a foreign key points at', async () => {
-    const pool = getPool();
-    const userId = await seedUser(pool);
-    const challengeId = await seedChallenge(pool, { createdBy: userId });
-    await seedTag(pool, { challengeId });
+  test('reset clears a table a foreign key points at', async () => {
+    const userId = await seedUser(testDb.db);
+    const challengeId = await seedChallenge(testDb.db, { createdBy: userId });
+    await seedTag(testDb.db, { challengeId });
 
-    await resetDatabase();
+    await testDb.reset();
 
-    const tags = await pool.query('select 1 from tags');
+    const tags = await testDb.db.query('select 1 from tags');
     assert.equal(tags.rowCount, 0);
   });
 
-  test('withTransaction commits what the callback wrote', async () => {
-    const userId = await withTransaction((client) => seedUser(client));
+  test('inTransaction commits what the callback wrote', async () => {
+    const userId = await inTransaction(testDb.db, (client) => seedUser(client));
 
-    const { rowCount } = await getPool().query(
+    const { rowCount } = await testDb.db.query(
       'select 1 from users where id = $1',
       [userId],
     );
     assert.equal(rowCount, 1);
   });
 
-  test('withTransaction rolls back every write when the callback throws', async () => {
+  test('inTransaction rolls back every write when the callback throws', async () => {
     await assert.rejects(
-      withTransaction(async (client) => {
+      inTransaction(testDb.db, async (client) => {
         await seedUser(client, { id: 'rolled-back' });
         throw new Error('callback failed');
       }),
       /callback failed/,
     );
 
-    const { rowCount } = await getPool().query('select 1 from users');
+    const { rowCount } = await testDb.db.query('select 1 from users');
     assert.equal(rowCount, 0);
   });
 
-  test('withTransaction returns the connection to the pool after a failure', async () => {
+  test('inTransaction returns the connection to the pool after a failure', async () => {
     await assert.rejects(
-      withTransaction(() => Promise.reject(new Error('first'))),
+      inTransaction(testDb.db, () => Promise.reject(new Error('first'))),
       /first/,
     );
     await assert.rejects(
-      withTransaction(() => Promise.reject(new Error('second'))),
+      inTransaction(testDb.db, () => Promise.reject(new Error('second'))),
       /second/,
     );
 
     assert.equal(
-      await withTransaction(() => Promise.resolve('reusable')),
+      await inTransaction(testDb.db, () => Promise.resolve('reusable')),
       'reusable',
+    );
+  });
+
+  test('inTransaction joins a transaction already open', async () => {
+    await assert.rejects(
+      inTransaction(testDb.db, async (client) => {
+        await inTransaction(client, (inner) =>
+          seedUser(inner, { id: 'inner' }),
+        );
+        throw new Error('outer rolled back');
+      }),
+      /outer rolled back/,
+    );
+
+    const { rowCount } = await testDb.db.query('select 1 from users');
+    assert.equal(
+      rowCount,
+      0,
+      'the inner write must not have committed on its own',
     );
   });
 });
 
 describe('toDomainError against real violations', () => {
-  before(() => {
-    requireTestDatabase();
+  let testDb: TestDatabase;
+
+  before(async () => {
+    testDb = await connectTestDatabase();
   });
-  beforeEach(resetDatabase);
-  after(closePool);
+  beforeEach(() => testDb.reset());
+  after(() => testDb.close());
 
   test('maps a unique violation by its constraint name', async () => {
-    const pool = getPool();
-    const userId = await seedUser(pool);
-    const challengeId = await seedChallenge(pool, { createdBy: userId });
-    await seedTag(pool, { challengeId, label: 'Mystery' });
+    const userId = await seedUser(testDb.db);
+    const challengeId = await seedChallenge(testDb.db, { createdBy: userId });
+    await seedTag(testDb.db, { challengeId, label: 'Mystery' });
 
-    const mapped = await seedTag(pool, { challengeId, label: 'mystery' }).then(
+    const mapped = await seedTag(testDb.db, {
+      challengeId,
+      label: 'mystery',
+    }).then(
       () => undefined,
       (error: unknown) =>
         toDomainError(error, {
@@ -141,7 +196,7 @@ describe('toDomainError against real violations', () => {
   });
 
   test('maps a non-uuid id to not-found instead of a 500', async () => {
-    const mapped = await getPool()
+    const mapped = await testDb.db
       .query('select 1 from challenges where id = $1', ['not-a-uuid'])
       .then(
         () => undefined,
@@ -159,7 +214,7 @@ describe('toDomainError against real violations', () => {
   });
 
   test('maps a foreign key violation by its constraint name', async () => {
-    const mapped = await seedBook(getPool(), { createdBy: 'nobody' }).then(
+    const mapped = await seedBook(testDb.db, { createdBy: 'nobody' }).then(
       () => undefined,
       (error: unknown) =>
         toDomainError(error, {

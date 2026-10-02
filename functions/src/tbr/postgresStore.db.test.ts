@@ -1,9 +1,8 @@
 import { test, describe, before, beforeEach, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { DomainError } from '../common/errors.js';
-import { closePool, getPool } from '../db/pool.js';
 import { readingRepository } from '../readings/postgresStore.js';
-import { requireTestDatabase, resetDatabase } from '../testing/db.js';
+import { connectTestDatabase, type TestDatabase } from '../testing/db.js';
 import {
   seedBook,
   seedChallenge,
@@ -25,17 +24,19 @@ const rejectsWith = (kind: string) => (error: unknown) => {
 };
 
 describe('tbrEntryRepository', () => {
-  before(() => {
-    requireTestDatabase();
-  });
-  beforeEach(resetDatabase);
-  after(closePool);
+  let testDb: TestDatabase;
 
-  const repository = () => tbrEntryRepository();
-  const readings = () => readingRepository();
+  before(async () => {
+    testDb = await connectTestDatabase();
+  });
+  beforeEach(() => testDb.reset());
+  after(() => testDb.close());
+
+  const repository = () => tbrEntryRepository(testDb.db);
+  const readings = () => readingRepository(testDb.db);
 
   async function challenge() {
-    const pool = getPool();
+    const pool = testDb.db;
     const userId = await seedUser(pool);
     const challengeId = await seedChallenge(pool, { createdBy: userId });
     await seedMembership(pool, { challengeId, userId, role: 'owner' });

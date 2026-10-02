@@ -1,8 +1,7 @@
 import { test, describe, before, beforeEach, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { DomainError } from '../common/errors.js';
-import { closePool, getPool } from '../db/pool.js';
-import { requireTestDatabase, resetDatabase } from '../testing/db.js';
+import { connectTestDatabase, type TestDatabase } from '../testing/db.js';
 import {
   seedBook,
   seedChallenge,
@@ -24,16 +23,18 @@ const rejectsWith = (kind: string) => (error: unknown) => {
 };
 
 describe('readingRepository', () => {
-  before(() => {
-    requireTestDatabase();
-  });
-  beforeEach(resetDatabase);
-  after(closePool);
+  let testDb: TestDatabase;
 
-  const repository = () => readingRepository();
+  before(async () => {
+    testDb = await connectTestDatabase();
+  });
+  beforeEach(() => testDb.reset());
+  after(() => testDb.close());
+
+  const repository = () => readingRepository(testDb.db);
 
   async function challenge() {
-    const pool = getPool();
+    const pool = testDb.db;
     const userId = await seedUser(pool, { name: 'Ada' });
     const challengeId = await seedChallenge(pool, { createdBy: userId });
     await seedMembership(pool, { challengeId, userId, role: 'owner' });
@@ -85,7 +86,7 @@ describe('readingRepository', () => {
         tagIds: [],
         isFreebie: true,
       });
-      const other = await seedBook(getPool());
+      const other = await seedBook(testDb.db);
 
       await assert.rejects(
         repository().create(challengeId, userId, {
@@ -173,7 +174,7 @@ describe('readingRepository', () => {
       );
 
       assert.equal(
-        (await getPool().query('select 1 from readings')).rowCount,
+        (await testDb.db.query('select 1 from readings')).rowCount,
         0,
       );
     });

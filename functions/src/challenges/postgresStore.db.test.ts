@@ -1,9 +1,8 @@
 import { test, describe, before, beforeEach, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { DomainError } from '../common/errors.js';
-import { closePool, getPool } from '../db/pool.js';
-import { withTransaction } from '../db/transaction.js';
-import { requireTestDatabase, resetDatabase } from '../testing/db.js';
+import { inTransaction } from '../db/transaction.js';
+import { connectTestDatabase, type TestDatabase } from '../testing/db.js';
 import {
   seedBook,
   seedChallenge,
@@ -26,17 +25,19 @@ const rejectsWith = (kind: string) => (error: unknown) => {
 };
 
 describe('challengeRepository', () => {
-  before(() => {
-    requireTestDatabase();
-  });
-  beforeEach(resetDatabase);
-  after(closePool);
+  let testDb: TestDatabase;
 
-  const repository = () => challengeRepository();
+  before(async () => {
+    testDb = await connectTestDatabase();
+  });
+  beforeEach(() => testDb.reset());
+  after(() => testDb.close());
+
+  const repository = () => challengeRepository(testDb.db);
 
   describe('create', () => {
     test('inserts a draft challenge, its sole owner, and a join code', async () => {
-      const userId = await seedUser(getPool());
+      const userId = await seedUser(testDb.db);
 
       const { challengeId, joinCode } = await repository().create(userId, {
         name: 'Summer 2026',
@@ -80,7 +81,7 @@ describe('challengeRepository', () => {
     });
 
     test('rejects a blank name', async () => {
-      const userId = await seedUser(getPool());
+      const userId = await seedUser(testDb.db);
       await assert.rejects(
         repository().create(userId, { name: '   ', tagCap: 3 }),
         rejectsWith('invalid-input'),
@@ -88,7 +89,7 @@ describe('challengeRepository', () => {
     });
 
     test('rejects a tag cap of zero', async () => {
-      const userId = await seedUser(getPool());
+      const userId = await seedUser(testDb.db);
       await assert.rejects(
         repository().create(userId, { name: 'Summer', tagCap: 0 }),
         rejectsWith('invalid-input'),
@@ -101,12 +102,12 @@ describe('challengeRepository', () => {
         rejectsWith('not-found'),
       );
 
-      const { rowCount } = await getPool().query('select 1 from join_codes');
+      const { rowCount } = await testDb.db.query('select 1 from join_codes');
       assert.equal(rowCount, 0);
     });
 
     test('tries another code when the generated one is taken', async () => {
-      const pool = getPool();
+      const pool = testDb.db;
       const userId = await seedUser(pool);
       const taken = challengeRepository(pool, () => 'ABCDEFGH');
       await taken.create(userId, { name: 'First', tagCap: 3 });
@@ -125,7 +126,7 @@ describe('challengeRepository', () => {
     });
 
     test('gives up after repeated collisions rather than looping', async () => {
-      const pool = getPool();
+      const pool = testDb.db;
       const userId = await seedUser(pool);
       const colliding = challengeRepository(pool, () => 'ABCDEFGH');
       await colliding.create(userId, { name: 'First', tagCap: 3 });
@@ -153,8 +154,8 @@ describe('challengeRepository', () => {
     });
 
     test('does not expose stored columns missing from the entity', async () => {
-      const userId = await seedUser(getPool());
-      const challengeId = await seedChallenge(getPool(), { createdBy: userId });
+      const userId = await seedUser(testDb.db);
+      const challengeId = await seedChallenge(testDb.db, { createdBy: userId });
 
       assert.deepEqual(
         Object.keys(await repository().get(challengeId)).sort(),
@@ -165,7 +166,7 @@ describe('challengeRepository', () => {
 
   describe('update', () => {
     test('renames without touching the cap', async () => {
-      const pool = getPool();
+      const pool = testDb.db;
       const userId = await seedUser(pool);
       const challengeId = await seedChallenge(pool, {
         createdBy: userId,
@@ -181,7 +182,7 @@ describe('challengeRepository', () => {
     });
 
     test('changes the cap without touching the name', async () => {
-      const pool = getPool();
+      const pool = testDb.db;
       const userId = await seedUser(pool);
       const challengeId = await seedChallenge(pool, {
         createdBy: userId,
@@ -197,7 +198,7 @@ describe('challengeRepository', () => {
     });
 
     test('stamps updated_at', async () => {
-      const pool = getPool();
+      const pool = testDb.db;
       const userId = await seedUser(pool);
       const challengeId = await seedChallenge(pool, { createdBy: userId });
 
@@ -218,7 +219,7 @@ describe('challengeRepository', () => {
     });
 
     test('rejects a name longer than the column allows', async () => {
-      const pool = getPool();
+      const pool = testDb.db;
       const userId = await seedUser(pool);
       const challengeId = await seedChallenge(pool, { createdBy: userId });
 
@@ -231,7 +232,7 @@ describe('challengeRepository', () => {
 
   describe('setStatus', () => {
     test('moves the challenge forward', async () => {
-      const pool = getPool();
+      const pool = testDb.db;
       const userId = await seedUser(pool);
       const challengeId = await seedChallenge(pool, { createdBy: userId });
 
@@ -250,7 +251,7 @@ describe('challengeRepository', () => {
 
   describe('remove', () => {
     test('cascades the tags, memberships and join code', async () => {
-      const pool = getPool();
+      const pool = testDb.db;
       const userId = await seedUser(pool);
       const { challengeId } = await repository().create(userId, {
         name: 'Summer',
@@ -267,7 +268,7 @@ describe('challengeRepository', () => {
     });
 
     test('leaves the global users and books alone', async () => {
-      const pool = getPool();
+      const pool = testDb.db;
       const userId = await seedUser(pool);
       await seedBook(pool, { createdBy: userId });
       const { challengeId } = await repository().create(userId, {
@@ -291,7 +292,7 @@ describe('challengeRepository', () => {
 
   describe('getMembership', () => {
     test('returns a non-active membership too, for the guard to reject', async () => {
-      const pool = getPool();
+      const pool = testDb.db;
       const owner = await seedUser(pool);
       const left = await seedUser(pool);
       const challengeId = await seedChallenge(pool, { createdBy: owner });
@@ -309,7 +310,7 @@ describe('challengeRepository', () => {
     });
 
     test('returns undefined when there is no row', async () => {
-      const pool = getPool();
+      const pool = testDb.db;
       const owner = await seedUser(pool);
       const challengeId = await seedChallenge(pool, { createdBy: owner });
 
@@ -329,7 +330,7 @@ describe('challengeRepository', () => {
 
   describe('listMembers', () => {
     test('returns every membership, including those who left', async () => {
-      const pool = getPool();
+      const pool = testDb.db;
       const owner = await seedUser(pool, { name: 'Ada' });
       const member = await seedUser(pool, { name: 'Bela' });
       const challengeId = await seedChallenge(pool, { createdBy: owner });
@@ -352,7 +353,7 @@ describe('challengeRepository', () => {
     });
 
     test('excludes members of other challenges', async () => {
-      const pool = getPool();
+      const pool = testDb.db;
       const owner = await seedUser(pool);
       const mine = await seedChallenge(pool, { createdBy: owner });
       const theirs = await seedChallenge(pool, { createdBy: owner });
@@ -365,7 +366,7 @@ describe('challengeRepository', () => {
 
   describe('listActiveMemberships', () => {
     test('keys one user’s active memberships by challenge', async () => {
-      const pool = getPool();
+      const pool = testDb.db;
       const userId = await seedUser(pool);
       const first = await seedChallenge(pool, { createdBy: userId });
       const second = await seedChallenge(pool, { createdBy: userId });
@@ -383,7 +384,7 @@ describe('challengeRepository', () => {
     });
 
     test('omits memberships that are not active', async () => {
-      const pool = getPool();
+      const pool = testDb.db;
       const userId = await seedUser(pool);
       const left = await seedChallenge(pool, { createdBy: userId });
       const removed = await seedChallenge(pool, { createdBy: userId });
@@ -398,7 +399,7 @@ describe('challengeRepository', () => {
     });
 
     test('omits other people’s memberships', async () => {
-      const pool = getPool();
+      const pool = testDb.db;
       const mine = await seedUser(pool);
       const theirs = await seedUser(pool);
       const challengeId = await seedChallenge(pool, { createdBy: mine });
@@ -410,7 +411,7 @@ describe('challengeRepository', () => {
 
   describe('upsertMembership', () => {
     test('inserts a membership that does not exist', async () => {
-      const pool = getPool();
+      const pool = testDb.db;
       const owner = await seedUser(pool);
       const joiner = await seedUser(pool);
       const challengeId = await seedChallenge(pool, { createdBy: owner });
@@ -427,7 +428,7 @@ describe('challengeRepository', () => {
     });
 
     test('changes the role and status of an existing membership', async () => {
-      const pool = getPool();
+      const pool = testDb.db;
       const owner = await seedUser(pool);
       const member = await seedUser(pool);
       const challengeId = await seedChallenge(pool, { createdBy: owner });
@@ -449,7 +450,7 @@ describe('challengeRepository', () => {
     });
 
     test('keeps the original joined_at when a member rejoins', async () => {
-      const pool = getPool();
+      const pool = testDb.db;
       const owner = await seedUser(pool);
       const member = await seedUser(pool);
       const challengeId = await seedChallenge(pool, { createdBy: owner });
@@ -473,7 +474,7 @@ describe('challengeRepository', () => {
     });
 
     test('rejects a user who does not exist', async () => {
-      const pool = getPool();
+      const pool = testDb.db;
       const owner = await seedUser(pool);
       const challengeId = await seedChallenge(pool, { createdBy: owner });
 
@@ -487,7 +488,7 @@ describe('challengeRepository', () => {
     });
 
     test('rejects a challenge that does not exist', async () => {
-      const pool = getPool();
+      const pool = testDb.db;
       const userId = await seedUser(pool);
 
       await assert.rejects(
@@ -502,7 +503,7 @@ describe('challengeRepository', () => {
 
   describe('listActiveOwners', () => {
     test('returns only the active owners', async () => {
-      const pool = getPool();
+      const pool = testDb.db;
       const first = await seedUser(pool);
       const second = await seedUser(pool);
       const third = await seedUser(pool);
@@ -516,7 +517,7 @@ describe('challengeRepository', () => {
       });
       await seedMembership(pool, { challengeId, userId: third, role: 'admin' });
 
-      const owners = await withTransaction((client) =>
+      const owners = await inTransaction(testDb.db, (client) =>
         challengeRepository(client).listActiveOwners(challengeId),
       );
 
@@ -526,7 +527,7 @@ describe('challengeRepository', () => {
 
   describe('join codes', () => {
     test('findByJoinCode resolves the challenge the code belongs to', async () => {
-      const pool = getPool();
+      const pool = testDb.db;
       const userId = await seedUser(pool);
       const { challengeId, joinCode } = await repository().create(userId, {
         name: 'Summer',
@@ -543,7 +544,7 @@ describe('challengeRepository', () => {
     });
 
     test('getJoinCode returns the live code', async () => {
-      const pool = getPool();
+      const pool = testDb.db;
       const userId = await seedUser(pool);
       const { challengeId, joinCode } = await repository().create(userId, {
         name: 'Summer',
@@ -554,7 +555,7 @@ describe('challengeRepository', () => {
     });
 
     test('rotate replaces the code, leaving exactly one live row', async () => {
-      const pool = getPool();
+      const pool = testDb.db;
       const userId = await seedUser(pool);
       const { challengeId, joinCode } = await repository().create(userId, {
         name: 'Summer',
@@ -576,7 +577,7 @@ describe('challengeRepository', () => {
     });
 
     test('rotate rejects a challenge that is gone', async () => {
-      const pool = getPool();
+      const pool = testDb.db;
       const userId = await seedUser(pool);
 
       await assert.rejects(

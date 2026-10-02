@@ -1,8 +1,7 @@
 import { test, describe, before, beforeEach, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { DomainError } from '../common/errors.js';
-import { closePool, getPool } from '../db/pool.js';
-import { requireTestDatabase, resetDatabase } from '../testing/db.js';
+import { connectTestDatabase, type TestDatabase } from '../testing/db.js';
 import {
   seedBook,
   seedChallenge,
@@ -28,17 +27,19 @@ const rejectsWith = (kind: string) => (error: unknown) => {
 };
 
 describe('tagRepository', () => {
-  before(() => {
-    requireTestDatabase();
-  });
-  beforeEach(resetDatabase);
-  after(closePool);
+  let testDb: TestDatabase;
 
-  const repository = () => tagRepository();
+  before(async () => {
+    testDb = await connectTestDatabase();
+  });
+  beforeEach(() => testDb.reset());
+  after(() => testDb.close());
+
+  const repository = () => tagRepository(testDb.db);
 
   /** A challenge with one active member, which readings and TBR entries require. */
   async function challengeWithMember() {
-    const pool = getPool();
+    const pool = testDb.db;
     const userId = await seedUser(pool);
     const challengeId = await seedChallenge(pool, { createdBy: userId });
     await seedMembership(pool, { challengeId, userId, role: 'owner' });

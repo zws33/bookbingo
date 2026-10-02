@@ -1,18 +1,19 @@
 import { test, describe, before, beforeEach, after } from 'node:test';
 import assert from 'node:assert/strict';
-import { closePool, getPool } from '../db/pool.js';
-import { requireTestDatabase, resetDatabase } from '../testing/db.js';
+import { connectTestDatabase, type TestDatabase } from '../testing/db.js';
 import { seedUser } from '../testing/factories.js';
 import { userProfileRepository } from './postgresStore.js';
 
 describe('userProfileRepository', () => {
-  before(() => {
-    requireTestDatabase();
-  });
-  beforeEach(resetDatabase);
-  after(closePool);
+  let testDb: TestDatabase;
 
-  const repository = () => userProfileRepository();
+  before(async () => {
+    testDb = await connectTestDatabase();
+  });
+  beforeEach(() => testDb.reset());
+  after(() => testDb.close());
+
+  const repository = () => userProfileRepository(testDb.db);
 
   describe('get', () => {
     test('returns null for an id with no row', async () => {
@@ -20,7 +21,7 @@ describe('userProfileRepository', () => {
     });
 
     test('maps a row to its API shape', async () => {
-      await getPool().query(
+      await testDb.db.query(
         'insert into users (id, name, photo_url) values ($1, $2, $3)',
         ['user-a', 'Ada', 'https://example.com/ada.png'],
       );
@@ -33,7 +34,7 @@ describe('userProfileRepository', () => {
     });
 
     test('reports a missing photo as null rather than absent', async () => {
-      await seedUser(getPool(), { id: 'user-a', name: 'Ada' });
+      await seedUser(testDb.db, { id: 'user-a', name: 'Ada' });
 
       const profile = await repository().get('user-a');
 
@@ -42,7 +43,7 @@ describe('userProfileRepository', () => {
     });
 
     test('does not expose stored columns missing from the API type', async () => {
-      await seedUser(getPool(), { id: 'user-a' });
+      await seedUser(testDb.db, { id: 'user-a' });
 
       const profile = await repository().get('user-a');
 
@@ -60,7 +61,7 @@ describe('userProfileRepository', () => {
     });
 
     test('returns every user ordered by name', async () => {
-      const pool = getPool();
+      const pool = testDb.db;
       await seedUser(pool, { id: 'user-c', name: 'Cleo' });
       await seedUser(pool, { id: 'user-a', name: 'Ada' });
       await seedUser(pool, { id: 'user-b', name: 'Bela' });
@@ -88,7 +89,7 @@ describe('userProfileRepository', () => {
     });
 
     test('overwrites the name and photo of an existing profile', async () => {
-      await seedUser(getPool(), { id: 'user-a', name: 'Ada' });
+      await seedUser(testDb.db, { id: 'user-a', name: 'Ada' });
 
       await repository().upsert({
         id: 'user-a',
@@ -104,7 +105,7 @@ describe('userProfileRepository', () => {
     });
 
     test('clears a stored photo when the profile no longer has one', async () => {
-      await getPool().query(
+      await testDb.db.query(
         'insert into users (id, name, photo_url) values ($1, $2, $3)',
         ['user-a', 'Ada', 'https://example.com/ada.png'],
       );
@@ -115,7 +116,7 @@ describe('userProfileRepository', () => {
     });
 
     test('stamps updated_at and leaves created_at alone', async () => {
-      const pool = getPool();
+      const pool = testDb.db;
       await seedUser(pool, { id: 'user-a', name: 'Ada' });
       const before = await pool.query<{
         created_at: Date;

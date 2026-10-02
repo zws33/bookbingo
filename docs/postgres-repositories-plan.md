@@ -20,6 +20,7 @@ Where the implementation departed from the plan below:
 8. `tags.update`/`remove` and every `readings`/`tbr` write take `challengeId` and scope the `where` clause on it, so a cross-challenge id resolves to no row rather than being written.
 9. `MissingBookError` moved to `books/errors.ts`, shared by both stores.
 10. Added beyond the planned surface: `challenges.listMembers`, `challenges.getJoinCode`, `tbr.get`.
+11. The test-database guard was hardened after review: it moved from an exported `resetDatabase()` that never called it to a precondition of `connectTestDatabase()`, the harness took its own pool from `TEST_DATABASE_URL`, and a database-level marker replaced the name heuristic.
 
 ## Settled
 
@@ -36,7 +37,8 @@ New:
 
 - `functions/src/db/transaction.ts` — `inTransaction(db, work)`, `withTransaction(work)`, and the `Db` query interface both a pool and a client satisfy. Repository factories take `Db`, defaulting to `getPool()`, so a cross-aggregate write composes without a Unit of Work.
 - `functions/src/common/pgErrors.ts` — SQLSTATE to `DomainError`, keyed by constraint name for `23505`, `23503`, `23001`, `23514` and `23502`. `22P02` is the exception, mapped by position: Firestore accepted any string id, Postgres raises on a non-uuid `challengeId`, and an unmapped raise is a 500 on client input.
-- `functions/src/testing/db.ts` — `requireTestDatabase()`, `resetDatabase()`.
+- `functions/src/testing/db.ts` — `connectTestDatabase()`, returning a handle that carries `db`, `reset()` and `close()`.
+- `db/testing/mark-test-database.sql` — bind-mounted into the container's `/docker-entrypoint-initdb.d/`, marking the database disposable.
 - `functions/src/books/errors.ts` — `MissingBookError`, which both stores throw.
 - `functions/src/testing/factories.ts` — `seedUser`, `seedBook`, `seedChallenge`, `seedMembership`, `seedTag`, `seedReading`, `seedReadingTag`, `seedTbrEntry`, `seedTbrEntryTag`. Raw `insert`, never the repository under test, so a repository bug cannot hide behind its own fixture.
 - `<domain>/postgresStore.ts` and `<domain>/postgresStore.db.test.ts` for `users`, `books`, `challenges`, `tags`, `readings`, `tbr`.
@@ -115,7 +117,13 @@ Root: `"test:db": "pnpm run db:migrate && pnpm --filter @bookbingo/functions run
 
 Isolation is `truncate ... cascade` in a `beforeEach`, over the table list read from `pg_tables` minus `schema_migrations` and memoized per process. Derived, so a new migration needs no edit here. Transaction-rollback isolation is rejected: `create` and `promote` open their own transactions, and savepoint nesting would test a code path that never runs in production.
 
-`requireTestDatabase()` refuses a `DATABASE_URL` whose database name does not end in `_test`, before any truncate. The only guard between this suite and a real database.
+Three things stand between this suite and a real database, since `reset()` truncates every table it finds:
+
+1. The harness reads `TEST_DATABASE_URL`, never the `DATABASE_URL` the application reads, and never calls `getPool()`. The whole suite passes with `DATABASE_URL` unset.
+2. `reset()` is reachable only through the handle `connectTestDatabase()` returns, and that function performs the checks. A test cannot skip them by forgetting a hook — the earlier design exported a free `resetDatabase()` that checked nothing.
+3. The database must report `current_setting('bookbingo.test_database') = 'on'`, set by an init script only the docker-compose container runs. A name or host check passes for a production database proxied to localhost by `cloud-sql-proxy`; this does not.
+
+`truncate` runs without `cascade`: every table is named already, so cascade could only reach one the catalog query missed.
 
 ## Ordered steps
 

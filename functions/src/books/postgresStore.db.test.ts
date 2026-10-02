@@ -1,9 +1,8 @@
 import { test, describe, before, beforeEach, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { DomainError } from '../common/errors.js';
-import { closePool, getPool } from '../db/pool.js';
-import { withTransaction } from '../db/transaction.js';
-import { requireTestDatabase, resetDatabase } from '../testing/db.js';
+import { inTransaction } from '../db/transaction.js';
+import { connectTestDatabase, type TestDatabase } from '../testing/db.js';
 import { seedBook, seedUser } from '../testing/factories.js';
 import { MissingBookError } from './errors.js';
 import { bookRepository } from './postgresStore.js';
@@ -14,13 +13,15 @@ const OPEN_LIBRARY = 'openLibrary';
 const bookId = (seed: string) => seed.repeat(32).slice(0, 32);
 
 describe('bookRepository', () => {
-  before(() => {
-    requireTestDatabase();
-  });
-  beforeEach(resetDatabase);
-  after(closePool);
+  let testDb: TestDatabase;
 
-  const repository = () => bookRepository();
+  before(async () => {
+    testDb = await connectTestDatabase();
+  });
+  beforeEach(() => testDb.reset());
+  after(() => testDb.close());
+
+  const repository = () => bookRepository(testDb.db);
 
   describe('getByIds', () => {
     test('returns an empty map for no ids', async () => {
@@ -28,7 +29,7 @@ describe('bookRepository', () => {
     });
 
     test('keys each book by its id', async () => {
-      const pool = getPool();
+      const pool = testDb.db;
       const first = await seedBook(pool, { title: 'Dune', author: 'Herbert' });
       const second = await seedBook(pool, { title: 'Ubik', author: 'Dick' });
 
@@ -45,7 +46,7 @@ describe('bookRepository', () => {
     });
 
     test('resolves a repeated id once', async () => {
-      const id = await seedBook(getPool());
+      const id = await seedBook(testDb.db);
 
       const found = await repository().getByIds([id, id, id]);
 
@@ -53,7 +54,7 @@ describe('bookRepository', () => {
     });
 
     test('returns the stored thumbnail', async () => {
-      const id = await seedBook(getPool(), {
+      const id = await seedBook(testDb.db, {
         thumbnailUrl: 'https://example.com/cover.jpg',
       });
 
@@ -64,7 +65,7 @@ describe('bookRepository', () => {
     });
 
     test('names every unresolved id at once', async () => {
-      const id = await seedBook(getPool());
+      const id = await seedBook(testDb.db);
       const missingA = bookId('a');
       const missingB = bookId('b');
 
@@ -82,7 +83,7 @@ describe('bookRepository', () => {
 
   describe('findByExternalRef', () => {
     test('returns the book an external id points at', async () => {
-      const pool = getPool();
+      const pool = testDb.db;
       const id = await seedBook(pool, { title: 'Dune' });
       await pool.query(
         `insert into book_external_refs (book_id, source, external_id)
@@ -142,11 +143,11 @@ describe('bookRepository', () => {
     });
 
     test('records the manual creator', async () => {
-      const userId = await seedUser(getPool());
+      const userId = await seedUser(testDb.db);
 
       await repository().createIfAbsent({ ...dune, createdBy: userId });
 
-      const { rows } = await getPool().query<{ created_by: string | null }>(
+      const { rows } = await testDb.db.query<{ created_by: string | null }>(
         'select created_by from books where id = $1',
         [dune.id],
       );
@@ -163,7 +164,7 @@ describe('bookRepository', () => {
         { source: OPEN_LIBRARY, externalId: '/books/OL2M', details: {} },
       ]);
 
-      const { rows } = await getPool().query<{
+      const { rows } = await testDb.db.query<{
         external_id: string;
         details: Record<string, unknown>;
       }>(
@@ -187,7 +188,7 @@ describe('bookRepository', () => {
 
       await repository().createIfAbsent(dune, [ref]);
 
-      const { rowCount } = await getPool().query(
+      const { rowCount } = await testDb.db.query(
         'select 1 from book_external_refs where book_id = $1',
         [dune.id],
       );
@@ -195,7 +196,7 @@ describe('bookRepository', () => {
     });
 
     test('writes nothing when a ref insert fails', async () => {
-      const pool = getPool();
+      const pool = testDb.db;
       const other = await seedBook(pool);
       await pool.query(
         `insert into book_external_refs (book_id, source, external_id)
@@ -227,14 +228,14 @@ describe('bookRepository', () => {
 
     test('joins a transaction the caller already opened', async () => {
       await assert.rejects(
-        withTransaction(async (client) => {
+        inTransaction(testDb.db, async (client) => {
           await bookRepository(client).createIfAbsent(dune);
           throw new Error('caller rolled back');
         }),
         /caller rolled back/,
       );
 
-      const { rowCount } = await getPool().query(
+      const { rowCount } = await testDb.db.query(
         'select 1 from books where id = $1',
         [dune.id],
       );

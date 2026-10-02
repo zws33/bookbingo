@@ -17,8 +17,9 @@ strict + ESM only. Deeper context lives in `CLAUDE.md`,
 - Local Postgres: `docker compose up -d --wait` (port 5433, database
   `bookbingo_test`), `cp functions/.env.example functions/.env.local`, then
   `pnpm run db:migrate` (`--dry-run` lists pending). The container is `tmpfs`,
-  so stopping it discards the data. Deployed environments get `DATABASE_URL` as
-  a secret, never from a file.
+  so stopping it discards the data and re-runs
+  `db/testing/mark-test-database.sql` on start. Deployed environments get
+  `DATABASE_URL` as a secret, never from a file.
 
 ## Verify (run before committing; this is exactly what CI runs)
 
@@ -35,9 +36,15 @@ strict + ESM only. Deeper context lives in `CLAUDE.md`,
   Unit tests exclude `*.int.test.*`; integration uses `vitest.config.int.ts`.
 - `pnpm run test:db` runs the Postgres repository tests: migrates, then the
   `functions/src/**/*.db.test.ts` suite. Needs `docker compose up -d --wait` and
-  `functions/.env.local`. Local only, not in `verify` and not in CI. Each test
-  truncates every table, so the harness refuses a database not named `*_test`,
-  and the files run serially (`--test-concurrency=1`) because they share it.
+  `functions/.env.local`. Local only, not in `verify` and not in CI. The files run
+  serially (`--test-concurrency=1`) because they share one database.
+- The harness reads **`TEST_DATABASE_URL`**, never `DATABASE_URL`, and reaches the
+  database only through `connectTestDatabase()`. Because it truncates every table
+  between tests, it refuses any database that lacks the `bookbingo.test_database`
+  marker set by `db/testing/mark-test-database.sql` — which only the
+  docker-compose container applies, so a production database proxied to localhost
+  fails whatever it is named. Recreate the container (`docker compose down && up
+-d --wait`) if the marker is missing.
 - `prettier --write .` after editing; `verify` fails on unformatted files.
 
 ## Architecture
