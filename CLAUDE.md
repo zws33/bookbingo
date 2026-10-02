@@ -23,6 +23,7 @@ Book reading bingo card tracker — a hobby project for a book club competition 
 Clean Architecture. Each domain module with persistence (`readings/`, `tbr/`, `users/`) has three files:
 
 - `store.ts` — repository interface, a private `firestoreX` singleton, and an `xRepository()` factory. The only layer that imports `firebase-admin`. Entities carry `Date`, not ISO strings.
+- `postgresStore.ts` — the Postgres replacement, built but not yet wired to a handler (`docs/postgres-repositories-plan.md`). Declares its own interface and entities, which are challenge-scoped and differ from the Firestore ones. `db/` owns the pool and `inTransaction`. Takes the `store.ts` name once Firestore is retired.
 - `handler.ts` — an `xHandlers(...repos)` factory returning a plain object of closures. Never a class: `callable(x.method, …)` passes the method unbound, so `this` would be lost.
 - `present.ts` — the response DTO and its mapper. Owns ISO encoding and the book flattening.
 
@@ -33,9 +34,8 @@ Rules:
 - `books/`, `config/` and `feedback/` keep free functions — they have no repository dependencies.
 - Handler tests use a fake repository whose methods reject unless overridden, so an unexpected call fails loudly.
 
-Two deviations are deliberate:
+One deviation is deliberate:
 
-- **No Unit of Work.** `tbr/store.ts` imports `readings/store.ts` because the promote transaction spans both collections and Firestore requires one callback. Passing a `Transaction` across a repository boundary would leak `firebase-admin` inward, which is worse. Introduce Unit of Work when a _second_ cross-aggregate transaction appears.
 - **Responses flatten the book** as `bookTitle`/`bookAuthor`/`bookMetadata`. The target is a nested `book: Book`, matching what `getLibrary` and `fetchBookDetails` already return. It is the only non-backward-compatible change pending and needs a coordinated `deploy:all`.
 
 ## Git

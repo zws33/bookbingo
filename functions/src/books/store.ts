@@ -2,27 +2,12 @@ import type { DocumentData, Transaction } from 'firebase-admin/firestore';
 import type { Book } from '@bookbingo/lib-types';
 import { db } from '../firebase.js';
 import { DomainError } from '../common/errors.js';
+import { MissingBookError } from './errors.js';
 import { BookDocSchema } from './schema.js';
 
-/**
- * Something pointing at a book document that does not exist.
- *
- * The write paths reject a bookId with no document and books are never
- * deleted, so this means the data is corrupt. `corrupt` keeps the ids out of
- * the response — a placeholder title would hide the corruption behind
- * something that looks like a real row.
- */
-export class MissingBookError extends DomainError {
-  readonly bookIds: string[];
-
-  constructor(bookIds: string[]) {
-    super('corrupt', `No book document for: ${bookIds.join(', ')}`, {
-      bookIds,
-    });
-    this.name = 'MissingBookError';
-    this.bookIds = bookIds;
-  }
-}
+// Re-exported so the modules importing it from here keep working while both
+// stores exist.
+export { MissingBookError };
 
 export interface BookRepository {
   getByIds(ids: string[]): Promise<Map<string, Book>>;
