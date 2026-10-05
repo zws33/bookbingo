@@ -115,7 +115,7 @@ Every factory is `xRepository(db: Db = getPool())`; `challengeRepository` takes 
 
 Root: `"test:db": "pnpm run db:migrate && pnpm --filter @bookbingo/functions run test:db"`. Migrations run once per invocation, not per file. `--test-concurrency=1` because node:test runs the files in parallel processes against the one database, where the truncates deadlock and a seed from one file vanishes under another's reset.
 
-Isolation is `truncate ... cascade` in a `beforeEach`, over the table list read from `pg_tables` minus `schema_migrations` and memoized per process. Derived, so a new migration needs no edit here. Transaction-rollback isolation is rejected: `create` and `promote` open their own transactions, and savepoint nesting would test a code path that never runs in production.
+Isolation is `truncate` in a `beforeEach`, over the table list read from `pg_tables` minus `schema_migrations` and memoized per process. Derived, so a new migration needs no edit here. Transaction-rollback isolation is rejected: `create` and `promote` open their own transactions, and savepoint nesting would test a code path that never runs in production.
 
 Three things stand between this suite and a real database, since `reset()` truncates every table it finds:
 
