@@ -307,6 +307,7 @@ describe('tbrEntryRepository', () => {
 
       const outcome = await repository().promote(
         challengeId,
+        userId,
         tbrId,
         [logged],
         false,
@@ -335,7 +336,7 @@ describe('tbrEntryRepository', () => {
         plannedTagIds: [],
       });
 
-      await repository().promote(challengeId, tbrId, [], true);
+      await repository().promote(challengeId, userId, tbrId, [], true);
 
       assert.equal((await readings().get(challengeId, tbrId))?.isFreebie, true);
     });
@@ -346,9 +347,15 @@ describe('tbrEntryRepository', () => {
         bookId,
         plannedTagIds: [],
       });
-      await repository().promote(challengeId, tbrId, [], false);
+      await repository().promote(challengeId, userId, tbrId, [], false);
 
-      const outcome = await repository().promote(challengeId, tbrId, [], false);
+      const outcome = await repository().promote(
+        challengeId,
+        userId,
+        tbrId,
+        [],
+        false,
+      );
 
       assert.deepEqual(outcome, {
         readingId: tbrId,
@@ -376,7 +383,7 @@ describe('tbrEntryRepository', () => {
       });
 
       await assert.rejects(
-        repository().promote(challengeId, tbrId, [], true),
+        repository().promote(challengeId, userId, tbrId, [], true),
         rejectsWith('conflict'),
       );
 
@@ -392,7 +399,7 @@ describe('tbrEntryRepository', () => {
       });
 
       await assert.rejects(
-        repository().promote(challengeId, tbrId, [ABSENT_ID], false),
+        repository().promote(challengeId, userId, tbrId, [ABSENT_ID], false),
         rejectsWith('invalid-input'),
       );
 
@@ -401,10 +408,10 @@ describe('tbrEntryRepository', () => {
     });
 
     test('rejects an entry that never existed', async () => {
-      const { challengeId } = await challenge();
+      const { userId, challengeId } = await challenge();
 
       await assert.rejects(
-        repository().promote(challengeId, ABSENT_ID, [], false),
+        repository().promote(challengeId, userId, ABSENT_ID, [], false),
         rejectsWith('not-found'),
       );
     });
@@ -419,11 +426,45 @@ describe('tbrEntryRepository', () => {
       });
 
       await assert.rejects(
-        repository().promote(challengeId, tbrId, [], false),
+        repository().promote(challengeId, userId, tbrId, [], false),
         rejectsWith('not-found'),
       );
 
       assert.ok(await repository().get(second, tbrId));
+    });
+
+    test('refuses to reach another member’s entry', async () => {
+      const { pool, userId, challengeId, bookId } = await challenge();
+      const other = await seedUser(pool);
+      await seedMembership(pool, { challengeId, userId: other });
+      const tbrId = await repository().create(challengeId, userId, {
+        bookId,
+        plannedTagIds: [],
+      });
+
+      await assert.rejects(
+        repository().promote(challengeId, other, tbrId, [], false),
+        rejectsWith('not-found'),
+      );
+
+      assert.ok(await repository().get(challengeId, tbrId));
+      assert.equal(await readings().get(challengeId, tbrId), undefined);
+    });
+
+    test('refuses to report another member’s already-logged reading', async () => {
+      const { pool, userId, challengeId, bookId } = await challenge();
+      const other = await seedUser(pool);
+      await seedMembership(pool, { challengeId, userId: other });
+      const tbrId = await repository().create(challengeId, userId, {
+        bookId,
+        plannedTagIds: [],
+      });
+      await repository().promote(challengeId, userId, tbrId, [], false);
+
+      await assert.rejects(
+        repository().promote(challengeId, other, tbrId, [], false),
+        rejectsWith('not-found'),
+      );
     });
   });
 });

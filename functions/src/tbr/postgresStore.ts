@@ -50,9 +50,15 @@ export interface TBREntryRepository {
    *
    * The book and the author come from the stored entry, not the request — the
    * entry already names both, so there is nothing for a caller to disagree with.
+   *
+   * Takes `userId` where `update` and `remove` do not: those reject an entry the
+   * caller does not own through `get`, but the retry case has no entry row left
+   * to read an owner from, so another member's reading id would otherwise
+   * resolve and return their book.
    */
   promote(
     challengeId: string,
+    userId: string,
     tbrId: string,
     tagIds: string[],
     isFreebie: boolean,
@@ -229,24 +235,22 @@ export function tbrEntryRepository(db: Db = getPool()): TBREntryRepository {
       }
     },
 
-    async promote(challengeId, tbrId, tagIds, isFreebie) {
+    async promote(challengeId, userId, tbrId, tagIds, isFreebie) {
       try {
         return await inTransaction(db, async (client) => {
-          const { rows } = await client.query<{
-            user_id: string;
-            book_id: string;
-          }>(
-            `select user_id, book_id from tbr_entries
-              where challenge_id = $1 and id = $2
+          const { rows } = await client.query<{ book_id: string }>(
+            `select book_id from tbr_entries
+              where challenge_id = $1 and user_id = $2 and id = $3
               for update`,
-            [challengeId, tbrId],
+            [challengeId, userId, tbrId],
           );
 
           const entry = rows[0];
           if (!entry) {
             const logged = await client.query<{ book_id: string }>(
-              'select book_id from readings where challenge_id = $1 and id = $2',
-              [challengeId, tbrId],
+              `select book_id from readings
+                where challenge_id = $1 and user_id = $2 and id = $3`,
+              [challengeId, userId, tbrId],
             );
             const reading = logged.rows[0];
             if (!reading) throw new DomainError('not-found', GONE);
@@ -260,7 +264,7 @@ export function tbrEntryRepository(db: Db = getPool()): TBREntryRepository {
           await client.query(
             `insert into readings (id, challenge_id, user_id, book_id, is_freebie)
              values ($1, $2, $3, $4, $5)`,
-            [tbrId, challengeId, entry.user_id, entry.book_id, isFreebie],
+            [tbrId, challengeId, userId, entry.book_id, isFreebie],
           );
 
           for (const tagId of tagIds) {
@@ -272,8 +276,9 @@ export function tbrEntryRepository(db: Db = getPool()): TBREntryRepository {
           }
 
           await client.query(
-            'delete from tbr_entries where challenge_id = $1 and id = $2',
-            [challengeId, tbrId],
+            `delete from tbr_entries
+              where challenge_id = $1 and user_id = $2 and id = $3`,
+            [challengeId, userId, tbrId],
           );
 
           return {
