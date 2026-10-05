@@ -7,7 +7,10 @@ import {
   seedBook,
   seedChallenge,
   seedMembership,
+  seedReading,
+  seedReadingTag,
   seedTag,
+  seedTbrEntry,
   seedUser,
 } from '../testing/factories.js';
 import { JOIN_CODE_PATTERN } from './joinCode.js';
@@ -280,6 +283,89 @@ describe('challengeRepository', () => {
 
       assert.equal((await pool.query('select 1 from users')).rowCount, 1);
       assert.equal((await pool.query('select 1 from books')).rowCount, 1);
+    });
+
+    test('refuses a challenge holding an untagged reading', async () => {
+      const pool = testDb.db;
+      const userId = await seedUser(pool);
+      const bookId = await seedBook(pool);
+      const { challengeId } = await repository().create(userId, {
+        name: 'Summer',
+        tagCap: 3,
+      });
+      await seedReading(pool, { challengeId, userId, bookId });
+
+      await assert.rejects(
+        repository().remove(challengeId),
+        rejectsWith('conflict'),
+      );
+      assert.equal((await pool.query('select 1 from challenges')).rowCount, 1);
+      assert.equal((await pool.query('select 1 from readings')).rowCount, 1);
+    });
+
+    test('refuses a challenge holding a tagged reading', async () => {
+      const pool = testDb.db;
+      const userId = await seedUser(pool);
+      const bookId = await seedBook(pool);
+      const { challengeId } = await repository().create(userId, {
+        name: 'Summer',
+        tagCap: 3,
+      });
+      const tagId = await seedTag(pool, { challengeId });
+      const readingId = await seedReading(pool, {
+        challengeId,
+        userId,
+        bookId,
+      });
+      await seedReadingTag(pool, { readingId, tagId, challengeId });
+
+      await assert.rejects(
+        repository().remove(challengeId),
+        rejectsWith('conflict'),
+      );
+      assert.equal(
+        (await pool.query('select 1 from reading_tags')).rowCount,
+        1,
+      );
+    });
+
+    test('refuses a challenge holding only a reading list entry', async () => {
+      const pool = testDb.db;
+      const userId = await seedUser(pool);
+      const bookId = await seedBook(pool);
+      const { challengeId } = await repository().create(userId, {
+        name: 'Summer',
+        tagCap: 3,
+      });
+      await seedTbrEntry(pool, { challengeId, userId, bookId });
+
+      await assert.rejects(
+        repository().remove(challengeId),
+        rejectsWith('conflict'),
+      );
+      assert.equal((await pool.query('select 1 from tbr_entries')).rowCount, 1);
+    });
+
+    test('counts both kinds in the refusal message', async () => {
+      const pool = testDb.db;
+      const userId = await seedUser(pool);
+      const bookId = await seedBook(pool);
+      const { challengeId } = await repository().create(userId, {
+        name: 'Summer',
+        tagCap: 3,
+      });
+      await seedReading(pool, { challengeId, userId, bookId });
+      await seedReading(pool, { challengeId, userId, bookId });
+      await seedTbrEntry(pool, { challengeId, userId, bookId });
+
+      await assert.rejects(repository().remove(challengeId), (error) => {
+        assert.ok(error instanceof DomainError);
+        assert.equal(
+          error.message,
+          'That challenge cannot be deleted while it holds 2 readings and 1 reading list entry.',
+        );
+        return true;
+      });
     });
 
     test('rejects a challenge that is already gone', async () => {

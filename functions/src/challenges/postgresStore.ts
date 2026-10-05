@@ -97,6 +97,11 @@ interface MembershipRow {
   joined_at: Date;
 }
 
+interface DependentCountsRow {
+  readings: number;
+  tbr_entries: number;
+}
+
 function toChallenge(row: ChallengeRow): Challenge {
   return {
     id: row.id,
@@ -122,6 +127,21 @@ const MEMBERSHIP_COLUMNS = 'user_id, role, status, joined_at';
 
 const GONE = 'That challenge no longer exists.';
 
+const BLOCKED =
+  'That challenge cannot be deleted while readings or reading list entries exist in it.';
+
+function blockedBy(readings: number, tbrEntries: number): string {
+  const held = [
+    ...(readings > 0
+      ? [`${readings} ${readings === 1 ? 'reading' : 'readings'}`]
+      : []),
+    ...(tbrEntries > 0
+      ? [`${tbrEntries} reading list ${tbrEntries === 1 ? 'entry' : 'entries'}`]
+      : []),
+  ];
+  return `That challenge cannot be deleted while it holds ${held.join(' and ')}.`;
+}
+
 const CHALLENGE_ERRORS: ConstraintMessages = {
   challenges_created_by_fkey: ['not-found', 'That user no longer exists.'],
   challenges_name_check: ['invalid-input', 'Name must be 1 to 100 characters.'],
@@ -133,6 +153,10 @@ const CHALLENGE_ERRORS: ConstraintMessages = {
   memberships_challenge_id_fkey: ['not-found', GONE],
   join_codes_challenge_id_fkey: ['not-found', GONE],
   join_codes_created_by_fkey: ['not-found', 'That user no longer exists.'],
+  // Only reachable when a reading or reading list entry is inserted between
+  // `remove`'s count and its delete; the count reports the rows otherwise.
+  reading_tags_tag_id_challenge_id_fkey: ['conflict', BLOCKED],
+  tbr_entry_tags_tag_id_challenge_id_fkey: ['conflict', BLOCKED],
 };
 
 const JOIN_CODE_ATTEMPTS = 5;
@@ -261,11 +285,45 @@ export function challengeRepository(
       if (rowCount === 0) throw new DomainError('not-found', GONE);
     },
 
+    /**
+     * Readings and reading list entries block the delete rather than cascading
+     * with it. The schema cannot express that on its own: both reach the
+     * challenge through the composite membership foreign key, which cascades,
+     * and the `restrict` on the tag foreign keys only trips for a row that
+     * happens to be tagged.
+     */
     async remove(challengeId) {
-      const { rowCount } = await query('delete from challenges where id = $1', [
-        challengeId,
-      ]);
-      if (rowCount === 0) throw new DomainError('not-found', GONE);
+      try {
+        await inTransaction(db, async (client) => {
+          const { rows } = await client.query<DependentCountsRow>(
+            `select
+               (select count(*)::int from readings where challenge_id = $1)
+                 as readings,
+               (select count(*)::int from tbr_entries where challenge_id = $1)
+                 as tbr_entries`,
+            [challengeId],
+          );
+          const counts = rows[0];
+          if (!counts) throw new Error('counting dependents returned no row');
+
+          const { readings, tbr_entries: tbrEntries } = counts;
+          if (readings > 0 || tbrEntries > 0) {
+            throw new DomainError('conflict', blockedBy(readings, tbrEntries), {
+              challengeId,
+              readings,
+              tbrEntries,
+            });
+          }
+
+          const { rowCount } = await client.query(
+            'delete from challenges where id = $1',
+            [challengeId],
+          );
+          if (rowCount === 0) throw new DomainError('not-found', GONE);
+        });
+      } catch (error) {
+        throw toDomainError(error, rules);
+      }
     },
 
     // Absent and non-`active` are the same answer to the caller, so both are
