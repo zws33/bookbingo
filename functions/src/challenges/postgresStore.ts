@@ -130,18 +130,6 @@ const GONE = 'That challenge no longer exists.';
 const BLOCKED =
   'That challenge cannot be deleted while readings or reading list entries exist in it.';
 
-function blockedBy(readings: number, tbrEntries: number): string {
-  const held = [
-    ...(readings > 0
-      ? [`${readings} ${readings === 1 ? 'reading' : 'readings'}`]
-      : []),
-    ...(tbrEntries > 0
-      ? [`${tbrEntries} reading list ${tbrEntries === 1 ? 'entry' : 'entries'}`]
-      : []),
-  ];
-  return `That challenge cannot be deleted while it holds ${held.join(' and ')}.`;
-}
-
 const CHALLENGE_ERRORS: ConstraintMessages = {
   challenges_created_by_fkey: ['not-found', 'That user no longer exists.'],
   challenges_name_check: ['invalid-input', 'Name must be 1 to 100 characters.'],
@@ -169,11 +157,6 @@ function isCodeCollision(error: unknown): boolean {
   return code === '23505' && constraint === 'join_codes_pkey';
 }
 
-/**
- * A savepoint per attempt: a unique violation aborts the surrounding
- * transaction, so the challenge insert cannot be retried past it, and the
- * caller's transaction must survive a collision too.
- */
 async function insertJoinCode(
   client: Db,
   challengeId: string,
@@ -308,7 +291,7 @@ export function challengeRepository(
 
           const { readings, tbr_entries: tbrEntries } = counts;
           if (readings > 0 || tbrEntries > 0) {
-            throw new DomainError('conflict', blockedBy(readings, tbrEntries), {
+            throw new DomainError('conflict', BLOCKED, {
               challengeId,
               readings,
               tbrEntries,
