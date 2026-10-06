@@ -10,9 +10,10 @@ create table readings (
   created_at timestamptz not null default now(),
   updated_at timestamptz,
   -- Composite, so a reading cannot exist for someone who was never a member of
-  -- its challenge. Membership rows are never deleted, so the cascade only fires
-  -- when the challenge itself goes.
-  foreign key (challenge_id, user_id) references memberships (challenge_id, user_id) on delete cascade,
+  -- its challenge. Restrict, not cascade: membership rows are never deleted, so
+  -- this only fires for a challenge delete, which it blocks while any reading
+  -- remains. Deleting a challenge with history is an explicit ordered script.
+  foreign key (challenge_id, user_id) references memberships (challenge_id, user_id) on delete restrict,
   -- For the composite foreign key in `reading_tags`.
   unique (id, challenge_id)
 );

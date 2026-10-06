@@ -346,7 +346,9 @@ describe('challengeRepository', () => {
       assert.equal((await pool.query('select 1 from tbr_entries')).rowCount, 1);
     });
 
-    test('reports both counts in the error details', async () => {
+    // The constraint is the guarantee, not `remove`: a delete arriving from
+    // anywhere else is refused on the same key.
+    test('refuses a raw delete that bypasses the repository', async () => {
       const pool = testDb.db;
       const userId = await seedUser(pool);
       const bookId = await seedBook(pool);
@@ -355,19 +357,11 @@ describe('challengeRepository', () => {
         tagCap: 3,
       });
       await seedReading(pool, { challengeId, userId, bookId });
-      await seedReading(pool, { challengeId, userId, bookId });
-      await seedTbrEntry(pool, { challengeId, userId, bookId });
 
-      await assert.rejects(repository().remove(challengeId), (error) => {
-        assert.ok(error instanceof DomainError);
-        assert.equal(error.kind, 'conflict');
-        assert.deepEqual(error.details, {
-          challengeId,
-          readings: 2,
-          tbrEntries: 1,
-        });
-        return true;
-      });
+      await assert.rejects(
+        pool.query('delete from challenges where id = $1', [challengeId]),
+        { code: '23001', constraint: 'readings_challenge_id_user_id_fkey' },
+      );
     });
 
     test('rejects a challenge that is already gone', async () => {

@@ -97,11 +97,6 @@ interface MembershipRow {
   joined_at: Date;
 }
 
-interface DependentCountsRow {
-  readings: number;
-  tbr_entries: number;
-}
-
 function toChallenge(row: ChallengeRow): Challenge {
   return {
     id: row.id,
@@ -141,10 +136,8 @@ const CHALLENGE_ERRORS: ConstraintMessages = {
   memberships_challenge_id_fkey: ['not-found', GONE],
   join_codes_challenge_id_fkey: ['not-found', GONE],
   join_codes_created_by_fkey: ['not-found', 'That user no longer exists.'],
-  // Only reachable when a reading or reading list entry is inserted between
-  // `remove`'s count and its delete; the count reports the rows otherwise.
-  reading_tags_tag_id_challenge_id_fkey: ['conflict', BLOCKED],
-  tbr_entry_tags_tag_id_challenge_id_fkey: ['conflict', BLOCKED],
+  readings_challenge_id_user_id_fkey: ['conflict', BLOCKED],
+  tbr_entries_challenge_id_user_id_fkey: ['conflict', BLOCKED],
 };
 
 const JOIN_CODE_ATTEMPTS = 5;
@@ -269,44 +262,16 @@ export function challengeRepository(
     },
 
     /**
-     * Readings and reading list entries block the delete rather than cascading
-     * with it. The schema cannot express that on its own: both reach the
-     * challenge through the composite membership foreign key, which cascades,
-     * and the `restrict` on the tag foreign keys only trips for a row that
-     * happens to be tagged.
+     * Tags, memberships and the join code cascade. A reading or TBR entry
+     * blocks the delete instead: both reference `memberships` with `restrict`,
+     * and membership rows are never deleted, so that key fires for nothing
+     * else.
      */
     async remove(challengeId) {
-      try {
-        await inTransaction(db, async (client) => {
-          const { rows } = await client.query<DependentCountsRow>(
-            `select
-               (select count(*)::int from readings where challenge_id = $1)
-                 as readings,
-               (select count(*)::int from tbr_entries where challenge_id = $1)
-                 as tbr_entries`,
-            [challengeId],
-          );
-          const counts = rows[0];
-          if (!counts) throw new Error('counting dependents returned no row');
-
-          const { readings, tbr_entries: tbrEntries } = counts;
-          if (readings > 0 || tbrEntries > 0) {
-            throw new DomainError('conflict', BLOCKED, {
-              challengeId,
-              readings,
-              tbrEntries,
-            });
-          }
-
-          const { rowCount } = await client.query(
-            'delete from challenges where id = $1',
-            [challengeId],
-          );
-          if (rowCount === 0) throw new DomainError('not-found', GONE);
-        });
-      } catch (error) {
-        throw toDomainError(error, rules);
-      }
+      const { rowCount } = await query('delete from challenges where id = $1', [
+        challengeId,
+      ]);
+      if (rowCount === 0) throw new DomainError('not-found', GONE);
     },
 
     // Absent and non-`active` are the same answer to the caller, so both are
