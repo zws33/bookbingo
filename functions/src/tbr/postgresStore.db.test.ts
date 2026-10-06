@@ -305,13 +305,13 @@ describe('tbrEntryRepository', () => {
         plannedTagIds: [planned],
       });
 
-      const outcome = await repository().promote(
+      const outcome = await repository().promote({
         challengeId,
         userId,
         tbrId,
-        [logged],
-        false,
-      );
+        tagIds: [logged],
+        isFreebie: false,
+      });
 
       assert.deepEqual(outcome, {
         readingId: tbrId,
@@ -336,7 +336,13 @@ describe('tbrEntryRepository', () => {
         plannedTagIds: [],
       });
 
-      await repository().promote(challengeId, userId, tbrId, [], true);
+      await repository().promote({
+        challengeId,
+        userId,
+        tbrId,
+        tagIds: [],
+        isFreebie: true,
+      });
 
       assert.equal((await readings().get(challengeId, tbrId))?.isFreebie, true);
     });
@@ -347,15 +353,16 @@ describe('tbrEntryRepository', () => {
         bookId,
         plannedTagIds: [],
       });
-      await repository().promote(challengeId, userId, tbrId, [], false);
-
-      const outcome = await repository().promote(
+      const promotion = {
         challengeId,
         userId,
         tbrId,
-        [],
-        false,
-      );
+        tagIds: [],
+        isFreebie: false,
+      };
+      await repository().promote(promotion);
+
+      const outcome = await repository().promote(promotion);
 
       assert.deepEqual(outcome, {
         readingId: tbrId,
@@ -383,7 +390,13 @@ describe('tbrEntryRepository', () => {
       });
 
       await assert.rejects(
-        repository().promote(challengeId, userId, tbrId, [], true),
+        repository().promote({
+          challengeId,
+          userId,
+          tbrId,
+          tagIds: [],
+          isFreebie: true,
+        }),
         rejectsWith('conflict'),
       );
 
@@ -399,7 +412,13 @@ describe('tbrEntryRepository', () => {
       });
 
       await assert.rejects(
-        repository().promote(challengeId, userId, tbrId, [ABSENT_ID], false),
+        repository().promote({
+          challengeId,
+          userId,
+          tbrId,
+          tagIds: [ABSENT_ID],
+          isFreebie: false,
+        }),
         rejectsWith('invalid-input'),
       );
 
@@ -411,7 +430,13 @@ describe('tbrEntryRepository', () => {
       const { userId, challengeId } = await challenge();
 
       await assert.rejects(
-        repository().promote(challengeId, userId, ABSENT_ID, [], false),
+        repository().promote({
+          challengeId,
+          userId,
+          tbrId: ABSENT_ID,
+          tagIds: [],
+          isFreebie: false,
+        }),
         rejectsWith('not-found'),
       );
     });
@@ -426,7 +451,13 @@ describe('tbrEntryRepository', () => {
       });
 
       await assert.rejects(
-        repository().promote(challengeId, userId, tbrId, [], false),
+        repository().promote({
+          challengeId,
+          userId,
+          tbrId,
+          tagIds: [],
+          isFreebie: false,
+        }),
         rejectsWith('not-found'),
       );
 
@@ -443,7 +474,13 @@ describe('tbrEntryRepository', () => {
       });
 
       await assert.rejects(
-        repository().promote(challengeId, other, tbrId, [], false),
+        repository().promote({
+          challengeId,
+          userId: other,
+          tbrId,
+          tagIds: [],
+          isFreebie: false,
+        }),
         rejectsWith('not-found'),
       );
 
@@ -459,10 +496,22 @@ describe('tbrEntryRepository', () => {
         bookId,
         plannedTagIds: [],
       });
-      await repository().promote(challengeId, userId, tbrId, [], false);
+      await repository().promote({
+        challengeId,
+        userId,
+        tbrId,
+        tagIds: [],
+        isFreebie: false,
+      });
 
       await assert.rejects(
-        repository().promote(challengeId, other, tbrId, [], false),
+        repository().promote({
+          challengeId,
+          userId: other,
+          tbrId,
+          tagIds: [],
+          isFreebie: false,
+        }),
         rejectsWith('not-found'),
       );
     });

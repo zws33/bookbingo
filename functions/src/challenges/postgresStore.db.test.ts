@@ -346,7 +346,7 @@ describe('challengeRepository', () => {
       assert.equal((await pool.query('select 1 from tbr_entries')).rowCount, 1);
     });
 
-    test('counts both kinds in the refusal message', async () => {
+    test('reports both counts in the error details', async () => {
       const pool = testDb.db;
       const userId = await seedUser(pool);
       const bookId = await seedBook(pool);
@@ -360,10 +360,12 @@ describe('challengeRepository', () => {
 
       await assert.rejects(repository().remove(challengeId), (error) => {
         assert.ok(error instanceof DomainError);
-        assert.equal(
-          error.message,
-          'That challenge cannot be deleted while it holds 2 readings and 1 reading list entry.',
-        );
+        assert.equal(error.kind, 'conflict');
+        assert.deepEqual(error.details, {
+          challengeId,
+          readings: 2,
+          tbrEntries: 1,
+        });
         return true;
       });
     });

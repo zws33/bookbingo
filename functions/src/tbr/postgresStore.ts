@@ -21,6 +21,14 @@ export interface TBREntryFields {
   notes?: string | undefined;
 }
 
+export interface PromotionRequest {
+  challengeId: string;
+  userId: string;
+  tbrId: string;
+  tagIds: string[];
+  isFreebie: boolean;
+}
+
 export interface PromotionOutcome {
   readingId: string;
   bookId: string;
@@ -42,27 +50,7 @@ export interface TBREntryRepository {
     fields: Omit<TBREntryFields, 'bookId'>,
   ): Promise<void>;
   remove(challengeId: string, tbrId: string): Promise<void>;
-  /**
-   * The reading takes the entry's id, which makes a retry safe: if the entry is
-   * already gone but a reading exists at that id, the first call succeeded and
-   * its response was lost, so this reports that reading rather than claiming the
-   * entry "no longer exists" for a book the user did log.
-   *
-   * The book and the author come from the stored entry, not the request — the
-   * entry already names both, so there is nothing for a caller to disagree with.
-   *
-   * Takes `userId` where `update` and `remove` do not: those reject an entry the
-   * caller does not own through `get`, but the retry case has no entry row left
-   * to read an owner from, so another member's reading id would otherwise
-   * resolve and return their book.
-   */
-  promote(
-    challengeId: string,
-    userId: string,
-    tbrId: string,
-    tagIds: string[],
-    isFreebie: boolean,
-  ): Promise<PromotionOutcome>;
+  promote(request: PromotionRequest): Promise<PromotionOutcome>;
 }
 
 interface TBREntryRow {
@@ -235,7 +223,7 @@ export function tbrEntryRepository(db: Db = getPool()): TBREntryRepository {
       }
     },
 
-    async promote(challengeId, userId, tbrId, tagIds, isFreebie) {
+    async promote({ challengeId, userId, tbrId, tagIds, isFreebie }) {
       try {
         return await inTransaction(db, async (client) => {
           const { rows } = await client.query<{ book_id: string }>(
