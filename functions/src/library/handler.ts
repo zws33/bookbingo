@@ -4,7 +4,8 @@ import { requireAuth } from '../callable.js';
 import { logFailure, logWarning } from '../observability.js';
 import type { UserProfileRepository } from '../users/store.js';
 import type { ReadingRepository } from '../readings/store.js';
-import { MissingBookError, type BookRepository } from '../books/store.js';
+import { MissingBookError } from '../books/errors.js';
+import type { BookRepository } from '../books/store.js';
 
 export interface LibraryReader {
   userId: string;

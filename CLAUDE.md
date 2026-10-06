@@ -33,9 +33,8 @@ Rules:
 - `books/`, `config/` and `feedback/` keep free functions — they have no repository dependencies.
 - Handler tests use a fake repository whose methods reject unless overridden, so an unexpected call fails loudly.
 
-Two deviations are deliberate:
+One deviation is deliberate:
 
-- **No Unit of Work.** `tbr/store.ts` imports `readings/store.ts` because the promote transaction spans both collections and Firestore requires one callback. Passing a `Transaction` across a repository boundary would leak `firebase-admin` inward, which is worse. Introduce Unit of Work when a _second_ cross-aggregate transaction appears.
 - **Responses flatten the book** as `bookTitle`/`bookAuthor`/`bookMetadata`. The target is a nested `book: Book`, matching what `getLibrary` and `fetchBookDetails` already return. It is the only non-backward-compatible change pending and needs a coordinated `deploy:all`.
 
 ## Git

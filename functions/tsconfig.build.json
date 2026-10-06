@@ -8,7 +8,7 @@
     "paths": { "@bookbingo/lib-types": ["../lib/types/src/index.ts"] }
   },
   "include": ["src"],
-  "exclude": ["src/**/*.test.ts"],
+  "exclude": ["src/**/*.test.ts", "src/testing"],
   "references": [
     { "path": "../lib/types/tsconfig.build.json" },
     { "path": "../lib/util/tsconfig.build.json" }

@@ -11,6 +11,7 @@
   },
   "scripts": {
     "test": "pnpm -r test",
+    "test:db": "pnpm run db:migrate && pnpm --filter @bookbingo/functions run test:db",
     "lint": "eslint . --max-warnings 0",
     "format": "prettier --write .",
     "format:check": "prettier --check .",

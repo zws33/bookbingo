@@ -12,7 +12,8 @@ import { toTBREntryDTO, type TBREntryDTO } from './present.js';
 import { validateReadingTiles, validateTileIds } from '../readings/validate.js';
 import { MAX_TILES_PER_BOOK, TILE_IDS } from '../domain/constants.js';
 import { attachBooks } from '../books/join.js';
-import { MissingBookError, type BookRepository } from '../books/store.js';
+import { MissingBookError } from '../books/errors.js';
+import type { BookRepository } from '../books/store.js';
 
 export function tbrHandlers(
   tbrRepo: TBREntryRepository,

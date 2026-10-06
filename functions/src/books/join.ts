@@ -1,5 +1,6 @@
 import type { Book } from '@bookbingo/lib-types';
-import { MissingBookError, type BookRepository } from './store.js';
+import { MissingBookError } from './errors.js';
+import type { BookRepository } from './store.js';
 
 /**
  * Attaches each item's book in one batched read, preserving input order.
