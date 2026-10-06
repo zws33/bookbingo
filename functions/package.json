@@ -6,7 +6,8 @@
   "main": "lib/index.js",
   "scripts": {
     "build": "tsc -b tsconfig.build.json",
-    "test": "node --import tsx --test \"src/**/*.test.ts\""
+    "test": "node --import tsx --test \"src/**/!(*.db).test.ts\"",
+    "test:db": "node --env-file=.env.local --test-concurrency=1 --import tsx --test \"src/**/*.db.test.ts\""
   },
   "engines": {
     "node": "22"
