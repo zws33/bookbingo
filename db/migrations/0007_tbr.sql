@@ -8,7 +8,9 @@ create table tbr_entries (
   notes text check (length(notes) <= 2000),
   added_at timestamptz not null default now(),
   updated_at timestamptz,
-  foreign key (challenge_id, user_id) references memberships (challenge_id, user_id) on delete cascade,
+  -- Restrict for the same reason as `readings`: it blocks a challenge delete
+  -- while any entry remains.
+  foreign key (challenge_id, user_id) references memberships (challenge_id, user_id) on delete restrict,
   -- Redundant with the primary key, but `tbr_entry_tags` needs it as the target
   -- of a composite foreign key.
   unique (id, challenge_id)
@@ -25,7 +27,8 @@ create table tbr_entry_tags (
   -- another challenge's vocabulary cannot be attached.
   challenge_id uuid not null,
   primary key (tbr_entry_id, tag_id),
-  foreign key (tbr_entry_id, challenge_id) references tbr_entries (id, challenge_id) on delete cascade,
+  -- Restrict, as in `reading_tags`: an entry's tag rows go by name first.
+  foreign key (tbr_entry_id, challenge_id) references tbr_entries (id, challenge_id) on delete restrict,
   foreign key (tag_id, challenge_id) references tags (id, challenge_id) on delete restrict
 );
 
