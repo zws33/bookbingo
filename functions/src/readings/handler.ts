@@ -11,7 +11,8 @@ import type { UserProfileRepository } from '../users/store.js';
 import type { ReadingRepository } from './store.js';
 import { toReadingDTO, type ReadingDTO } from './present.js';
 import { attachBooks } from '../books/join.js';
-import { MissingBookError, type BookRepository } from '../books/store.js';
+import { MissingBookError } from '../books/errors.js';
+import type { BookRepository } from '../books/store.js';
 import { scoreOf, validateReadingTiles, type ScoreDTO } from './validate.js';
 import { MAX_TILES_PER_BOOK, TILE_IDS } from '../domain/constants.js';
 
