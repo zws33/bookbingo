@@ -29,7 +29,8 @@ Where the implementation departed from the plan below:
 8. `tags.update`/`remove` and every `readings`/`tbr` write take `challengeId` and scope the `where` clause on it, so a cross-challenge id resolves to no row rather than being written.
 9. `MissingBookError` moved to `books/errors.ts` and its four importers moved with it. The planned re-export from `books/store.ts` was dropped — a shim with nothing left to shim is a second place to look for one class.
 10. Added beyond the planned surface: `challenges.listMembers`, `challenges.getJoinCode`, `tbr.get`.
-11. The test-database guard was hardened after review: it moved from an exported `resetDatabase()` that never called it to a precondition of `connectTestDatabase()`, the harness took its own pool from `TEST_DATABASE_URL`, and a database-level marker replaced the name heuristic.
+11. **No cascade anywhere in a challenge's subtree.** `memberships`, `tags` and `join_codes` referenced `challenges` with `on delete cascade`, and `reading_tags` / `tbr_entry_tags` referenced their own parent row the same way. All five are now `restrict`, so no row is ever deleted implicitly: `challenges.remove` clears the scaffolding by name, and a reading or TBR entry blocks it. The cost is that `readings.remove`, `tbr.remove` and `tbr.promote` must clear their tag rows before the parent row.
+12. The test-database guard was hardened after review: it moved from an exported `resetDatabase()` that never called it to a precondition of `connectTestDatabase()`, the harness took its own pool from `TEST_DATABASE_URL`, and a database-level marker replaced the name heuristic.
 
 ## Settled
 
@@ -158,7 +159,8 @@ Happy path per repository, then the constraints — the reason for moving off Fi
 - Second freebie for the same member → `conflict` (`readings_one_freebie_idx`).
 - Tag label differing only in case → `conflict` (`tags_challenge_label_idx`).
 - Tag delete with reading history → `conflict`, with a message saying history blocks it, not a raw violation.
-- `delete from challenges` cascades tags, memberships, readings, `reading_tags`, TBR entries and the join code; `books` and `users` survive.
+- `challenges.remove` deletes tags, memberships and the join code by name, in one transaction; `books` and `users` survive. Nothing in the subtree cascades, so a raw `delete from challenges` is refused.
+- A challenge holding a reading or TBR entry is refused: `readings` and `tbr_entries` hold the membership row down with `restrict`. Clearing history is an explicit ordered script, never a repository method.
 - `users` delete attempt → rejected (`on delete restrict`).
 - Non-uuid `challengeId` → `not-found`, not a 500.
 - `rotateJoinCode` leaves exactly one row for the challenge.

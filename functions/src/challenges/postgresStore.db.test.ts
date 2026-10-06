@@ -253,7 +253,7 @@ describe('challengeRepository', () => {
   });
 
   describe('remove', () => {
-    test('cascades the tags, memberships and join code', async () => {
+    test('deletes the tags, memberships and join code by name', async () => {
       const pool = testDb.db;
       const userId = await seedUser(pool);
       const { challengeId } = await repository().create(userId, {
@@ -266,7 +266,7 @@ describe('challengeRepository', () => {
 
       for (const table of ['tags', 'memberships', 'join_codes']) {
         const { rowCount } = await pool.query(`select 1 from ${table}`);
-        assert.equal(rowCount, 0, `${table} should have cascaded`);
+        assert.equal(rowCount, 0, `${table} should have been deleted`);
       }
     });
 
@@ -346,9 +346,40 @@ describe('challengeRepository', () => {
       assert.equal((await pool.query('select 1 from tbr_entries')).rowCount, 1);
     });
 
-    // The constraint is the guarantee, not `remove`: a delete arriving from
-    // anywhere else is refused on the same key.
-    test('refuses a raw delete that bypasses the repository', async () => {
+    // Nothing in the subtree cascades, so a delete that skips the ordered
+    // cleanup is refused on a child it leaves behind — even for a challenge
+    // holding no history at all. Which child reports it is not ordered.
+    test('refuses a raw delete that bypasses the ordered cleanup', async () => {
+      const pool = testDb.db;
+      const userId = await seedUser(pool);
+      const { challengeId } = await repository().create(userId, {
+        name: 'Summer',
+        tagCap: 3,
+      });
+
+      await assert.rejects(
+        pool.query('delete from challenges where id = $1', [challengeId]),
+        (error: unknown) => {
+          const { code, constraint } = error as {
+            code?: string;
+            constraint?: string;
+          };
+          assert.equal(code, '23001');
+          assert.ok(
+            [
+              'memberships_challenge_id_fkey',
+              'tags_challenge_id_fkey',
+              'join_codes_challenge_id_fkey',
+            ].includes(constraint ?? ''),
+            `unexpected constraint: ${constraint}`,
+          );
+          return true;
+        },
+      );
+    });
+
+    // A reading's tag rows no longer vanish with it either.
+    test('refuses a raw reading delete while its tag rows remain', async () => {
       const pool = testDb.db;
       const userId = await seedUser(pool);
       const bookId = await seedBook(pool);
@@ -356,11 +387,20 @@ describe('challengeRepository', () => {
         name: 'Summer',
         tagCap: 3,
       });
-      await seedReading(pool, { challengeId, userId, bookId });
+      const tagId = await seedTag(pool, { challengeId });
+      const readingId = await seedReading(pool, {
+        challengeId,
+        userId,
+        bookId,
+      });
+      await seedReadingTag(pool, { readingId, tagId, challengeId });
 
       await assert.rejects(
-        pool.query('delete from challenges where id = $1', [challengeId]),
-        { code: '23001', constraint: 'readings_challenge_id_user_id_fkey' },
+        pool.query('delete from readings where id = $1', [readingId]),
+        {
+          code: '23001',
+          constraint: 'reading_tags_reading_id_challenge_id_fkey',
+        },
       );
     });
 

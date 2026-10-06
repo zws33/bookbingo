@@ -27,7 +27,8 @@ create table tbr_entry_tags (
   -- another challenge's vocabulary cannot be attached.
   challenge_id uuid not null,
   primary key (tbr_entry_id, tag_id),
-  foreign key (tbr_entry_id, challenge_id) references tbr_entries (id, challenge_id) on delete cascade,
+  -- Restrict, as in `reading_tags`: an entry's tag rows go by name first.
+  foreign key (tbr_entry_id, challenge_id) references tbr_entries (id, challenge_id) on delete restrict,
   foreign key (tag_id, challenge_id) references tags (id, challenge_id) on delete restrict
 );
 

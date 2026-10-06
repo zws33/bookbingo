@@ -2,10 +2,12 @@ create type member_role as enum ('member', 'admin', 'owner');
 
 create type membership_status as enum ('active', 'left', 'removed');
 
--- Rows are never deleted: leaving and removal change `status`, and the readings
--- of a departed member stay joinable.
+-- Leaving and removal change `status`; a departed member's readings stay
+-- joinable. The only delete is `challenges.remove` clearing the challenge, and
+-- `restrict` on both keys makes that the one path: readings and TBR entries
+-- hold the membership row down until history is cleared by script.
 create table memberships (
-  challenge_id uuid not null references challenges (id) on delete cascade,
+  challenge_id uuid not null references challenges (id) on delete restrict,
   user_id text not null references users (id) on delete restrict,
   role member_role not null default 'member',
   status membership_status not null default 'active',

@@ -262,16 +262,29 @@ export function challengeRepository(
     },
 
     /**
-     * Tags, memberships and the join code cascade. A reading or TBR entry
-     * blocks the delete instead: both reference `memberships` with `restrict`,
-     * and membership rows are never deleted, so that key fires for nothing
-     * else.
+     * Nothing in the subtree cascades, so each child is deleted by name.
+     * Memberships go first because that is where history stops the delete:
+     * `readings` and `tbr_entries` hold the membership row down, and clearing
+     * them is an explicit script, never this method.
      */
     async remove(challengeId) {
-      const { rowCount } = await query('delete from challenges where id = $1', [
-        challengeId,
-      ]);
-      if (rowCount === 0) throw new DomainError('not-found', GONE);
+      try {
+        await inTransaction(db, async (client) => {
+          for (const table of ['memberships', 'tags', 'join_codes']) {
+            await client.query(`delete from ${table} where challenge_id = $1`, [
+              challengeId,
+            ]);
+          }
+
+          const { rowCount } = await client.query(
+            'delete from challenges where id = $1',
+            [challengeId],
+          );
+          if (rowCount === 0) throw new DomainError('not-found', GONE);
+        });
+      } catch (error) {
+        throw toDomainError(error, rules);
+      }
     },
 
     // Absent and non-`active` are the same answer to the caller, so both are
