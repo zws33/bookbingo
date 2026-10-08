@@ -33,9 +33,6 @@ pnpm install
 
 # Start the web app and Firebase emulators together
 pnpm run dev:local
-
-# Optional: seed the local emulator with sample data
-pnpm run emulator:seed
 ```
 
 Open http://localhost:5173 in your browser.

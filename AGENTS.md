@@ -10,7 +10,6 @@ strict + ESM only. Deeper context lives in `CLAUDE.md`,
   `npm` or `yarn`. CI uses `pnpm install --frozen-lockfile`.
 - Local dev: `pnpm run dev:local` (web + Firebase emulators). No real Firebase
   credentials needed — emulator flow uses committed `.env.emulator`.
-  `pnpm run emulator:seed` for sample data.
 - Real environments copy `app/web/.env.example` → `.env.staging` / `.env.prod`
   and run `dev:web:staging` / `dev:web:prod`. Missing `VITE_FIREBASE_*` fails
   the build by design.
