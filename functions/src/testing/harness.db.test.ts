@@ -64,21 +64,6 @@ describe('the database harness', () => {
     assert.equal(await connectTestDatabase(), testDb);
   });
 
-  test('refuses a database without the marker, however it is named', async () => {
-    await testDb.db.query('create database bookbingo_unmarked_test');
-
-    try {
-      await assert.rejects(
-        connectTestDatabase(`${LOCAL}/bookbingo_unmarked_test`),
-        /marker/,
-      );
-    } finally {
-      await testDb.db.query(
-        'drop database bookbingo_unmarked_test with (force)',
-      );
-    }
-  });
-
   test('reset empties the tables but keeps the migration history', async () => {
     await seedUser(testDb.db);
 

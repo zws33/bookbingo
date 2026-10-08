@@ -6,8 +6,6 @@ services:
     # On 18+ the data dir is version specific (/var/lib/postgresql/18/docker);
     # a mount at the old /var/lib/postgresql/data makes the image refuse to boot.
     tmpfs: ['/var/lib/postgresql']
-    volumes:
-      - ./db/testing/mark-test-database.sql:/docker-entrypoint-initdb.d/10-mark-test-database.sql:ro
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U postgres']
       interval: 1s

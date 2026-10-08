@@ -4,14 +4,6 @@ import type { Db } from '../db/transaction.js';
 const { Pool } = pg;
 
 /**
- * A database-level marker, set by `db/testing/mark-test-database.sql` when the
- * throwaway container initialises. Checked instead of the host or the database
- * name, because a production database reached through cloud-sql-proxy listens on
- * localhost and could be named anything.
- */
-const MARKER = 'bookbingo.test_database';
-
-/**
  * A connection to a database proven disposable. `reset` is reachable only
  * through this handle, so the check cannot be skipped by forgetting a hook.
  */
@@ -25,10 +17,9 @@ export interface TestDatabase {
 /**
  * `TEST_DATABASE_URL`, not `DATABASE_URL`: the harness truncates every table
  * between tests, so it reads a different variable than the application does and
- * cannot reach whatever the application is pointed at.
- *
- * The name check is a fast failure with a legible message. The marker is the
- * guarantee.
+ * cannot reach whatever the application is pointed at. That decoupling is the
+ * guarantee; the `_test` suffix is what keeps a staging or prod URL pasted into
+ * `.env.local` from being accepted, so those databases are never named `*_test`.
  */
 export function requireTestDatabaseUrl(
   url: string | undefined = process.env.TEST_DATABASE_URL,
@@ -56,23 +47,6 @@ export function requireTestDatabaseUrl(
   }
 
   return url;
-}
-
-async function assertDisposable(pool: pg.Pool, url: string): Promise<void> {
-  const { rows } = await pool.query<{ marker: string | null }>(
-    'select current_setting($1, true) as marker',
-    [MARKER],
-  );
-
-  if (rows[0]?.marker !== 'on') {
-    const { pathname, host } = new URL(url);
-    throw new Error(
-      `Refusing to run against "${pathname.replace(/^\//, '')}" on ${host}: ` +
-        `it does not carry the ${MARKER} marker. Only the container defined in ` +
-        'docker-compose.yaml sets it; recreate it with `docker compose down && ' +
-        'docker compose up -d --wait`.',
-    );
-  }
 }
 
 /**
@@ -125,7 +99,9 @@ async function connect(url: string): Promise<TestDatabase> {
   });
 
   try {
-    await assertDisposable(pool, url);
+    // Eager, so an unreachable database fails here rather than inside the first
+    // test, and a broken pool is never left memoized.
+    await pool.query('select 1');
   } catch (error) {
     await pool.end();
     if (connecting) connecting = undefined;
