@@ -63,7 +63,7 @@ Foreign-key order. Each table is one transaction; the run is not, so a failure l
 
 `--check-only` runs these and writes nothing. Each is a constraint the destination enforces anyway; checking here turns a half-applied migration into a report. Run it against **prod** Firestore before step 2, not just before step 7 — prod is the data that has to land.
 
-1. **Book id shape** — `books.id check (id ~ '^[0-9a-f]{32}$')`. A book still on a Firestore auto-id is rejected. `scripts/migrate-book-identity.ts` should have removed these; confirm.
+1. **Book id shape** — `books.id check (id ~ '^[0-9a-f]{32}$')`. A book still on a Firestore auto-id is rejected. Verified clean against prod on 2026-10-08: 135 of 135 docs already sit at their derived id. `createBookIfAbsent` is the only write path into `/books` and both callers pass `deriveBookId`, so no new offender can appear.
 2. **Book title and author non-blank** — both are `check (length(btrim(…)) > 0)`.
 3. **External ref uniqueness** — `unique (source, external_id)`. Two books claiming one Open Library work key collide.
 4. **Unknown tile ids** — any `tiles[]` or `plannedTiles[]` entry not in `TILE_IDS` has no tag row and fails the composite foreign key.

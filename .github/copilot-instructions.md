@@ -13,7 +13,6 @@ pnpm run dev:web:emulator
 pnpm run dev:web:staging
 pnpm run dev:web:prod
 pnpm run emulator:start
-pnpm run emulator:seed
 
 pnpm run format
 pnpm run format:check
