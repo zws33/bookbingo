@@ -8,6 +8,7 @@ import {
 import { migrateUsers } from './users.js';
 import { migrateBooks } from './books.js';
 import { migrateChallenge } from './challenges.js';
+import { migrateTags } from './tags.js';
 import { DEFAULT_CHALLENGE_NAME } from './constants.js';
 
 const projectId = parseFlag('project') ?? STAGING_PROJECT_ID;
@@ -40,6 +41,9 @@ async function main() {
       `challenge: ${challengeName} (join code ${challenge.joinCode}), ` +
         `members: ${challenge.memberCount}`,
     );
+
+    const tagIdsByTile = await migrateTags(pgClient);
+    console.log(`tags: ${tagIdsByTile.size}`);
   } finally {
     await pgClient.end();
   }
