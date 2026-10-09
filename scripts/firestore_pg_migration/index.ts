@@ -5,6 +5,7 @@ import {
   STAGING_PROJECT_ID,
 } from '../lib/admin.firebase.js';
 import { migrateUsers } from './users.js';
+import { migrateBooks } from './books.js';
 
 const projectId = parseFlag('project') ?? STAGING_PROJECT_ID;
 
@@ -15,6 +16,9 @@ async function main() {
 
   try {
     console.log(`users: ${await migrateUsers(firestore, pgClient)}`);
+
+    const bookIds = await migrateBooks(firestore, pgClient);
+    console.log(`books: ${bookIds.length}`);
   } finally {
     await pgClient.end();
   }
