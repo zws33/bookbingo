@@ -5,10 +5,7 @@ interface BookMetadata {
   thumbnailUrl?: string | null;
 }
 
-/**
- * Documents written before `enrichedAt` was dropped hold `{ key, enrichedAt }`
- * where later ones hold a plain string.
- */
+// Older documents hold `{ key, enrichedAt }` where later ones hold a string.
 type ExternalIds =
   | { openLibrary?: string | { key: string } | null }
   | undefined;
@@ -19,13 +16,7 @@ function openLibraryKey(externalIds: ExternalIds): string | null {
   return typeof value === 'string' ? value : value.key;
 }
 
-/**
- * `books.created_by` is omitted, not passed as null: Firestore's book
- * documents record no creator, so attribution starts empty rather than wrong.
- *
- * The other five `metadata` fields (pageCount, publishedDate, categories,
- * language, isbn) have no columns in 0002_books.sql and are dropped.
- */
+// `created_by` is omitted: Firestore records no book creator.
 export async function migrateBooks(
   firestore: Firestore,
   pgClient: pg.Client,
@@ -54,7 +45,6 @@ export async function migrateBooks(
       (data.createdAt as Timestamp | undefined)?.toDate() ?? new Date(),
     );
 
-    // Absent for a manually entered book, which has no external catalog entry.
     const workKey = openLibraryKey(data.externalIds as ExternalIds);
     if (workKey) {
       refBookIds.push(doc.id);
@@ -68,7 +58,6 @@ export async function migrateBooks(
      select * from unnest($1::text[], $2::text[], $3::text[], $4::text[], $5::timestamptz[])`,
     [ids, titles, authors, thumbnailUrls, createdAts],
   );
-  // `details` keeps its '{}' default: Firestore stores no provider payload.
   await pgClient.query(
     `insert into book_external_refs (book_id, source, external_id)
      select book_id, 'openLibrary', external_id

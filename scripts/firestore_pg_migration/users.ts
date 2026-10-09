@@ -16,8 +16,7 @@ export async function migrateUsers(
     const data = doc.data();
 
     ids.push(doc.id);
-    // `users.name` is `not null`; naming the column means its default never
-    // fires, so an absent or blank name has to be substituted here.
+    // `not null` with a default the named-column insert never fires.
     names.push((data.name as string | undefined)?.trim() || 'User');
     photoUrls.push((data.photoURL as string | null | undefined) ?? null);
     createdAts.push(
