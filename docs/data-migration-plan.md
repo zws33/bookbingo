@@ -6,14 +6,18 @@ Firestore is left intact: the script never writes to it or deletes from it.
 
 ## Objective
 
-`scripts/migrate-firestore-to-postgres.ts`, **single-run** — it requires an empty destination and refuses a populated one. Running it twice is not supported; the way to run it again is to clear the destination first. The migration happens once per database, so idempotent upserts and a stored id remap buy nothing and cost a derivation that has to be right.
+`scripts/firestore_pg_migration/`, **single-run** — it requires an empty destination. Running it twice is not supported; the way to run it again is to clear the destination first. The migration happens once per database, so idempotent upserts and a stored id remap buy nothing and cost a derivation that has to be right.
 
 ```
-pnpm exec tsx scripts/migrate-firestore-to-postgres.ts \
-  --project <firebase-project> [--check-only] [--force-skip-invalid]
+DATABASE_URL=… pnpm exec tsx scripts/firestore_pg_migration/index.ts \
+  --project <firebase-project> [--owner <email> | --owner-uid <uid>] [--challenge-name <name>]
 ```
 
-`DATABASE_URL` names the destination. The script refuses to write if any of the eleven target tables is non-empty, checked before the first write. That is also the guard against pointing a run at the wrong database: a populated destination is a stop, not a merge.
+`DATABASE_URL` names the destination. `--project` defaults to staging; `--owner` defaults to the operator's email and is resolved to a uid through Auth.
+
+No explicit emptiness pre-check was built. A second run conflicts on `users.id` in the first step and aborts before anything else is written, which is the same stop for one fewer moving part. The pre-flight checks below were likewise not built: every one of them is a constraint the destination already enforces, so a violation surfaces as the failing insert.
+
+Each step is a module exporting one function, composed in order by `index.ts`. A step takes a Firestore handle and a pg client and returns whatever the next step needs; `challenges.ts` takes no Firestore handle, since it synthesizes its rows and reads its member set from the `users` table.
 
 ## Ids
 
@@ -61,27 +65,26 @@ Foreign-key order. Each table is one transaction; the run is not, so a failure l
 
 ## Pre-flight
 
-`--check-only` runs these and writes nothing. Each is a constraint the destination enforces anyway; checking here turns a half-applied migration into a report. Run it against **prod** Firestore before step 2, not just before step 7 — prod is the data that has to land.
+Not implemented — there is no `--check-only`. Each item below is a constraint the destination enforces, listed so a failing insert is recognizable rather than mysterious.
 
 1. **Book id shape** — `books.id check (id ~ '^[0-9a-f]{32}$')`. A book still on a Firestore auto-id is rejected. Verified clean against prod on 2026-10-08: 135 of 135 docs already sit at their derived id. `createBookIfAbsent` is the only write path into `/books` and both callers pass `deriveBookId`, so no new offender can appear.
 2. **Book title and author non-blank** — both are `check (length(btrim(…)) > 0)`.
 3. **External ref uniqueness** — `unique (source, external_id)`. Two books claiming one Open Library work key collide.
-4. **Unknown tile ids** — any `tiles[]` or `plannedTiles[]` entry not in `TILE_IDS` has no tag row and fails the composite foreign key.
+4. **Unknown tile ids** — any `tiles[]` or `plannedTiles[]` entry not in `TILE_IDS` has no tag row and fails the composite foreign key. No tile id has ever been retired: every edit to `TILES` in git history renames a tile or drops the old `isManual` field, and the id set has been `t01`–`t43` plus `m01`–`m06` since it was introduced. Verified 2026-10-09 against `git log --follow functions/src/domain/constants.ts`. Do not plan retired-tile triage.
 5. **One freebie per user** — `readings_one_freebie_idx` is unique on `(challenge_id, user_id) where is_freebie`.
 6. **Orphan book references** — every reading and TBR `bookId` must exist in `/books`. `MissingBookError` exists because this happens.
 7. **Notes length** — `tbr_entries.notes check (length(notes) <= 2000)`.
 8. **Duplicate tile ids within one reading** — `reading_tags` is keyed `(reading_id, tag_id)`.
 
-Each failure reports its document path and the offending value. A failed check exits non-zero and writes nothing, unless `--force-skip-invalid` skips the offending documents and lists them.
+A violation aborts its step's transaction, leaving earlier steps written. Recovery is clear-and-rerun.
 
 ## Run sequence
 
-1. `--check-only` against prod Firestore. Fix or triage what it reports.
-2. Full run against the local container, seeded from a Firestore export. The rehearsal that costs nothing.
-3. Full run against Neon staging, then the verifier.
-4. Full run against Neon prod (step 7), then the verifier.
-5. **Clear prod.** The statement above. The rehearsal's rows are not the rows that go live.
-6. At cutover (step 8): freeze, full run against prod, verify, unfreeze. The freeze covers the whole migration, not a delta.
+1. Full run against the local container, pointed at prod Firestore. The rehearsal that costs nothing.
+2. Full run against Neon staging, then the verifier.
+3. Full run against Neon prod (step 7), then the verifier.
+4. **Clear prod.** The statement above. The rehearsal's rows are not the rows that go live.
+5. At cutover (step 8): freeze, full run against prod, verify, unfreeze. The freeze covers the whole migration, not a delta.
 
 ## Validation
 
@@ -97,7 +100,6 @@ Each failure reports its document path and the offending value. A failed check e
 
 ## Risks
 
-- **Pre-flight check 4 is the likely blocker.** `TILES` has been edited over the project's life, and a reading tagged with a since-removed tile has nowhere to go. Add the retired tile back as a tag, or drop it from the reading — per tile, not a blanket rule, because dropping one changes that user's score.
 - **Reading ids change.** Fresh uuids, not Firestore auto-ids, and they differ between the rehearsal and the live run. Nothing persists a reading id outside Firestore and the client refetches, but a bookmarked deep link breaks.
 - **Firestore records no book creator**, so every migrated book gets `created_by` null — attribution starts empty rather than wrong.
 - **A partial run cannot be resumed.** Each table is its own transaction, so a mid-run failure leaves earlier tables written, and the empty-destination precondition then refuses the retry. Recovery is clear-and-rerun; the verifier is what tells you the run was incomplete.
@@ -105,5 +107,7 @@ Each failure reports its document path and the offending value. A failed check e
 
 ## Open decisions
 
-1. **Retired tile ids** (blocks step 2, pending check 4's output). See the first risk.
-2. **Challenge name.** `m01` is "from someone else's 2025 list" and `m05` is "from 2026 awards list", so the live competition spans both years and the name should not say one.
+None. Both are settled:
+
+- **Retired tile ids** — none exist. See pre-flight check 4.
+- **Challenge name** — `'Book Bingo'`, the `DEFAULT_CHALLENGE_NAME` in `scripts/firestore_pg_migration/constants.ts`, overridable with `--challenge-name`. `m01` names 2025 and `m05` names 2026, so the name claims neither year.
