@@ -9,6 +9,7 @@ import { migrateUsers } from './users.js';
 import { migrateBooks } from './books.js';
 import { migrateChallenge } from './challenges.js';
 import { migrateTags } from './tags.js';
+import { migrateReadings } from './readings.js';
 import { DEFAULT_CHALLENGE_NAME } from './constants.js';
 
 const projectId = parseFlag('project') ?? STAGING_PROJECT_ID;
@@ -44,6 +45,13 @@ async function main() {
 
     const tagIdsByTile = await migrateTags(pgClient);
     console.log(`tags: ${tagIdsByTile.size}`);
+
+    const readingCount = await migrateReadings(
+      firestore,
+      pgClient,
+      tagIdsByTile,
+    );
+    console.log(`readings: ${readingCount}`);
   } finally {
     await pgClient.end();
   }
