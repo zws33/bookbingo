@@ -10,6 +10,7 @@ import { migrateBooks } from './books.js';
 import { migrateChallenge } from './challenges.js';
 import { migrateTags } from './tags.js';
 import { migrateReadings } from './readings.js';
+import { migrateTbrEntries } from './tbr.js';
 import { DEFAULT_CHALLENGE_NAME } from './constants.js';
 
 const projectId = parseFlag('project') ?? STAGING_PROJECT_ID;
@@ -52,6 +53,9 @@ async function main() {
       tagIdsByTile,
     );
     console.log(`readings: ${readingCount}`);
+
+    const tbrCount = await migrateTbrEntries(firestore, pgClient, tagIdsByTile);
+    console.log(`tbr entries: ${tbrCount}`);
   } finally {
     await pgClient.end();
   }
