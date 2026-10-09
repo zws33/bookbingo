@@ -7,29 +7,31 @@ export async function migrateUsers(
 ): Promise<number> {
   const snapshot = await firestore.collection('users').get();
 
-  const users = snapshot.docs.map((doc) => {
+  const ids: string[] = [];
+  const names: string[] = [];
+  const photoUrls: (string | null)[] = [];
+  const createdAts: Date[] = [];
+
+  for (const doc of snapshot.docs) {
     const data = doc.data();
-    return {
-      id: doc.id,
-      name: (data.name as string | undefined)?.trim() || 'User',
-      photoURL: (data.photoURL as string | null | undefined) ?? null,
-      createdAt:
-        (data.updatedAt as Timestamp | undefined)?.toDate() ?? new Date(),
-    };
-  });
+
+    ids.push(doc.id);
+    // `users.name` is `not null`; naming the column means its default never
+    // fires, so an absent or blank name has to be substituted here.
+    names.push((data.name as string | undefined)?.trim() || 'User');
+    photoUrls.push((data.photoURL as string | null | undefined) ?? null);
+    createdAts.push(
+      (data.updatedAt as Timestamp | undefined)?.toDate() ?? new Date(),
+    );
+  }
 
   await pgClient.query('begin');
   await pgClient.query(
     `insert into users (id, name, photo_url, created_at)
      select * from unnest($1::text[], $2::text[], $3::text[], $4::timestamptz[])`,
-    [
-      users.map((u) => u.id),
-      users.map((u) => u.name),
-      users.map((u) => u.photoURL),
-      users.map((u) => u.createdAt),
-    ],
+    [ids, names, photoUrls, createdAts],
   );
   await pgClient.query('commit');
 
-  return users.length;
+  return ids.length;
 }
