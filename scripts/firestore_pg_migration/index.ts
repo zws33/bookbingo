@@ -2,7 +2,6 @@ import { createClient } from '../lib/db.js';
 import {
   initApp,
   parseFlag,
-  resolveClaimUid,
   STAGING_PROJECT_ID,
 } from '../lib/admin.firebase.js';
 import { migrateUsers } from './users.js';
@@ -11,20 +10,14 @@ import { migrateChallenge } from './challenges.js';
 import { migrateTags } from './tags.js';
 import { migrateReadings } from './readings.js';
 import { migrateTbrEntries } from './tbr.js';
-import { DEFAULT_CHALLENGE_NAME } from './constants.js';
+import { DEFAULT_CHALLENGE_NAME, DEFAULT_OWNER_UID } from './constants.js';
 
 const projectId = parseFlag('project') ?? STAGING_PROJECT_ID;
 const challengeName = parseFlag('challenge-name') ?? DEFAULT_CHALLENGE_NAME;
-const ownerEmail = parseFlag('owner') ?? 'zach.smith33@gmail.com';
-const ownerUid = parseFlag('owner-uid');
+const ownerId = parseFlag('owner-uid') ?? DEFAULT_OWNER_UID;
 
 async function main() {
-  const { db: firestore, auth } = initApp(projectId);
-  const ownerId = await resolveClaimUid(auth, {
-    email: ownerEmail,
-    uid: ownerUid,
-  });
-  if (!ownerId) throw new Error('Could not resolve an owner uid.');
+  const { db: firestore } = initApp(projectId);
 
   const pgClient = createClient();
   await pgClient.connect();
