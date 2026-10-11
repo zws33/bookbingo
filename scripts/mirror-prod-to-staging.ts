@@ -33,7 +33,7 @@ import {
   resolveClaimUid,
   PROD_PROJECT_ID,
   STAGING_PROJECT_ID,
-} from './lib/admin.js';
+} from './lib/admin.firebase.js';
 
 const FROM = parseFlag('from') ?? PROD_PROJECT_ID;
 const TO = parseFlag('to') ?? STAGING_PROJECT_ID;

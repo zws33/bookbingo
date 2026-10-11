@@ -33,8 +33,8 @@ export function validateTileIds(
 }
 
 /**
- * The rules for a reading: real, distinct tiles, and at most `maxTiles` of them
- * unless the reading is a freebie.
+ * The rules for a reading: real, distinct tiles, at most `maxTiles` of them
+ * unless the reading is a freebie, and at least one if it is.
  *
  * A planned TBR entry uses `validateTileIds` instead — the cap applies when
  * the plan becomes a reading, not while it is still a plan.
@@ -51,6 +51,13 @@ export function validateReadingTiles(
     throw new DomainError(
       'invalid-input',
       `A reading can use at most ${maxTiles} tiles unless it is a freebie.`,
+    );
+  }
+
+  if (isFreebie && tiles.length === 0) {
+    throw new DomainError(
+      'invalid-input',
+      'A freebie reading must use at least one tile.',
     );
   }
 }

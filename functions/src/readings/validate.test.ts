@@ -66,6 +66,17 @@ describe('validateReadingTiles', () => {
       invalidInput,
     );
   });
+
+  test('rejects a freebie with no tiles', () => {
+    assert.throws(
+      () => validateReadingTiles([], true, VALID, CAP),
+      invalidInput,
+    );
+  });
+
+  test('accepts a non-freebie with no tiles', () => {
+    assert.doesNotThrow(() => validateReadingTiles([], false, VALID, CAP));
+  });
 });
 
 describe('scoreOf', () => {

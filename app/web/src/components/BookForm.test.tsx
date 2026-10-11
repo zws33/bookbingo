@@ -138,11 +138,45 @@ describe('BookForm', () => {
       await user.type(screen.getByLabelText('Title'), 'Dune');
       await user.type(screen.getByLabelText('Author'), 'Frank Herbert');
       await user.click(screen.getByRole('checkbox', { name: /freebie/i }));
+      await user.click(screen.getByRole('button', { name: TILE.series.name }));
       await user.click(saveButton());
 
       expect(onSubmit).toHaveBeenCalledWith(
         expect.objectContaining({ isFreebie: true }),
       );
+    });
+
+    it('blocks Save on a freebie with no tiles', async () => {
+      const { user } = renderBookForm({ identityLocked: false });
+
+      await user.type(screen.getByLabelText('Title'), 'Dune');
+      await user.type(screen.getByLabelText('Author'), 'Frank Herbert');
+      await user.click(screen.getByRole('checkbox', { name: /freebie/i }));
+
+      expect(saveButton()).toBeDisabled();
+      expect(
+        screen.getByText('A freebie needs at least one tile.'),
+      ).toBeInTheDocument();
+    });
+
+    it('re-enables Save once the freebie gets a tile', async () => {
+      const { user } = renderBookForm({ identityLocked: false });
+
+      await user.type(screen.getByLabelText('Title'), 'Dune');
+      await user.type(screen.getByLabelText('Author'), 'Frank Herbert');
+      await user.click(screen.getByRole('checkbox', { name: /freebie/i }));
+      await user.click(screen.getByRole('button', { name: TILE.series.name }));
+
+      expect(saveButton()).toBeEnabled();
+    });
+
+    it('leaves Save enabled on a non-freebie with no tiles', async () => {
+      const { user } = renderBookForm({ identityLocked: false });
+
+      await user.type(screen.getByLabelText('Title'), 'Dune');
+      await user.type(screen.getByLabelText('Author'), 'Frank Herbert');
+
+      expect(saveButton()).toBeEnabled();
     });
 
     it('blocks a 4th tile once three are selected (non-freebie limit)', async () => {
