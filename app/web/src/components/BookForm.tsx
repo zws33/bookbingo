@@ -48,7 +48,9 @@ export function BookForm({
   const [thumbnailUrl, setThumbnailUrl] = useState('');
   const [categories, setCategories] = useState('');
 
-  const isValid = title.trim() !== '' && author.trim() !== '';
+  const freebieWithNoTiles = isFreebie && tiles.length === 0;
+  const isValid =
+    title.trim() !== '' && author.trim() !== '' && !freebieWithNoTiles;
   const showMetadataFields = collectMetadata && !identityLocked;
 
   const handleSubmit = (e: SubmitEvent) => {
@@ -215,6 +217,12 @@ export function BookForm({
         onChange={setTiles}
         isFreebie={isFreebie}
       />
+
+      {freebieWithNoTiles && (
+        <p className="mt-1 text-xs text-error">
+          A freebie needs at least one tile.
+        </p>
+      )}
 
       <div className="flex justify-end gap-3 pt-2">
         <Button

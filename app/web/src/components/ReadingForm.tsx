@@ -29,9 +29,11 @@ export function ReadingForm({
   const [tiles, setTiles] = useState<string[]>(initialData.tiles);
   const [isFreebie, setIsFreebie] = useState(initialData.isFreebie);
 
+  const freebieWithNoTiles = isFreebie && tiles.length === 0;
+
   const handleSubmit = async (e: SubmitEvent) => {
     e.preventDefault();
-    if (isSubmitting) return;
+    if (freebieWithNoTiles || isSubmitting) return;
     await onSubmit({ tiles, isFreebie });
   };
 
@@ -52,6 +54,12 @@ export function ReadingForm({
         isFreebie={isFreebie}
       />
 
+      {freebieWithNoTiles && (
+        <p className="mt-1 text-xs text-error">
+          A freebie needs at least one tile.
+        </p>
+      )}
+
       <div className="flex justify-end gap-3 pt-2">
         <Button
           type="button"
@@ -61,7 +69,7 @@ export function ReadingForm({
         >
           Cancel
         </Button>
-        <Button type="submit" disabled={isSubmitting}>
+        <Button type="submit" disabled={freebieWithNoTiles || isSubmitting}>
           {isSubmitting ? 'Saving...' : 'Save'}
         </Button>
       </div>
