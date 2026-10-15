@@ -1,4 +1,8 @@
-import { createClient } from '../lib/db.js';
+import {
+  createClient,
+  describeTarget,
+  resolveDatabaseTarget,
+} from '../lib/db.js';
 import {
   initApp,
   parseFlag,
@@ -17,9 +21,14 @@ const challengeName = parseFlag('challenge-name') ?? DEFAULT_CHALLENGE_NAME;
 const ownerId = parseFlag('owner-uid') ?? DEFAULT_OWNER_UID;
 
 async function main() {
+  const destination = resolveDatabaseTarget(process.argv.slice(2));
   const { db: firestore } = initApp(projectId);
 
-  const pgClient = createClient();
+  console.log(
+    `destination: ${describeTarget(destination.url)} (from ${destination.source})`,
+  );
+
+  const pgClient = createClient(destination.url);
   await pgClient.connect();
 
   try {

@@ -14,12 +14,12 @@ Still absent: every challenge and tag handler, every v2 callable, and any Postgr
 
 Cloud SQL is out; Neon replaces it. `pool.ts` needs no change — Neon is a non-loopback host, so `sslFor` already returns `{ rejectUnauthorized: true }`.
 
-| Database                                       | Named by                            | Role                                        |
-| ---------------------------------------------- | ----------------------------------- | ------------------------------------------- |
-| Docker `bookbingo_test`                        | `DATABASE_URL`, `TEST_DATABASE_URL` | Local dev and `test:db`. tmpfs, disposable. |
-| Neon branch `integration`, db `bookbingo_test` | `TEST_DATABASE_URL`                 | `test:db` against Neon.                     |
-| Neon `staging`                                 | `DATABASE_URL` (staging secret)     | Migrated data, manual testing.              |
-| Neon `prod`                                    | `DATABASE_URL` (prod secret)        | Migrated data, live after cutover.          |
+| Database                                       | Named by                            | Role                                      |
+| ---------------------------------------------- | ----------------------------------- | ----------------------------------------- |
+| Docker `bookbingo_test`                        | `DATABASE_URL`, `TEST_DATABASE_URL` | Local dev and `test:db`. `pgdata` volume. |
+| Neon branch `integration`, db `bookbingo_test` | `TEST_DATABASE_URL`                 | `test:db` against Neon.                   |
+| Neon `staging`                                 | `DATABASE_URL` (staging secret)     | Migrated data, manual testing.            |
+| Neon `prod`                                    | `DATABASE_URL` (prod secret)        | Migrated data, live after cutover.        |
 
 1. The integration branch is the only Neon database the test harness may touch — `reset()` truncates every table it finds.
 2. `requireTestDatabaseUrl` demands a name ending `_test`, so that branch's database is `bookbingo_test`, not Neon's default `neondb`. **The staging and prod databases must not end `_test`**: that suffix is the whole guard keeping the harness off them, and it is a naming decision made once, here.
@@ -34,7 +34,7 @@ A suffix rather than a second codebase or region: a callable's name is its expor
 
 ## Ordered steps
 
-1. **Provision Neon.** Three branches. Mark `integration` only. Bind `DATABASE_URL` as a Firebase secret per project, listed in the `secrets` of every v2 callable. Run `db:migrate` against all three.
+1. **Provision Neon.** Three branches. Mark `integration` only. Bind `DATABASE_URL` as a Firebase secret per project, listed in the `secrets` of every v2 callable. Run `db:migrate` against all three, each passed as `--database-url`.
 2. **Data migration script.** `docs/data-migration-plan.md`. Validated against the local container.
 3. **Run against prod.** A full run into Neon prod, unfrozen. Nothing reads it yet; this proves the script against real volume before it matters. Clear prod afterwards — the migration script requires an empty destination
 4. **Guards.** Done. `challenges/guards.ts` — `actorOf`, `requireMembership`, `requireReadAccess`, `requirePermission`, `requireStatus`, `requireTransition`, `requireRemoval`, `requireRoleChange`, `requireOwnReadingWrite`, `requireOthersReadingWrite`, `requireAnotherOwner`, `requireJoinable`. Pure functions over an already-fetched `Challenge`, `Membership | undefined` and `Actor`. They throw `DomainError` and never read, so the read stays in the handler and the tests need no fake repository. A non-member gets `not-found`, not `forbidden`, on every path. Rank arithmetic stays in `permissions.ts`; the guards only throw. `requireAnotherOwner` takes the list `listActiveOwners` locked and is sound only inside that transaction.

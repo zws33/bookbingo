@@ -53,6 +53,11 @@ pnpm run db:migrate                      # Apply db/migrations/
 Data lives in the `pgdata` named volume, so it survives `docker compose down`.
 Run `docker compose down -v` to discard it and migrate again from empty.
 
+Every script that writes to Postgres defaults to `TEST_DATABASE_URL` and reaches
+a remote database only when passed `--database-url`:
+`pnpm run db:migrate -- --database-url 'postgres://…neon…/bookbingo'`.
+`DATABASE_URL` is the application's connection and is never a migration target.
+
 For local runs against a real Firebase project, copy `app/web/.env.example` to
 `app/web/.env.staging` or `app/web/.env.prod`, fill in the values, and use the
 matching script: `pnpm run dev:web:staging` or `pnpm run dev:web:prod`.
@@ -108,7 +113,7 @@ pnpm run typecheck         # Type-check workspace packages with tsc --noEmit
 pnpm run lint              # Lint the repo
 pnpm run format            # Format with Prettier
 pnpm run build             # Compile all packages with tsc --build
-pnpm run db:migrate        # Apply db/migrations/ to DATABASE_URL (--dry-run lists pending)
+pnpm run db:migrate        # Apply db/migrations/ to TEST_DATABASE_URL, or --database-url <url> (--dry-run lists pending)
 ```
 
 ### Environments

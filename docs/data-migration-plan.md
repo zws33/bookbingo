@@ -9,11 +9,12 @@ Firestore is left intact: the script never writes to it or deletes from it.
 `scripts/firestore_pg_migration/`, **single-run** — it requires an empty destination. Running it twice is not supported; the way to run it again is to clear the destination first. The migration happens once per database, so idempotent upserts and a stored id remap buy nothing and cost a derivation that has to be right.
 
 ```
-DATABASE_URL=… pnpm exec tsx scripts/firestore_pg_migration/index.ts \
+pnpm exec tsx scripts/firestore_pg_migration/index.ts \
+  [--database-url <url>] \
   --project <firebase-project> [--owner <email> | --owner-uid <uid>] [--challenge-name <name>]
 ```
 
-`DATABASE_URL` names the destination. `--project` defaults to staging; `--owner` defaults to the operator's email and is resolved to a uid through Auth.
+`--database-url` names the destination and defaults to `TEST_DATABASE_URL`, so an unqualified run writes to the local Docker Postgres. Neon is reached only by passing the flag. `DATABASE_URL` is not read — it is the application's connection, and a staging or prod secret. `--project` defaults to staging; `--owner` defaults to the operator's email and is resolved to a uid through Auth. The resolved destination is logged before the first write.
 
 No explicit emptiness pre-check was built. A second run conflicts on `users.id` in the first step and aborts before anything else is written, which is the same stop for one fewer moving part. The pre-flight checks below were likewise not built: every one of them is a constraint the destination already enforces, so a violation surfaces as the failing insert.
 

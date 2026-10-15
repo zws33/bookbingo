@@ -16,8 +16,12 @@ strict + ESM only. Deeper context lives in `CLAUDE.md`,
 - Local Postgres: `docker compose up -d --wait` (port 5433, database
   `bookbingo_test`), `cp functions/.env.example functions/.env.local`, then
   `pnpm run db:migrate` (`--dry-run` lists pending). Data persists in the
-  `pgdata` volume; `docker compose down -v` discards it. Deployed environments
-  get `DATABASE_URL` as a secret, never from a file.
+  `pgdata` volume; `docker compose down -v` discards it.
+- Every script writing to Postgres (`db:migrate`, `scripts/firestore_pg_migration`)
+  resolves its target through `resolveDatabaseTarget`: `TEST_DATABASE_URL` by
+  default, a remote database only when passed `--database-url <url>`.
+  `DATABASE_URL` is never a migration target — that is the application's
+  connection, a Neon secret in staging and prod, never a file.
 
 ## Verify (run before committing; this is exactly what CI runs)
 
