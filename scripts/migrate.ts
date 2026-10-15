@@ -1,13 +1,12 @@
 /**
- * Applies `db/migrations/*.sql` to DATABASE_URL, in order, once each.
+ * Applies `db/migrations/*.sql` in order, once each.
  *
  * Usage:
- *   pnpm run db:migrate
+ *   pnpm run db:migrate                     # TEST_DATABASE_URL
  *   pnpm run db:migrate -- --dry-run
+ *   pnpm run db:migrate -- --database-url 'postgres://…neon…/bookbingo'
  *
- * The shell's DATABASE_URL wins over `functions/.env.local`, so a remote
- * target is a one-line prefix:
- *   DATABASE_URL='postgres://…neon…/bookbingo' pnpm run db:migrate
+ * A remote database is only ever reached by naming it on the command line.
  */
 
 import { readdir, readFile } from 'node:fs/promises';
@@ -15,7 +14,7 @@ import type pg from 'pg';
 import {
   createClient,
   describeTarget,
-  requireDatabaseUrl,
+  resolveDatabaseTarget,
   sslFor,
 } from './lib/db.js';
 import {
@@ -135,7 +134,7 @@ async function apply(
 }
 
 async function connect(url: string): Promise<pg.Client> {
-  const client = createClient();
+  const client = createClient(url);
   const started = Date.now();
 
   try {
@@ -168,9 +167,9 @@ async function connect(url: string): Promise<pg.Client> {
 
 async function main(): Promise<void> {
   const started = Date.now();
-  const url = requireDatabaseUrl();
+  const { url, source } = resolveDatabaseTarget(process.argv.slice(2));
 
-  log('target', describeTarget(url));
+  log('target', `${describeTarget(url)} (from ${source})`);
   log('ssl', sslFor(url) ? 'on (rejectUnauthorized)' : 'off (loopback)');
 
   const client = await connect(url);
