@@ -8,7 +8,7 @@ Completes the challenge container on Postgres (Neon). Rules are numbered in `doc
 
 Firestore stays intact and readable for the whole sequence. Nothing dual-writes.
 
-Still absent: `challenges/guards.ts`, every challenge and tag handler, every v2 callable, and any Postgres access from a deployed function.
+Still absent: every challenge and tag handler, every v2 callable, and any Postgres access from a deployed function.
 
 ## Environments
 
@@ -37,7 +37,7 @@ A suffix rather than a second codebase or region: a callable's name is its expor
 1. **Provision Neon.** Three branches. Mark `integration` only. Bind `DATABASE_URL` as a Firebase secret per project, listed in the `secrets` of every v2 callable. Run `db:migrate` against all three.
 2. **Data migration script.** `docs/data-migration-plan.md`. Validated against the local container.
 3. **Run against prod.** A full run into Neon prod, unfrozen. Nothing reads it yet; this proves the script against real volume before it matters. Clear prod afterwards — the migration script requires an empty destination
-4. **Guards.** `challenges/guards.ts` — `requireMembership`, `requireReadAccess`, `requirePermission`, `requireStatus`. Pure functions over an already-fetched `Challenge`, `Membership | undefined` and `Actor`. They throw `DomainError` and never read, so the read stays in the handler and the tests need no fake repository. A non-member gets `not-found`, not `forbidden`.
+4. **Guards.** Done. `challenges/guards.ts` — `actorOf`, `requireMembership`, `requireReadAccess`, `requirePermission`, `requireStatus`, `requireTransition`, `requireRemoval`, `requireRoleChange`, `requireOwnReadingWrite`, `requireOthersReadingWrite`, `requireAnotherOwner`, `requireJoinable`. Pure functions over an already-fetched `Challenge`, `Membership | undefined` and `Actor`. They throw `DomainError` and never read, so the read stays in the handler and the tests need no fake repository. A non-member gets `not-found`, not `forbidden`, on every path. Rank arithmetic stays in `permissions.ts`; the guards only throw. `requireAnotherOwner` takes the list `listActiveOwners` locked and is sound only inside that transaction.
 5. **v2 handlers.** `challenges/handler.ts` and `tags/handler.ts` as `xHandlers(...repos)` factories. `readings`, `library` and `tbr` get challenge-scoped handlers that call the guards and drop rows whose author is not `active` (rule 24). `present.ts` gains `tagIds`. Split per domain, as the repositories were.
 6. **v2 callables.** `listMyChallengesV2`, `getChallengeV2`, `createChallengeV2`, `joinChallengeV2`, `leaveChallengeV2`, `removeMemberV2`, `setMemberRoleV2`, `setChallengeStatusV2`, `updateChallengeConfigV2`, `deleteChallengeV2`, `rotateJoinCodeV2`, tag create/update/delete, and a `challengeId`-taking v2 of each reading, library and TBR callable. `getBoardConfigV2` serves stored tags plus `tag_cap` instead of `TILES`.
 7. **Manual testing on staging.** Web app pointed at the staging project against v2 endpoints. Board renders stored tags; readings, leaderboard, library and TBR match prod.
@@ -55,7 +55,7 @@ A suffix rather than a second codebase or region: a callable's name is its expor
 
 ## Risks
 
-- **Step 4 is the big one.** The Postgres repositories could not keep the Firestore interfaces: `readings.challenge_id` is `not null` with a composite foreign key to `memberships`, and `reading_tags.tag_id` is a uuid, so every reading and TBR signature gained `challengeId` and `tiles` became `tagIds`. Step 4 therefore touches both handlers, both presenters, three test files and `index.ts`. Split it per domain before starting.
+- **Step 5 is the big one.** The Postgres repositories could not keep the Firestore interfaces: `readings.challenge_id` is `not null` with a composite foreign key to `memberships`, and `reading_tags.tag_id` is a uuid, so every reading and TBR signature gained `challengeId` and `tiles` became `tagIds`. Step 5 therefore touches both handlers, both presenters, three test files and `index.ts`. Split it per domain before starting.
 - **`pool.ts` has never run anywhere.** Nothing imports `getPool` outside repository factory defaults, and the DB harness bypasses it. Step 1's deploy is the first execution of `requireConnectionString` and `sslFor`'s non-loopback branch.
 - **Two stores per domain until step 9**, so a change to a shared rule has to be made twice or the two diverge silently.
 - **Deploy ordering is two-sided**, but the `V2` suffix removes it for steps 4–7: no v1 signature changes, so a stale tab keeps working.
