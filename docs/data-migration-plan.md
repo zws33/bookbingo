@@ -9,10 +9,12 @@ Firestore is left intact: the script never writes to it or deletes from it.
 `scripts/firestore_pg_migration/`, **single-run** — it requires an empty destination. Running it twice is not supported; the way to run it again is to clear the destination first. The migration happens once per database, so idempotent upserts and a stored id remap buy nothing and cost a derivation that has to be right.
 
 ```
-pnpm exec tsx scripts/firestore_pg_migration/index.ts \
+pnpm run db:import:firestore -- \
   [--database-url <url>] \
-  --project <firebase-project> [--owner <email> | --owner-uid <uid>] [--challenge-name <name>]
+  --project <firebase-project> [--owner-uid <uid>] [--challenge-name <name>]
 ```
+
+Run it through the package script, not `tsx` directly: the script loads `functions/.env.local` with `--env-file-if-exists`, which is where `TEST_DATABASE_URL` comes from. A raw `tsx` invocation has no destination to default to.
 
 `--database-url` names the destination and defaults to `TEST_DATABASE_URL`, so an unqualified run writes to the local Docker Postgres. Neon is reached only by passing the flag. `DATABASE_URL` is not read — it is the application's connection, and a staging or prod secret. `--project` defaults to staging; `--owner` defaults to the operator's email and is resolved to a uid through Auth. The resolved destination is logged before the first write.
 
