@@ -50,8 +50,8 @@ cp functions/.env.example functions/.env.local
 pnpm run db:migrate                      # Apply db/migrations/
 ```
 
-The container uses `tmpfs`, so stopping it discards the data and the migrations
-run again from empty.
+Data lives in the `pgdata` named volume, so it survives `docker compose down`.
+Run `docker compose down -v` to discard it and migrate again from empty.
 
 For local runs against a real Firebase project, copy `app/web/.env.example` to
 `app/web/.env.staging` or `app/web/.env.prod`, fill in the values, and use the

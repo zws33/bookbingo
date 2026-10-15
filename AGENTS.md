@@ -15,9 +15,9 @@ strict + ESM only. Deeper context lives in `CLAUDE.md`,
   the build by design.
 - Local Postgres: `docker compose up -d --wait` (port 5433, database
   `bookbingo_test`), `cp functions/.env.example functions/.env.local`, then
-  `pnpm run db:migrate` (`--dry-run` lists pending). The container is `tmpfs`,
-  so stopping it discards the data. Deployed environments get `DATABASE_URL` as
-  a secret, never from a file.
+  `pnpm run db:migrate` (`--dry-run` lists pending). Data persists in the
+  `pgdata` volume; `docker compose down -v` discards it. Deployed environments
+  get `DATABASE_URL` as a secret, never from a file.
 
 ## Verify (run before committing; this is exactly what CI runs)
 
