@@ -12,7 +12,6 @@ import {
   statusAllows,
   CHALLENGE_ACTIONS,
   type ChallengeAction,
-  isSuperadmin,
   outranks,
   rankOf,
   type Permission,
@@ -24,11 +23,9 @@ import {
   type MemberRole,
 } from './schema.js';
 
-const owner = { role: 'owner' as const, superadmin: false };
-const admin = { role: 'admin' as const, superadmin: false };
-const member = { role: 'member' as const, superadmin: false };
-const outsider = { role: undefined, superadmin: false };
-const superadmin = { role: undefined, superadmin: true };
+const owner = 'owner' as const;
+const admin = 'admin' as const;
+const member = 'member' as const;
 
 /** Transcribed from the spec, not from `MINIMUM_ROLE`: deriving it would assert nothing. */
 const GRANTED: Record<Permission, MemberRole[]> = {
@@ -39,7 +36,7 @@ const GRANTED: Record<Permission, MemberRole[]> = {
   'member.setRole': ['owner', 'admin'],
   'joinCode.manage': ['owner', 'admin'],
   'tag.write': ['owner', 'admin'],
-  'tag.delete': [],
+  'tag.delete': ['owner', 'admin'],
   'config.edit': ['owner', 'admin'],
   'status.change': ['owner'],
   'challenge.delete': ['owner'],
@@ -50,57 +47,29 @@ describe('can', () => {
     for (const role of MEMBER_ROLES) {
       const expected = GRANTED[permission].includes(role);
       test(`${role} ${expected ? 'holds' : 'does not hold'} ${permission}`, () => {
-        assert.equal(
-          hasPermission({ role, superadmin: false }, permission),
-          expected,
-        );
+        assert.equal(hasPermission(role, permission), expected);
       });
     }
-
-    test(`a non-member does not hold ${permission}`, () => {
-      assert.equal(hasPermission(outsider, permission), false);
-    });
-
-    test(`a superadmin holds ${permission}`, () => {
-      assert.equal(hasPermission(superadmin, permission), true);
-    });
   }
 });
 
-/**
- * A non-`MemberRole` minimum, spelled out beyond the generic matrix above:
- * tag deletion is the one permission no member role holds at all.
- */
-describe('tag.delete is superadmin-only', () => {
-  test('an owner cannot delete a tag', () => {
-    assert.equal(hasPermission(owner, 'tag.delete'), false);
-  });
-
-  test('an admin can create and update a tag', () => {
+/** Tag deletion sits with the rest of tag management; `reading_tags` stops a destructive one. */
+describe('tag.delete', () => {
+  test('an admin may create, update and delete a tag', () => {
     assert.ok(hasPermission(admin, 'tag.write'));
+    assert.ok(hasPermission(admin, 'tag.delete'));
   });
 
-  test('a superadmin can delete a tag', () => {
-    assert.ok(hasPermission(superadmin, 'tag.delete'));
+  test('a member may not', () => {
+    assert.equal(hasPermission(member, 'tag.write'), false);
+    assert.equal(hasPermission(member, 'tag.delete'), false);
   });
 });
 
 describe('rankOf', () => {
-  test('orders superadmin above owner above admin above member', () => {
-    assert.ok(rankOf(superadmin) > rankOf(owner));
+  test('orders owner above admin above member', () => {
     assert.ok(rankOf(owner) > rankOf(admin));
     assert.ok(rankOf(admin) > rankOf(member));
-  });
-
-  test('puts a non-member below every role', () => {
-    assert.ok(rankOf(outsider) < rankOf(member));
-  });
-
-  test('the superadmin claim wins over a stored role', () => {
-    assert.equal(
-      rankOf({ role: 'member', superadmin: true }),
-      rankOf(superadmin),
-    );
   });
 });
 
@@ -120,13 +89,9 @@ describe('outranks', () => {
     assert.ok(outranks(admin, 'member'));
   });
 
-  test('a superadmin outranks an owner', () => {
-    assert.ok(outranks(superadmin, 'owner'));
-  });
-
-  test('a non-member outranks nobody', () => {
+  test('a member outranks nobody', () => {
     for (const role of MEMBER_ROLES) {
-      assert.equal(outranks(outsider, role), false);
+      assert.equal(outranks(member, role), false);
     }
   });
 });
@@ -172,10 +137,6 @@ describe('canSetRole', () => {
   test('a member cannot change anyone', () => {
     assert.equal(canSetRole(member, 'member', 'admin'), false);
   });
-
-  test('a superadmin demotes an owner', () => {
-    assert.ok(canSetRole(superadmin, 'owner', 'member'));
-  });
 });
 
 describe('canSelfDemote', () => {
@@ -207,10 +168,6 @@ describe('canRemove', () => {
   test('a member removes nobody', () => {
     assert.equal(canRemove(member, 'member'), false);
   });
-
-  test('a superadmin removes an owner', () => {
-    assert.ok(canRemove(superadmin, 'owner'));
-  });
 });
 
 describe('canEditOthersReading', () => {
@@ -224,15 +181,6 @@ describe('canEditOthersReading', () => {
 
   test('a member edits nobody else’s reading', () => {
     assert.equal(canEditOthersReading(member, 'member'), false);
-  });
-});
-
-describe('isSuperadmin', () => {
-  test('reads the claim only when it is exactly true', () => {
-    assert.ok(isSuperadmin({ superadmin: true }));
-    assert.equal(isSuperadmin({ superadmin: 'true' }), false);
-    assert.equal(isSuperadmin({ superadmin: 1 }), false);
-    assert.equal(isSuperadmin({}), false);
   });
 });
 

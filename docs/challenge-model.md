@@ -40,20 +40,20 @@ Enforcement splits two ways: `db/migrations/` enforces what a constraint can exp
 | Remove members                        | ✓     | ✓     |        |
 | Edit / delete other players' readings | ✓     | ✓     |        |
 | Create / update tags                  | ✓     | ✓     |        |
-| Delete tags †                         |       |       |        |
+| Delete tags †                         | ✓     | ✓     |        |
 | Edit config (`name`, `tag_cap`)       | ✓     | ✓     |        |
 | Change roles                          | ✓     | ✓\*   |        |
 | Change status                         | ✓     |       |        |
 | Delete challenge                      | ✓     |       |        |
 
 \* An admin may grant at most their own role (rule 19).
-† Superadmin only. `reading_tags` restricts the delete at the database, so a tag with history cannot be removed at all until its rows are resolved.
+† `reading_tags` is `on delete restrict`, so a tag that any reading carries cannot be removed at all until those rows are resolved. The permission therefore only reaches a tag with no history.
 
 ### Rank
 
-18. An actor acts only on targets of strictly lower rank — removal, role changes, and editing or deleting another player's readings.
-19. An actor may grant any role up to and including their own.
-20. Owners cannot remove or demote other owners. Owner promotion is permanent except by self-demotion, leaving, or superadmin.
+18. A member acts only on targets of strictly lower rank — removal, role changes, and editing or deleting another player's readings.
+19. A member may grant any role up to and including their own.
+20. Owners cannot remove or demote other owners. Owner promotion is permanent except by self-demotion or leaving.
 21. A challenge always has at least one active owner. The last owner cannot leave or self-demote. Enforced in the same transaction as the write.
 22. Ownership transfer is "promote, then leave." There is no dedicated operation.
 
@@ -62,8 +62,8 @@ Enforcement splits two ways: `db/migrations/` enforces what a constraint can exp
 23. `status` is `active` | `left` | `removed`. Rows are never deleted.
 24. Leaving and removal have the same effect on data: readings are kept and excluded from the leaderboard and library.
 25. `left` members may rejoin with a valid code, returning as `member` with their previous readings visible again.
-26. `removed` members cannot rejoin. Only superadmin reinstates.
-27. A non-`active` membership fails the membership guard exactly as a missing one does. The composite foreign key does not encode status, so this is a handler check, not a constraint.
+26. `removed` members cannot rejoin. Reinstatement is a direct database write; no callable performs it.
+27. A non-`active` membership fails the membership check exactly as a missing one does. The composite foreign key does not encode status, so this is a handler check, not a constraint.
 
 ### Join codes
 
@@ -86,17 +86,17 @@ Enforcement splits two ways: `db/migrations/` enforces what a constraint can exp
 38. Any signed-in user may create a challenge and becomes its sole owner. There is no cap, and creations are not counted.
 39. A per-user creation cap was dropped rather than reworked. It existed to bound abuse of `createChallenge`, which is a rate-limiting concern; as a data-model rule it charged a permanent, visible restriction to every honest user for a bound the request layer places better. Nothing in `users` or `challenges` tracks it.
 
-### Superadmin
+### Superadmin — not implemented
 
-40. A Firebase Auth custom claim `superadmin: true`, read from the verified token. No database read.
-41. Superadmin ranks above owner and passes every permission check, including removing or demoting owners and reinstating `removed` members.
-42. Superadmin holds no membership row, so they are absent from leaderboards and excluded from the last-owner count (rule 21).
-43. A development and operator tool. Nothing else may depend on it.
+40. There is no superadmin. The role ladder is `owner` > `admin` > `member` and nothing sits above it. Removed from the code on 2026-10-16: it was a rank above every role plus a widened permission table, carried by every permission signature, for an operator need no handler had yet expressed.
+41. The operations it was the only holder of — demoting or removing an owner, reinstating a `removed` member — have no caller. They are direct database writes.
+42. If it returns it is a Firebase Auth custom claim read from the verified token, not a membership row and not a database read, so it stays absent from leaderboards and from the last-owner count (rule 21).
+43. A development and operator tool if reintroduced. Nothing else may depend on it.
 
 ### Private now, public later
 
 44. All challenges are private. Reads require an `active` membership.
-45. Read handlers call `requireReadAccess`, which today delegates to the membership check. Going public later changes one function, not every handler.
+45. Read handlers check `challenge.read` against the actor's role, inline. A non-member — including a `left` or `removed` one — gets `not-found` on every path, worded identically to a missing challenge, so a probe cannot confirm a challenge exists; `forbidden` is only for a member whose role lacks the permission. Going public later relaxes that check in each read handler; there is no shared guard (see `docs/challenge-implementation-plan.md` step 4).
 46. Leaderboard and library payloads expose `name` and an opaque user id. `users` stores no email, so there is nothing to leak.
 47. Going public is a per-challenge opt-in, never a migration. Existing readings were logged under "private."
 48. If added, `visibility` (who may read) and `join_policy` (how you join) are separate columns. Deferred.

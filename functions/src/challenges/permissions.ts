@@ -17,11 +17,11 @@ export const PERMISSIONS = [
 export type Permission = (typeof PERMISSIONS)[number];
 
 /**
- * The lowest role that holds each permission. `'superadmin'` is not a
- * `MemberRole` — it widens this table rather than adding a side-channel
- * predicate, so this stays the single place a handler needs to check.
+ * The lowest role that holds each permission. Callers pass the role of an
+ * already-verified `active` membership: a missing or non-`active` one is
+ * `not-found` at the handler (rule 27) and never reaches this table.
  */
-const MINIMUM_ROLE: Record<Permission, MemberRole | 'superadmin'> = {
+const MINIMUM_ROLE: Record<Permission, MemberRole> = {
   'challenge.read': 'member',
   'reading.write.own': 'member',
   'reading.write.any': 'admin',
@@ -29,19 +29,14 @@ const MINIMUM_ROLE: Record<Permission, MemberRole | 'superadmin'> = {
   'member.setRole': 'admin',
   'joinCode.manage': 'admin',
   'tag.write': 'admin',
-  // Deleting a tag mid-challenge silently drops its `reading_tags` rows and
-  // changes every member's score. Superadmin-only until a tag-deletion
-  // policy exists.
-  'tag.delete': 'superadmin',
+  // Deleting a tag mid-challenge would drop its `reading_tags` rows and change
+  // every member's score. `reading_tags` is `on delete restrict`, so the
+  // database refuses that case; this permission only covers a tag with no history.
+  'tag.delete': 'admin',
   'config.edit': 'admin',
   'status.change': 'owner',
   'challenge.delete': 'owner',
 };
-
-export interface Actor {
-  readonly role: MemberRole | undefined;
-  readonly superadmin: boolean;
-}
 
 /** Declared apart from the `MEMBER_ROLES` order, which exists for display. */
 const RANK: Record<MemberRole, number> = {
@@ -50,35 +45,25 @@ const RANK: Record<MemberRole, number> = {
   owner: 3,
 };
 
-/** Above every role, not a position in the ladder. */
-const SUPERADMIN_RANK = Number.POSITIVE_INFINITY;
-
-/** Below every role: outranks nobody, holds nothing. */
-const NON_MEMBER_RANK = Number.NEGATIVE_INFINITY;
-
-export function rankOf(actor: Actor): number {
-  if (actor.superadmin) return SUPERADMIN_RANK;
-  if (actor.role === undefined) return NON_MEMBER_RANK;
-  return RANK[actor.role];
+export function rankOf(role: MemberRole): number {
+  return RANK[role];
 }
 
 /** Strictly above, so owner-on-owner is false — `canSelfDemote` is the exception. */
-export function outranks(actor: Actor, target: MemberRole): boolean {
-  return rankOf(actor) > RANK[target];
+export function outranks(role: MemberRole, target: MemberRole): boolean {
+  return RANK[role] > RANK[target];
 }
 
-/** `MINIMUM_ROLE` values are ranked the same way actors are, so the two compare directly. */
-function rankOfMinimum(minimum: MemberRole | 'superadmin'): number {
-  return minimum === 'superadmin' ? SUPERADMIN_RANK : RANK[minimum];
-}
-
-export function hasPermission(actor: Actor, permission: Permission): boolean {
-  return rankOf(actor) >= rankOfMinimum(MINIMUM_ROLE[permission]);
+export function hasPermission(
+  role: MemberRole,
+  permission: Permission,
+): boolean {
+  return RANK[role] >= RANK[MINIMUM_ROLE[permission]];
 }
 
 /** Up to and including the actor's own role — inclusive, unlike `outranks`. */
-export function canGrant(actor: Actor, role: MemberRole): boolean {
-  return hasPermission(actor, 'member.setRole') && rankOf(actor) >= RANK[role];
+export function canGrant(role: MemberRole, target: MemberRole): boolean {
+  return hasPermission(role, 'member.setRole') && RANK[role] >= RANK[target];
 }
 
 /**
@@ -87,11 +72,11 @@ export function canGrant(actor: Actor, role: MemberRole): boolean {
  * handler cannot apply one and forget the other.
  */
 export function canSetRole(
-  actor: Actor,
+  role: MemberRole,
   currentRole: MemberRole,
   newRole: MemberRole,
 ): boolean {
-  return outranks(actor, currentRole) && canGrant(actor, newRole);
+  return outranks(role, currentRole) && canGrant(role, newRole);
 }
 
 /**
@@ -104,20 +89,15 @@ export function canSelfDemote(
   return RANK[newRole] < RANK[currentRole];
 }
 
-export function canRemove(actor: Actor, target: MemberRole): boolean {
-  return hasPermission(actor, 'member.remove') && outranks(actor, target);
+export function canRemove(role: MemberRole, target: MemberRole): boolean {
+  return hasPermission(role, 'member.remove') && outranks(role, target);
 }
 
 export function canEditOthersReading(
-  actor: Actor,
+  role: MemberRole,
   author: MemberRole,
 ): boolean {
-  return hasPermission(actor, 'reading.write.any') && outranks(actor, author);
-}
-
-/** A custom claim on the verified token. No document read. */
-export function isSuperadmin(token: Record<string, unknown>): boolean {
-  return token['superadmin'] === true;
+  return hasPermission(role, 'reading.write.any') && outranks(role, author);
 }
 
 /**
