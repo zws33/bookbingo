@@ -2,7 +2,12 @@ import { type ComponentPropsWithRef } from 'react';
 import { cn } from '../../lib/cn.js';
 import { Spinner } from './Spinner.js';
 
-type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'outline';
+export type ButtonVariant =
+  | 'primary'
+  | 'secondary'
+  | 'ghost'
+  | 'danger'
+  | 'outline';
 
 export interface ButtonProps extends ComponentPropsWithRef<'button'> {
   variant?: ButtonVariant;
@@ -21,6 +26,22 @@ const variantClasses: Record<ButtonVariant, string> = {
     'border border-outline text-on-surface-variant hover:bg-surface-container hover:text-on-surface disabled:opacity-50 disabled:cursor-not-allowed',
 };
 
+/**
+ * The same classes for an element that has to be an anchor — a `Link` that
+ * navigates, where a button with an onClick would lose middle-click and
+ * open-in-new-tab.
+ */
+export function buttonClasses(
+  variant: ButtonVariant = 'primary',
+  className?: string,
+): string {
+  return cn(
+    'inline-flex items-center gap-2 px-4 py-2 rounded-lg',
+    variantClasses[variant],
+    className,
+  );
+}
+
 export function Button({
   variant = 'primary',
   loading,
@@ -33,11 +54,7 @@ export function Button({
   return (
     <button
       ref={ref}
-      className={cn(
-        'inline-flex items-center gap-2 px-4 py-2 rounded-lg',
-        variantClasses[variant],
-        className,
-      )}
+      className={buttonClasses(variant, className)}
       disabled={disabled || loading}
       {...props}
     >
