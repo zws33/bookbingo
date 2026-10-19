@@ -17,6 +17,9 @@ import {
 import {
   CreateChallengeRequestSchema,
   GetChallengeRequestSchema,
+  JoinChallengeRequestSchema,
+  LeaveChallengeRequestSchema,
+  RotateJoinCodeRequestSchema,
   UpdateChallengeConfigRequestSchema,
 } from './schema.js';
 
@@ -26,6 +29,14 @@ const RENAME_LOCKED = 'A complete challenge cannot be renamed.';
 
 const CAP_LOCKED =
   'The tag cap cannot change once the challenge has started, because scores already depend on it.';
+
+const CODE_UNKNOWN = 'That join code does not match a challenge.';
+
+const JOIN_CLOSED = 'That challenge is complete and is not taking new members.';
+
+const REJOIN_DENIED = 'You cannot rejoin a challenge you were removed from.';
+
+const MEMBERSHIP_FROZEN = 'A complete challenge cannot be left.';
 
 export interface ChallengeDetailDTO {
   challenge: ChallengeDTO;
@@ -54,6 +65,17 @@ export function challengeHandlers(challengesRepo: ChallengeRepository) {
       permission,
       role: membership.role,
     });
+  }
+
+  async function requireStatusAllows(
+    challengeId: string,
+    action: 'join' | 'memberManage',
+    message: string,
+  ): Promise<void> {
+    const { status } = await challengesRepo.get(challengeId);
+    if (!statusAllows(status, action)) {
+      throw new DomainError('conflict', message, { status });
+    }
   }
 
   return {
@@ -161,6 +183,108 @@ export function challengeHandlers(challengesRepo: ChallengeRepository) {
         renamed: name !== undefined,
         capChanged: tagCap !== undefined,
       });
+    },
+
+    /**
+     * Rule 31. The code is the authorization, so no permission is checked.
+     *
+     * The `active` case returns before the upsert, which rewrites role and
+     * status and would demote an owner who re-enters their own code.
+     */
+    async join(
+      request: CallableRequest<unknown>,
+    ): Promise<{ challengeId: string; alreadyMember: boolean }> {
+      const { uid } = requireAuth(request, 'join a challenge');
+      const { code } = parseRequest(JoinChallengeRequestSchema, request.data);
+
+      const found = await challengesRepo.findByJoinCode(code);
+      if (!found) throw new DomainError('not-found', CODE_UNKNOWN);
+      const { challengeId } = found;
+
+      await requireStatusAllows(challengeId, 'join', JOIN_CLOSED);
+
+      const membership = await challengesRepo.getMembership(challengeId, uid);
+      if (membership?.status === 'removed') {
+        throw new DomainError('forbidden', REJOIN_DENIED);
+      }
+      if (membership?.status === 'active') {
+        logEvent('challenge.join', {
+          uid,
+          outcome: 'ok',
+          challengeId,
+          alreadyMember: true,
+        });
+        return { challengeId, alreadyMember: true };
+      }
+
+      try {
+        await challengesRepo.upsertMembership(challengeId, uid, {
+          role: 'member',
+          status: 'active',
+        });
+      } catch (error) {
+        reportWriteFailure(error, 'challenge.join', { uid, challengeId });
+      }
+
+      logEvent('challenge.join', {
+        uid,
+        outcome: 'ok',
+        challengeId,
+        alreadyMember: false,
+        rejoined: membership !== undefined,
+      });
+      return { challengeId, alreadyMember: false };
+    },
+
+    /** The last owner is refused by the repository, inside its write (rule 21). */
+    async leave(request: CallableRequest<unknown>): Promise<void> {
+      const { uid } = requireAuth(request, 'leave a challenge');
+      const { challengeId } = parseRequest(
+        LeaveChallengeRequestSchema,
+        request.data,
+      );
+
+      await requireActiveMembership(challengeId, uid);
+      await requireStatusAllows(challengeId, 'memberManage', MEMBERSHIP_FROZEN);
+
+      try {
+        await challengesRepo.leave(challengeId, uid);
+      } catch (error) {
+        reportWriteFailure(error, 'challenge.leave', { uid, challengeId });
+      }
+
+      logEvent('challenge.leave', { uid, outcome: 'ok', challengeId });
+    },
+
+    /** Gated on `join`: a code for a challenge nobody can join is not worth rotating. */
+    async rotateJoinCode(
+      request: CallableRequest<unknown>,
+    ): Promise<{ joinCode: string }> {
+      const { uid } = requireAuth(request, 'replace a join code');
+      const { challengeId } = parseRequest(
+        RotateJoinCodeRequestSchema,
+        request.data,
+      );
+
+      const membership = await requireActiveMembership(challengeId, uid);
+      if (!hasPermission(membership.role, 'joinCode.manage')) {
+        throw denied(membership, 'joinCode.manage');
+      }
+
+      await requireStatusAllows(challengeId, 'join', JOIN_CLOSED);
+
+      let joinCode: string;
+      try {
+        joinCode = await challengesRepo.rotateJoinCode(challengeId, uid);
+      } catch (error) {
+        reportWriteFailure(error, 'challenge.rotateJoinCode', {
+          uid,
+          challengeId,
+        });
+      }
+
+      logEvent('challenge.rotateJoinCode', { uid, outcome: 'ok', challengeId });
+      return { joinCode };
     },
   };
 }

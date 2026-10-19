@@ -70,10 +70,7 @@ export interface ChallengeRepository {
   ): Promise<Membership | undefined>;
   listMembers(challengeId: string): Promise<Membership[]>;
   listActiveMemberships(userId: string): Promise<Map<string, Membership>>;
-  /**
-   * One query instead of that map plus a `get` per entry: this is the
-   * post-sign-in read and the cap allows 100 memberships.
-   */
+  /** One query instead of that map plus a `get` per entry. */
   listMyChallenges(userId: string): Promise<ChallengeMembership[]>;
   upsertMembership(
     challengeId: string,
@@ -87,6 +84,11 @@ export interface ChallengeRepository {
    * released as the statement ends and proves nothing.
    */
   listActiveOwners(challengeId: string): Promise<string[]>;
+  /**
+   * Refuses the last active owner (rule 21). The count and the write are one
+   * transaction here because a handler cannot open one.
+   */
+  leave(challengeId: string, userId: string): Promise<void>;
   findByJoinCode(code: string): Promise<{ challengeId: string } | undefined>;
   getJoinCode(challengeId: string): Promise<string | undefined>;
   rotateJoinCode(challengeId: string, createdBy: string): Promise<string>;
@@ -147,6 +149,14 @@ export const CHALLENGE_GONE = 'That challenge no longer exists.';
 
 const BLOCKED =
   'That challenge cannot be deleted while readings or reading list entries exist in it.';
+
+const LAST_OWNER =
+  'The last owner cannot leave. Promote another owner first, then leave.';
+
+const ACTIVE_OWNERS = `select user_id from memberships
+  where challenge_id = $1 and role = 'owner' and status = 'active'
+  order by user_id
+  for update`;
 
 const CHALLENGE_ERRORS: ConstraintMessages = {
   challenges_created_by_fkey: ['not-found', 'That user no longer exists.'],
@@ -413,13 +423,34 @@ export function challengeRepository(
     async listActiveOwners(challengeId) {
       const { rows } = await query<{ user_id: string }>(
         'listActiveOwners',
-        `select user_id from memberships
-          where challenge_id = $1 and role = 'owner' and status = 'active'
-          order by user_id
-          for update`,
+        ACTIVE_OWNERS,
         [challengeId],
       );
       return rows.map((row) => row.user_id);
+    },
+
+    async leave(challengeId, userId) {
+      try {
+        await inTransaction(db, async (client) => {
+          const { rows } = await client.query<{ user_id: string }>(
+            ACTIVE_OWNERS,
+            [challengeId],
+          );
+          if (rows.length === 1 && rows[0]?.user_id === userId) {
+            throw new DomainError('conflict', LAST_OWNER);
+          }
+
+          const { rowCount } = await client.query(
+            `update memberships set status = 'left', updated_at = now()
+              where challenge_id = $1 and user_id = $2 and status = 'active'`,
+            [challengeId, userId],
+          );
+          if (rowCount === 0)
+            throw new DomainError('not-found', CHALLENGE_GONE);
+        });
+      } catch (error) {
+        throw mapError('leave', error);
+      }
     },
 
     async findByJoinCode(code) {

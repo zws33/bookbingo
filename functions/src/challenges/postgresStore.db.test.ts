@@ -737,6 +737,107 @@ describe('challengeRepository', () => {
     });
   });
 
+  describe('leave', () => {
+    test('sets the membership to left and keeps the row', async () => {
+      const pool = testDb.db;
+      const owner = await seedUser(pool);
+      const member = await seedUser(pool);
+      const challengeId = await seedChallenge(pool, { createdBy: owner });
+      await seedMembership(pool, { challengeId, userId: owner, role: 'owner' });
+      await seedMembership(pool, { challengeId, userId: member });
+
+      await repository().leave(challengeId, member);
+
+      const membership = await repository().getMembership(challengeId, member);
+      assert.equal(membership?.status, 'left');
+      assert.equal(membership?.role, 'member');
+    });
+
+    test('lets an owner leave while another owner remains', async () => {
+      const pool = testDb.db;
+      const first = await seedUser(pool);
+      const second = await seedUser(pool);
+      const challengeId = await seedChallenge(pool, { createdBy: first });
+      await seedMembership(pool, { challengeId, userId: first, role: 'owner' });
+      await seedMembership(pool, {
+        challengeId,
+        userId: second,
+        role: 'owner',
+      });
+
+      await repository().leave(challengeId, first);
+
+      assert.deepEqual(
+        await inTransaction(testDb.db, (client) =>
+          challengeRepository(client).listActiveOwners(challengeId),
+        ),
+        [second],
+      );
+    });
+
+    test('refuses the last active owner', async () => {
+      const pool = testDb.db;
+      const owner = await seedUser(pool);
+      const member = await seedUser(pool);
+      const challengeId = await seedChallenge(pool, { createdBy: owner });
+      await seedMembership(pool, { challengeId, userId: owner, role: 'owner' });
+      await seedMembership(pool, { challengeId, userId: member });
+
+      await assert.rejects(
+        repository().leave(challengeId, owner),
+        rejectsWith('conflict'),
+      );
+      assert.equal(
+        (await repository().getMembership(challengeId, owner))?.status,
+        'active',
+      );
+    });
+
+    test('counts only active owners against the last-owner rule', async () => {
+      const pool = testDb.db;
+      const owner = await seedUser(pool);
+      const departed = await seedUser(pool);
+      const challengeId = await seedChallenge(pool, { createdBy: owner });
+      await seedMembership(pool, { challengeId, userId: owner, role: 'owner' });
+      await seedMembership(pool, {
+        challengeId,
+        userId: departed,
+        role: 'owner',
+        status: 'left',
+      });
+
+      await assert.rejects(
+        repository().leave(challengeId, owner),
+        rejectsWith('conflict'),
+      );
+    });
+
+    test('reports a membership that is already gone as not found', async () => {
+      const pool = testDb.db;
+      const owner = await seedUser(pool);
+      const member = await seedUser(pool);
+      const challengeId = await seedChallenge(pool, { createdBy: owner });
+      await seedMembership(pool, { challengeId, userId: owner, role: 'owner' });
+      await seedMembership(pool, {
+        challengeId,
+        userId: member,
+        status: 'left',
+      });
+
+      await assert.rejects(
+        repository().leave(challengeId, member),
+        rejectsWith('not-found'),
+      );
+    });
+
+    test('reports a malformed id as not found rather than failing', async () => {
+      await assert.rejects(
+        repository().leave('not-a-uuid', 'nobody'),
+        rejectsWith('not-found'),
+      );
+    });
+  });
+
   describe('join codes', () => {
     test('findByJoinCode resolves the challenge the code belongs to', async () => {
       const pool = testDb.db;
