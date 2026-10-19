@@ -36,6 +36,7 @@ function fakeRepo(
     getMembership: unexpected('getMembership'),
     listMembers: unexpected('listMembers'),
     listActiveMemberships: unexpected('listActiveMemberships'),
+    listMyChallenges: unexpected('listMyChallenges'),
     upsertMembership: unexpected('upsertMembership'),
     listActiveOwners: unexpected('listActiveOwners'),
     findByJoinCode: unexpected('findByJoinCode'),

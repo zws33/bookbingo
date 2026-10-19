@@ -537,6 +537,81 @@ describe('challengeRepository', () => {
     });
   });
 
+  describe('listMyChallenges', () => {
+    test('pairs each active membership with its challenge', async () => {
+      const pool = testDb.db;
+      const userId = await seedUser(pool);
+      const owned = await seedChallenge(pool, {
+        createdBy: userId,
+        name: 'Owned',
+        status: 'active',
+      });
+      const joined = await seedChallenge(pool, {
+        createdBy: userId,
+        name: 'Joined',
+      });
+      await seedMembership(pool, { challengeId: owned, userId, role: 'owner' });
+      await seedMembership(pool, { challengeId: joined, userId });
+
+      const rows = await repository().listMyChallenges(userId);
+
+      assert.deepEqual(
+        rows
+          .map((row) => ({
+            id: row.challenge.id,
+            name: row.challenge.name,
+            status: row.challenge.status,
+            role: row.membership.role,
+            memberStatus: row.membership.status,
+          }))
+          .sort((a, b) => a.name.localeCompare(b.name)),
+        [
+          {
+            id: joined,
+            name: 'Joined',
+            status: 'draft',
+            role: 'member',
+            memberStatus: 'active',
+          },
+          {
+            id: owned,
+            name: 'Owned',
+            status: 'active',
+            role: 'owner',
+            memberStatus: 'active',
+          },
+        ],
+      );
+      assert.ok(rows[0]?.challenge.createdAt instanceof Date);
+      assert.ok(rows[0]?.membership.joinedAt instanceof Date);
+    });
+
+    test('omits memberships that are not active', async () => {
+      const pool = testDb.db;
+      const userId = await seedUser(pool);
+      const left = await seedChallenge(pool, { createdBy: userId });
+      const removed = await seedChallenge(pool, { createdBy: userId });
+      await seedMembership(pool, { challengeId: left, userId, status: 'left' });
+      await seedMembership(pool, {
+        challengeId: removed,
+        userId,
+        status: 'removed',
+      });
+
+      assert.deepEqual(await repository().listMyChallenges(userId), []);
+    });
+
+    test('omits other people\u2019s memberships', async () => {
+      const pool = testDb.db;
+      const mine = await seedUser(pool);
+      const theirs = await seedUser(pool);
+      const challengeId = await seedChallenge(pool, { createdBy: mine });
+      await seedMembership(pool, { challengeId, userId: theirs });
+
+      assert.deepEqual(await repository().listMyChallenges(mine), []);
+    });
+  });
+
   describe('upsertMembership', () => {
     test('inserts a membership that does not exist', async () => {
       const pool = testDb.db;

@@ -50,6 +50,11 @@ export interface MembershipFields {
   status: MembershipStatus;
 }
 
+export interface ChallengeMembership {
+  challenge: Challenge;
+  membership: Membership;
+}
+
 export interface ChallengeRepository {
   get(challengeId: string): Promise<Challenge>;
   create(
@@ -65,6 +70,11 @@ export interface ChallengeRepository {
   ): Promise<Membership | undefined>;
   listMembers(challengeId: string): Promise<Membership[]>;
   listActiveMemberships(userId: string): Promise<Map<string, Membership>>;
+  /**
+   * One query instead of that map plus a `get` per entry: this is the
+   * post-sign-in read and the cap allows 100 memberships.
+   */
+  listMyChallenges(userId: string): Promise<ChallengeMembership[]>;
   upsertMembership(
     challengeId: string,
     userId: string,
@@ -95,6 +105,13 @@ interface MembershipRow {
   user_id: string;
   role: MemberRole;
   status: MembershipStatus;
+  joined_at: Date;
+}
+
+interface ChallengeMembershipRow extends ChallengeRow {
+  user_id: string;
+  role: MemberRole;
+  membership_status: MembershipStatus;
   joined_at: Date;
 }
 
@@ -351,6 +368,30 @@ export function challengeRepository(
       return new Map(
         rows.map((row) => [row.challenge_id, toMembership(row)] as const),
       );
+    },
+
+    async listMyChallenges(userId) {
+      const { rows } = await query<ChallengeMembershipRow>(
+        'listMyChallenges',
+        `select c.id, c.name, c.tag_cap, c.status, c.created_by, c.created_at,
+                m.user_id, m.role, m.status as membership_status, m.joined_at
+           from memberships m
+           join challenges c on c.id = m.challenge_id
+          where m.user_id = $1 and m.status = 'active'
+          order by m.joined_at, c.id
+          limit $2`,
+        [userId, MAX_ACTIVE_MEMBERSHIPS + 1],
+      );
+      requireCompleteScan('memberships', rows, MAX_ACTIVE_MEMBERSHIPS);
+      return rows.map((row) => ({
+        challenge: toChallenge(row),
+        membership: toMembership({
+          user_id: row.user_id,
+          role: row.role,
+          status: row.membership_status,
+          joined_at: row.joined_at,
+        }),
+      }));
     },
 
     async upsertMembership(challengeId, userId, { role, status }) {
