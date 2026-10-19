@@ -4,6 +4,9 @@ import { Input } from '../components/ui/Input.js';
 import { Label } from '../components/ui/Label.js';
 import { Textarea } from '../components/ui/Textarea.js';
 import { TileBadge } from '../components/ui/TileBadge.js';
+import { StatusChip } from '../components/ui/StatusChip.js';
+import { RoleBadge } from '../components/ui/RoleBadge.js';
+import { DropdownMenu } from '../components/ui/DropdownMenu.js';
 import { Avatar } from '../components/ui/Avatar.js';
 import { ToggleGroup } from '../components/ui/ToggleGroup.js';
 import { Accordion } from '../components/ui/Accordion.js';
@@ -23,6 +26,8 @@ const NAV = [
   { id: 'button', label: 'Button' },
   { id: 'inputs', label: 'Inputs' },
   { id: 'badges', label: 'Badges' },
+  { id: 'challenge-badges', label: 'Challenge badges' },
+  { id: 'dropdown', label: 'Dropdown' },
   { id: 'avatar', label: 'Avatar' },
   { id: 'spinner', label: 'Spinner' },
   { id: 'tooltip', label: 'Tooltip' },
@@ -388,6 +393,42 @@ export function CatalogPage() {
             <TileBadge key={id} tileId={id} variant="secondary" />
           ))}
         </div>
+      </Section>
+
+      {/* ── CHALLENGE BADGES ── */}
+      <Section id="challenge-badges" title="Challenge status & role">
+        <RowLabel
+          label="StatusChip"
+          note="active renders nothing — only the two that need attention are marked"
+        />
+        <div className="flex flex-wrap items-center gap-2 mb-4">
+          <StatusChip status="draft" />
+          <StatusChip status="active" />
+          <StatusChip status="complete" />
+        </div>
+        <RowLabel label="RoleBadge" note="member renders nothing" />
+        <div className="flex flex-wrap items-center gap-2">
+          <RoleBadge role="owner" />
+          <RoleBadge role="admin" />
+          <RoleBadge role="member" />
+        </div>
+      </Section>
+
+      {/* ── DROPDOWN MENU ── */}
+      <Section id="dropdown" title="DropdownMenu">
+        <DropdownMenu.Root>
+          <DropdownMenu.Trigger>
+            <span className="text-sm font-medium">2026 Book Bingo</span>
+          </DropdownMenu.Trigger>
+          <DropdownMenu.Content>
+            <DropdownMenu.Label>Your challenges</DropdownMenu.Label>
+            <DropdownMenu.Item>2026 Book Bingo</DropdownMenu.Item>
+            <DropdownMenu.Item>Short Story Autumn</DropdownMenu.Item>
+            <DropdownMenu.Separator />
+            <DropdownMenu.Item>All challenges</DropdownMenu.Item>
+            <DropdownMenu.Item disabled>Disabled entry</DropdownMenu.Item>
+          </DropdownMenu.Content>
+        </DropdownMenu.Root>
       </Section>
 
       {/* ── AVATAR ── */}

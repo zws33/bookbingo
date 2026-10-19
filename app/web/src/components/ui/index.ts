@@ -8,9 +8,12 @@ export {
   type ButtonVariant,
 } from './Button.js';
 export { Dialog } from './Dialog.js';
+export { DropdownMenu } from './DropdownMenu.js';
 export { Input, type InputProps } from './Input.js';
 export { Label, type LabelProps } from './Label.js';
+export { RoleBadge } from './RoleBadge.js';
 export { Spinner } from './Spinner.js';
+export { StatusChip } from './StatusChip.js';
 export { Textarea, type TextareaProps } from './Textarea.js';
 export { TileBadge } from './TileBadge.js';
 export { ToastItem, ToastViewport, type ToastItemProps } from './Toast.js';
