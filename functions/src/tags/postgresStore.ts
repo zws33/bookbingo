@@ -1,5 +1,6 @@
 import { DomainError } from '../common/errors.js';
-import { toDomainError, type ConstraintMessages } from '../common/pgErrors.js';
+import type { ConstraintMessages } from '../common/pgErrors.js';
+import { dbErrors } from '../db/errors.js';
 import { getPool } from '../db/pool.js';
 import type { Db } from '../db/transaction.js';
 
@@ -42,7 +43,10 @@ const TAG_ERRORS: ConstraintMessages = {
 };
 
 export function tagRepository(db: Db = getPool()): TagRepository {
-  const rules = { constraints: TAG_ERRORS, malformedId: GONE };
+  const mapError = dbErrors('tags', {
+    constraints: TAG_ERRORS,
+    malformedId: GONE,
+  });
 
   return {
     async listByChallenge(challengeId) {
@@ -56,7 +60,7 @@ export function tagRepository(db: Db = getPool()): TagRepository {
         return rows;
       } catch (error) {
         // A malformed id names no challenge, which has no vocabulary.
-        const mapped = toDomainError(error, rules);
+        const mapped = mapError('listByChallenge', error);
         if (mapped instanceof DomainError && mapped.kind === 'not-found') {
           return [];
         }
@@ -74,8 +78,7 @@ export function tagRepository(db: Db = getPool()): TagRepository {
         if (!id) throw new Error('insert into tags returned no id');
         return id;
       } catch (error) {
-        throw toDomainError(error, {
-          ...rules,
+        throw mapError('create', error, {
           malformedId: 'That challenge no longer exists.',
         });
       }
@@ -89,7 +92,7 @@ export function tagRepository(db: Db = getPool()): TagRepository {
         );
         if (rowCount === 0) throw new DomainError('not-found', GONE);
       } catch (error) {
-        throw toDomainError(error, rules);
+        throw mapError('update', error);
       }
     },
 
@@ -101,7 +104,7 @@ export function tagRepository(db: Db = getPool()): TagRepository {
         );
         if (rowCount === 0) throw new DomainError('not-found', GONE);
       } catch (error) {
-        throw toDomainError(error, rules);
+        throw mapError('remove', error);
       }
     },
   };

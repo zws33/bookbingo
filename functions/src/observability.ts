@@ -34,6 +34,9 @@ export function logFailure(
 /**
  * A DomainError is a deliberate rejection, not a failure — it logs as an event
  * rather than an error so a caller's mistake does not page as a bug.
+ *
+ * Records what the handler was attempting, never where it broke: the storage
+ * layer logs its own failure under its own event, and the two share a trace.
  */
 export function reportWriteFailure(
   error: unknown,
@@ -48,11 +51,7 @@ export function reportWriteFailure(
       ...error.details,
     });
   } else {
-    logFailure(event, error, {
-      ...fields,
-      outcome: 'error',
-      stage: 'firestore',
-    });
+    logFailure(event, error, { ...fields, outcome: 'error' });
   }
   throw error;
 }

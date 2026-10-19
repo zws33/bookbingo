@@ -1,6 +1,7 @@
 import { DomainError } from '../common/errors.js';
 import { MAX_TBR_PER_USER } from '../common/limits.js';
-import { toDomainError, type ConstraintMessages } from '../common/pgErrors.js';
+import type { ConstraintMessages } from '../common/pgErrors.js';
+import { dbErrors } from '../db/errors.js';
 import { getPool } from '../db/pool.js';
 import { inTransaction, type Db } from '../db/transaction.js';
 
@@ -143,9 +144,13 @@ async function replacePlannedTags(
 }
 
 export function tbrEntryRepository(db: Db = getPool()): TBREntryRepository {
-  const rules = { constraints: WRITE_ERRORS, malformedId: GONE };
+  const mapError = dbErrors('tbr', {
+    constraints: WRITE_ERRORS,
+    malformedId: GONE,
+  });
 
   async function readRows(
+    operation: string,
     sql: string,
     values: readonly unknown[],
   ): Promise<TBREntryRow[]> {
@@ -153,7 +158,7 @@ export function tbrEntryRepository(db: Db = getPool()): TBREntryRepository {
       const { rows } = await db.query<TBREntryRow>(sql, values);
       return rows;
     } catch (error) {
-      const mapped = toDomainError(error, rules);
+      const mapped = mapError(operation, error);
       if (mapped instanceof DomainError && mapped.kind === 'not-found') {
         return [];
       }
@@ -164,6 +169,7 @@ export function tbrEntryRepository(db: Db = getPool()): TBREntryRepository {
   return {
     async list(challengeId, userId) {
       const rows = await readRows(
+        'list',
         `${SELECT_ENTRIES}
           where e.challenge_id = $1 and e.user_id = $2
           group by e.id
@@ -176,6 +182,7 @@ export function tbrEntryRepository(db: Db = getPool()): TBREntryRepository {
 
     async get(challengeId, tbrId) {
       const rows = await readRows(
+        'get',
         `${SELECT_ENTRIES}
           where e.challenge_id = $1 and e.id = $2
           group by e.id`,
@@ -203,8 +210,7 @@ export function tbrEntryRepository(db: Db = getPool()): TBREntryRepository {
         });
       } catch (error) {
         // No entry exists yet, so a malformed id can only be the challenge's.
-        throw toDomainError(error, {
-          ...rules,
+        throw mapError('create', error, {
           malformedId: 'You are not a member of that challenge.',
         });
       }
@@ -224,7 +230,7 @@ export function tbrEntryRepository(db: Db = getPool()): TBREntryRepository {
           await replacePlannedTags(client, tbrId, challengeId, plannedTagIds);
         });
       } catch (error) {
-        throw toDomainError(error, rules);
+        throw mapError('update', error);
       }
     },
 
@@ -245,7 +251,7 @@ export function tbrEntryRepository(db: Db = getPool()): TBREntryRepository {
           if (rowCount === 0) throw new DomainError('not-found', GONE);
         });
       } catch (error) {
-        throw toDomainError(error, rules);
+        throw mapError('remove', error);
       }
     },
 
@@ -306,7 +312,7 @@ export function tbrEntryRepository(db: Db = getPool()): TBREntryRepository {
           };
         });
       } catch (error) {
-        throw toDomainError(error, rules);
+        throw mapError('promote', error);
       }
     },
   };

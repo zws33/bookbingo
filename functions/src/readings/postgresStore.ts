@@ -4,7 +4,8 @@ import {
   MAX_READINGS_SCAN,
   requireCompleteScan,
 } from '../common/limits.js';
-import { toDomainError, type ConstraintMessages } from '../common/pgErrors.js';
+import type { ConstraintMessages } from '../common/pgErrors.js';
+import { dbErrors } from '../db/errors.js';
 import { getPool } from '../db/pool.js';
 import { inTransaction, type Db } from '../db/transaction.js';
 
@@ -124,10 +125,14 @@ async function replaceTags(
 }
 
 export function readingRepository(db: Db = getPool()): ReadingRepository {
-  const rules = { constraints: WRITE_ERRORS, malformedId: GONE };
+  const mapError = dbErrors('readings', {
+    constraints: WRITE_ERRORS,
+    malformedId: GONE,
+  });
 
   /** A malformed challenge or reading id names no row, which reads as an empty result. */
   async function readRows(
+    operation: string,
     sql: string,
     values: readonly unknown[],
   ): Promise<ReadingRow[]> {
@@ -135,7 +140,7 @@ export function readingRepository(db: Db = getPool()): ReadingRepository {
       const { rows } = await db.query<ReadingRow>(sql, values);
       return rows;
     } catch (error) {
-      const mapped = toDomainError(error, rules);
+      const mapped = mapError(operation, error);
       if (mapped instanceof DomainError && mapped.kind === 'not-found') {
         return [];
       }
@@ -146,6 +151,7 @@ export function readingRepository(db: Db = getPool()): ReadingRepository {
   return {
     async list(challengeId, userId) {
       const rows = await readRows(
+        'list',
         `${SELECT_READINGS}
           where r.challenge_id = $1 and r.user_id = $2
           group by r.id
@@ -158,6 +164,7 @@ export function readingRepository(db: Db = getPool()): ReadingRepository {
 
     async listByChallenge(challengeId) {
       const rows = await readRows(
+        'listByChallenge',
         `${SELECT_READINGS}
            join memberships m
              on m.challenge_id = r.challenge_id
@@ -182,6 +189,7 @@ export function readingRepository(db: Db = getPool()): ReadingRepository {
 
     async get(challengeId, readingId) {
       const rows = await readRows(
+        'get',
         `${SELECT_READINGS}
           where r.challenge_id = $1 and r.id = $2
           group by r.id`,
@@ -209,8 +217,7 @@ export function readingRepository(db: Db = getPool()): ReadingRepository {
         });
       } catch (error) {
         // No reading exists yet, so a malformed id can only be the challenge's.
-        throw toDomainError(error, {
-          ...rules,
+        throw mapError('create', error, {
           malformedId: 'You are not a member of that challenge.',
         });
       }
@@ -230,7 +237,7 @@ export function readingRepository(db: Db = getPool()): ReadingRepository {
           await replaceTags(client, readingId, challengeId, tagIds);
         });
       } catch (error) {
-        throw toDomainError(error, rules);
+        throw mapError('update', error);
       }
     },
 
@@ -255,7 +262,7 @@ export function readingRepository(db: Db = getPool()): ReadingRepository {
           if (rowCount === 0) throw new DomainError('not-found', GONE);
         });
       } catch (error) {
-        throw toDomainError(error, rules);
+        throw mapError('remove', error);
       }
     },
   };

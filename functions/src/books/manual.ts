@@ -45,7 +45,6 @@ export async function createManualBookHandler(
     logFailure('book.manual', error, {
       uid,
       outcome: 'error',
-      stage: 'firestore',
       durationMs: Date.now() - startedAt,
     });
     throw new HttpsError('internal', 'Failed to create book.');
