@@ -15,6 +15,8 @@ import { ChallengeSwitcher } from './components/ChallengeSwitcher';
 import { ChallengeListPage } from './pages/ChallengeListPage';
 import { CreateChallengePage } from './pages/CreateChallengePage';
 import { JoinChallengePage } from './pages/JoinChallengePage';
+import { MembersPage } from './pages/MembersPage';
+import { ChallengeSettingsPage } from './pages/ChallengeSettingsPage';
 import { MyBooksPage } from './pages/MyBooksPage';
 import { ReadingListPage } from './pages/ReadingListPage';
 import { UserBooksPage } from './pages/UserBooksPage';
@@ -54,6 +56,8 @@ function SignedInRoutes({ userId }: { userId: string }) {
         />
         <Route path="board" element={<BoardRoute userId={userId} />} />
         <Route path="leaderboard" element={<LeaderboardPage />} />
+        <Route path="members" element={<MembersPage />} />
+        <Route path="settings" element={<ChallengeSettingsPage />} />
         <Route
           path="users"
           element={<Navigate to="../leaderboard" replace />}

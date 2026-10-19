@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { Link, NavLink, Outlet } from 'react-router-dom';
 import { useChallenges } from './ChallengeContext';
 import { writeLastChallengeId } from './lastChallenge';
+import { atLeast } from './permissions';
 import { PageStatus } from '../components/PageStatus';
 import { buttonClasses } from '../components/ui/Button.js';
 
@@ -16,6 +17,7 @@ const TABS: Tab[] = [
   { to: 'reading-list', label: 'Reading List', end: false },
   { to: 'board', label: 'Bingo Board', end: false },
   { to: 'leaderboard', label: 'Leaderboard', end: false },
+  { to: 'members', label: 'Members', end: false },
 ];
 
 function tabClass({ isActive }: { isActive: boolean }): string {
@@ -64,7 +66,12 @@ export function ChallengeLayout() {
     return <NotFound />;
   }
 
-  const { challenge } = active;
+  const { challenge, membership } = active;
+  // Settings is admin-only even when the lifecycle has locked every field on
+  // it: a complete challenge still shows its cap and roster rules.
+  const tabs = atLeast(membership.role, 'admin')
+    ? [...TABS, { to: 'settings', label: 'Settings', end: false }]
+    : TABS;
 
   return (
     <>
@@ -77,7 +84,7 @@ export function ChallengeLayout() {
       )}
 
       <div className="flex gap-4 border-b border-outline-variant mb-6 overflow-x-auto">
-        {TABS.map((tab) => (
+        {tabs.map((tab) => (
           <NavLink key={tab.to} to={tab.to} end={tab.end} className={tabClass}>
             {tab.label}
           </NavLink>
