@@ -93,7 +93,6 @@ export async function fetchBookDetailsHandler(
       uid,
       externalId,
       outcome: 'error',
-      stage: 'firestore',
       durationMs: Date.now() - startedAt,
     });
     throw new HttpsError('internal', 'Failed to create book.');

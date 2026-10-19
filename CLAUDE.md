@@ -23,7 +23,7 @@ Book reading bingo card tracker — a hobby project for a book club competition 
 Clean Architecture. Each domain module with persistence (`books/`, `challenges/`, `readings/`, `tags/`, `tbr/`, `users/`) has these files:
 
 - `store.ts` — repository interface, a private `firestoreX` singleton, and an `xRepository()` factory. The only layer that imports `firebase-admin`. Entities carry `Date`, not ISO strings.
-- `postgresStore.ts` — the Postgres replacement, built but wired to no handler. Declares its own interface and entities, challenge-scoped and different from the Firestore ones, so the two share nothing. `db/` owns the pool and `inTransaction`; `common/pgErrors.ts` maps a SQLSTATE to a `DomainError` by constraint name. Takes the `store.ts` name once Firestore is retired.
+- `postgresStore.ts` — the Postgres replacement, built but wired to no handler. Declares its own interface and entities, challenge-scoped and different from the Firestore ones, so the two share nothing. `db/` owns the pool, `inTransaction` and `dbErrors`; `common/pgErrors.ts` maps a SQLSTATE to a `DomainError` by constraint name and stays pure. Each repository factory builds one `mapError = dbErrors('<name>', rules)` and every catch goes through it, so the storage layer logs its own `db.rejected`/`db.error` with the SQLSTATE and constraint. Handlers log what they were attempting and name no storage technology — `reportWriteFailure` carries no `stage`. Takes the `store.ts` name once Firestore is retired.
 - `handler.ts` — an `xHandlers(...repos)` factory returning a plain object of closures. Never a class: `callable(x.method, …)` passes the method unbound, so `this` would be lost.
 - `present.ts` — the response DTO and its mapper. Owns ISO encoding and the book flattening.
 

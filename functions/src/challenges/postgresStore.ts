@@ -4,7 +4,8 @@ import {
   MAX_ACTIVE_MEMBERSHIPS,
   requireCompleteScan,
 } from '../common/limits.js';
-import { toDomainError, type ConstraintMessages } from '../common/pgErrors.js';
+import type { ConstraintMessages } from '../common/pgErrors.js';
+import { dbErrors } from '../db/errors.js';
 import { getPool } from '../db/pool.js';
 import { inTransaction, type Db } from '../db/transaction.js';
 import { generateJoinCode } from './joinCode.js';
@@ -120,7 +121,12 @@ function toMembership(row: MembershipRow): Membership {
 const CHALLENGE_COLUMNS = 'id, name, tag_cap, status, created_by, created_at';
 const MEMBERSHIP_COLUMNS = 'user_id, role, status, joined_at';
 
-const GONE = 'That challenge no longer exists.';
+/**
+ * Exported because the handler throws it too: a non-member must get a message
+ * identical to a missing challenge's, or the difference confirms the challenge
+ * exists (rule 45).
+ */
+export const CHALLENGE_GONE = 'That challenge no longer exists.';
 
 const BLOCKED =
   'That challenge cannot be deleted while readings or reading list entries exist in it.';
@@ -133,8 +139,8 @@ const CHALLENGE_ERRORS: ConstraintMessages = {
     'The tag cap must be above zero.',
   ],
   memberships_user_id_fkey: ['not-found', 'That user no longer exists.'],
-  memberships_challenge_id_fkey: ['not-found', GONE],
-  join_codes_challenge_id_fkey: ['not-found', GONE],
+  memberships_challenge_id_fkey: ['not-found', CHALLENGE_GONE],
+  join_codes_challenge_id_fkey: ['not-found', CHALLENGE_GONE],
   join_codes_created_by_fkey: ['not-found', 'That user no longer exists.'],
   readings_challenge_id_user_id_fkey: ['conflict', BLOCKED],
   tbr_entries_challenge_id_user_id_fkey: ['conflict', BLOCKED],
@@ -183,28 +189,38 @@ export function challengeRepository(
   db: Db = getPool(),
   generateCode: () => string = generateJoinCode,
 ): ChallengeRepository {
-  const rules = { constraints: CHALLENGE_ERRORS, malformedId: GONE };
+  const mapError = dbErrors('challenges', {
+    constraints: CHALLENGE_ERRORS,
+    malformedId: CHALLENGE_GONE,
+  });
 
-  /** Postgres rejects a non-uuid before reading a row, where an absent id is simply not found. */
+  /**
+   * Postgres rejects a non-uuid before reading a row, where an absent id is
+   * simply not found. The `malformedId` rule that covers it only fires on a
+   * uuid parameter, so the reads keyed by `user_id` or `code` — both `text` —
+   * share this wrapper for its failure logging alone.
+   */
   async function query<R extends pg.QueryResultRow>(
+    operation: string,
     sql: string,
     values: readonly unknown[],
   ) {
     try {
       return await db.query<R>(sql, values);
     } catch (error) {
-      throw toDomainError(error, rules);
+      throw mapError(operation, error);
     }
   }
 
   return {
     async get(challengeId) {
       const { rows } = await query<ChallengeRow>(
+        'get',
         `select ${CHALLENGE_COLUMNS} from challenges where id = $1`,
         [challengeId],
       );
       const row = rows[0];
-      if (!row) throw new DomainError('not-found', GONE);
+      if (!row) throw new DomainError('not-found', CHALLENGE_GONE);
       return toChallenge(row);
     },
 
@@ -237,12 +253,13 @@ export function challengeRepository(
           return { challengeId, joinCode };
         });
       } catch (error) {
-        throw toDomainError(error, rules);
+        throw mapError('create', error);
       }
     },
 
     async update(challengeId, { name, tagCap }) {
       const { rowCount } = await query(
+        'update',
         `update challenges
             set name = coalesce($2, name),
                 tag_cap = coalesce($3, tag_cap),
@@ -250,15 +267,16 @@ export function challengeRepository(
           where id = $1`,
         [challengeId, name ?? null, tagCap ?? null],
       );
-      if (rowCount === 0) throw new DomainError('not-found', GONE);
+      if (rowCount === 0) throw new DomainError('not-found', CHALLENGE_GONE);
     },
 
     async setStatus(challengeId, status) {
       const { rowCount } = await query(
+        'setStatus',
         'update challenges set status = $2, updated_at = now() where id = $1',
         [challengeId, status],
       );
-      if (rowCount === 0) throw new DomainError('not-found', GONE);
+      if (rowCount === 0) throw new DomainError('not-found', CHALLENGE_GONE);
     },
 
     /**
@@ -280,10 +298,11 @@ export function challengeRepository(
             'delete from challenges where id = $1',
             [challengeId],
           );
-          if (rowCount === 0) throw new DomainError('not-found', GONE);
+          if (rowCount === 0)
+            throw new DomainError('not-found', CHALLENGE_GONE);
         });
       } catch (error) {
-        throw toDomainError(error, rules);
+        throw mapError('remove', error);
       }
     },
 
@@ -300,7 +319,7 @@ export function challengeRepository(
         return row ? toMembership(row) : undefined;
       } catch (error) {
         // A malformed id cannot name a membership, which is the same as none.
-        const mapped = toDomainError(error, rules);
+        const mapped = mapError('getMembership', error);
         if (mapped instanceof DomainError && mapped.kind === 'not-found') {
           return undefined;
         }
@@ -310,6 +329,7 @@ export function challengeRepository(
 
     async listMembers(challengeId) {
       const { rows } = await query<MembershipRow>(
+        'listMembers',
         `select ${MEMBERSHIP_COLUMNS} from memberships
           where challenge_id = $1
           order by joined_at, user_id`,
@@ -319,7 +339,8 @@ export function challengeRepository(
     },
 
     async listActiveMemberships(userId) {
-      const { rows } = await db.query<MembershipRow & { challenge_id: string }>(
+      const { rows } = await query<MembershipRow & { challenge_id: string }>(
+        'listActiveMemberships',
         `select challenge_id, ${MEMBERSHIP_COLUMNS} from memberships
           where user_id = $1 and status = 'active'
           order by joined_at, challenge_id
@@ -344,12 +365,13 @@ export function challengeRepository(
           [challengeId, userId, role, status],
         );
       } catch (error) {
-        throw toDomainError(error, rules);
+        throw mapError('upsertMembership', error);
       }
     },
 
     async listActiveOwners(challengeId) {
       const { rows } = await query<{ user_id: string }>(
+        'listActiveOwners',
         `select user_id from memberships
           where challenge_id = $1 and role = 'owner' and status = 'active'
           order by user_id
@@ -360,7 +382,8 @@ export function challengeRepository(
     },
 
     async findByJoinCode(code) {
-      const { rows } = await db.query<{ challenge_id: string }>(
+      const { rows } = await query<{ challenge_id: string }>(
+        'findByJoinCode',
         'select challenge_id from join_codes where code = $1',
         [code],
       );
@@ -370,6 +393,7 @@ export function challengeRepository(
 
     async getJoinCode(challengeId) {
       const { rows } = await query<{ code: string }>(
+        'getJoinCode',
         'select code from join_codes where challenge_id = $1',
         [challengeId],
       );
@@ -388,7 +412,8 @@ export function challengeRepository(
             'select 1 from challenges where id = $1 for update',
             [challengeId],
           );
-          if (rowCount === 0) throw new DomainError('not-found', GONE);
+          if (rowCount === 0)
+            throw new DomainError('not-found', CHALLENGE_GONE);
 
           await client.query('delete from join_codes where challenge_id = $1', [
             challengeId,
@@ -396,7 +421,7 @@ export function challengeRepository(
           return insertJoinCode(client, challengeId, createdBy, generateCode);
         });
       } catch (error) {
-        throw toDomainError(error, rules);
+        throw mapError('rotateJoinCode', error);
       }
     },
   };

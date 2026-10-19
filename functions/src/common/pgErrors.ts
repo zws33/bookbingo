@@ -36,7 +36,7 @@ const BY_CONSTRAINT = new Set([
   NOT_NULL_VIOLATION,
 ]);
 
-interface PgError {
+export interface PgError {
   code: string;
   constraint?: string;
 }
@@ -45,8 +45,11 @@ interface PgError {
  * Duck-typed rather than `instanceof pg.DatabaseError`: the field this reads is
  * the documented one, and a `code` that is not a SQLSTATE matches no rule and
  * falls through to the original error.
+ *
+ * Exported so the logging layer can tell a failure that came from the database
+ * from a `DomainError` the repository raised itself, which is not a failure.
  */
-function asPgError(error: unknown): PgError | undefined {
+export function describePgError(error: unknown): PgError | undefined {
   if (error instanceof DomainError || !(error instanceof Error))
     return undefined;
   const { code, constraint } = error as Error & Partial<PgError>;
@@ -60,7 +63,7 @@ function asPgError(error: unknown): PgError | undefined {
  * constraint is the right way to find it.
  */
 export function toDomainError(error: unknown, rules: PgErrorRules): unknown {
-  const pgError = asPgError(error);
+  const pgError = describePgError(error);
   if (!pgError) return error;
 
   if (pgError.code === INVALID_TEXT_REPRESENTATION) {

@@ -1,4 +1,5 @@
-import { toDomainError, type ConstraintMessages } from '../common/pgErrors.js';
+import type { ConstraintMessages } from '../common/pgErrors.js';
+import { dbErrors } from '../db/errors.js';
 import { getPool } from '../db/pool.js';
 import { inTransaction, type Db } from '../db/transaction.js';
 import { MissingBookError } from './errors.js';
@@ -71,6 +72,8 @@ const WRITE_ERRORS: ConstraintMessages = {
 };
 
 export function bookRepository(db: Db = getPool()): BookRepository {
+  const mapError = dbErrors('books', { constraints: WRITE_ERRORS });
+
   return {
     /**
      * Reads every book in one statement, keyed by id. Throws
@@ -137,7 +140,7 @@ export function bookRepository(db: Db = getPool()): BookRepository {
           return { bookId: book.id, created: rowCount === 1 };
         });
       } catch (error) {
-        throw toDomainError(error, { constraints: WRITE_ERRORS });
+        throw mapError('createIfAbsent', error);
       }
     },
   };
