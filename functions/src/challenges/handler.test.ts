@@ -35,6 +35,16 @@ const MEMBERSHIP_FROZEN = 'A complete challenge cannot be left.';
 const LAST_OWNER =
   'The last owner cannot leave. Promote another owner first, then leave.';
 
+const LAST_OWNER_ROLE =
+  'The last owner cannot step down. Promote another owner first.';
+
+const MEMBERS_FROZEN =
+  'Membership in a complete challenge can no longer change.';
+
+const MEMBER_GONE = 'That member is not in this challenge.';
+
+const TARGET = 'user-2';
+
 function fakeRepo(
   overrides: Partial<ChallengeRepository> = {},
 ): ChallengeRepository {
@@ -53,6 +63,7 @@ function fakeRepo(
     upsertMembership: unexpected('upsertMembership'),
     listActiveOwners: unexpected('listActiveOwners'),
     leave: unexpected('leave'),
+    setRole: unexpected('setRole'),
     findByJoinCode: unexpected('findByJoinCode'),
     getJoinCode: unexpected('getJoinCode'),
     rotateJoinCode: unexpected('rotateJoinCode'),
@@ -102,6 +113,11 @@ function makeMembership(
 
 const membershipOf = (membership: Membership | undefined) => () =>
   Promise.resolve(membership);
+
+const membershipsOf =
+  (byUser: Record<string, Membership | undefined>) =>
+  (_challengeId: string, userId: string) =>
+    Promise.resolve(byUser[userId]);
 
 async function rejectsWith(
   kind: string,
@@ -566,6 +582,248 @@ describe('challengeHandlers.rotateJoinCode', () => {
 
       assert.deepEqual(result, { joinCode: JOIN_CODE });
       assert.deepEqual(calls, [[CHALLENGE_ID, 'user-1']]);
+    });
+  }
+});
+
+describe('challengeHandlers.removeMember', () => {
+  const roster = (actor: MemberRole, target: Membership | undefined) => ({
+    getMembership: membershipsOf({
+      [AUTH.uid]: makeMembership(actor),
+      [TARGET]: target,
+    }),
+    get: () => Promise.resolve(makeChallenge()),
+  });
+
+  const removal = { challengeId: CHALLENGE_ID, userId: TARGET };
+
+  test('requires a signed-in caller', async () => {
+    await assert.rejects(
+      handlers().removeMember(makeRequest(undefined, removal)),
+      /Must be signed in to remove a member\./,
+    );
+  });
+
+  test('tells a non-member the challenge does not exist', async () => {
+    await rejectsWith('not-found', CHALLENGE_GONE, () =>
+      handlers({ getMembership: membershipOf(undefined) }).removeMember(
+        makeRequest(AUTH, removal),
+      ),
+    );
+  });
+
+  test('refuses a complete challenge', async () => {
+    await rejectsWith('conflict', MEMBERS_FROZEN, () =>
+      handlers({
+        getMembership: membershipOf(makeMembership('owner')),
+        get: () => Promise.resolve(makeChallenge({ status: 'complete' })),
+      }).removeMember(makeRequest(AUTH, removal)),
+    );
+  });
+
+  for (const status of ['left', 'removed'] as const) {
+    test(`reports a ${status} target as not in the challenge`, async () => {
+      await rejectsWith('not-found', MEMBER_GONE, () =>
+        handlers(
+          roster('owner', makeMembership('member', status, TARGET)),
+        ).removeMember(makeRequest(AUTH, removal)),
+      );
+    });
+  }
+
+  test('refuses a member, who does not remove anyone', async () => {
+    const error = await rejectsWith('forbidden', DENIED, () =>
+      handlers(
+        roster('member', makeMembership('member', 'active', TARGET)),
+      ).removeMember(makeRequest(AUTH, removal)),
+    );
+
+    assert.deepEqual(error.details, {
+      permission: 'member.remove',
+      role: 'member',
+    });
+  });
+
+  for (const [actor, target] of [
+    ['admin', 'admin'],
+    ['admin', 'owner'],
+    ['owner', 'owner'],
+  ] as const) {
+    test(`refuses an ${actor} removing a ${target}, who is not outranked`, async () => {
+      await rejectsWith('forbidden', DENIED, () =>
+        handlers(
+          roster(actor, makeMembership(target, 'active', TARGET)),
+        ).removeMember(makeRequest(AUTH, removal)),
+      );
+    });
+  }
+
+  test('refuses removing yourself, which is what leaving is for', async () => {
+    await rejectsWith('forbidden', DENIED, () =>
+      handlers({
+        getMembership: membershipOf(makeMembership('owner')),
+        get: () => Promise.resolve(makeChallenge()),
+      }).removeMember(
+        makeRequest(AUTH, { challengeId: CHALLENGE_ID, userId: AUTH.uid }),
+      ),
+    );
+  });
+
+  test('marks the membership removed and keeps the role it held', async () => {
+    const calls: unknown[] = [];
+    await handlers({
+      ...roster('owner', makeMembership('admin', 'active', TARGET)),
+      upsertMembership: (challengeId, userId, fields) => {
+        calls.push([challengeId, userId, fields]);
+        return Promise.resolve();
+      },
+    }).removeMember(makeRequest(AUTH, removal));
+
+    assert.deepEqual(calls, [
+      [CHALLENGE_ID, TARGET, { role: 'admin', status: 'removed' }],
+    ]);
+  });
+});
+
+describe('challengeHandlers.setMemberRole', () => {
+  const roster = (actor: MemberRole, target: Membership | undefined) => ({
+    getMembership: membershipsOf({
+      [AUTH.uid]: makeMembership(actor),
+      [TARGET]: target,
+    }),
+    get: () => Promise.resolve(makeChallenge()),
+  });
+
+  const change = (role: MemberRole, userId = TARGET) => ({
+    challengeId: CHALLENGE_ID,
+    userId,
+    role,
+  });
+
+  test('requires a signed-in caller', async () => {
+    await assert.rejects(
+      handlers().setMemberRole(makeRequest(undefined, change('admin'))),
+      /Must be signed in to change a role\./,
+    );
+  });
+
+  test('rejects a role outside the ladder', async () => {
+    await assert.rejects(
+      handlers().setMemberRole(
+        makeRequest(AUTH, {
+          challengeId: CHALLENGE_ID,
+          userId: TARGET,
+          role: 'superadmin',
+        }),
+      ),
+      /expected one of/,
+    );
+  });
+
+  test('tells a non-member the challenge does not exist', async () => {
+    await rejectsWith('not-found', CHALLENGE_GONE, () =>
+      handlers({ getMembership: membershipOf(undefined) }).setMemberRole(
+        makeRequest(AUTH, change('admin')),
+      ),
+    );
+  });
+
+  test('refuses a complete challenge', async () => {
+    await rejectsWith('conflict', MEMBERS_FROZEN, () =>
+      handlers({
+        getMembership: membershipOf(makeMembership('owner')),
+        get: () => Promise.resolve(makeChallenge({ status: 'complete' })),
+      }).setMemberRole(makeRequest(AUTH, change('admin'))),
+    );
+  });
+
+  test('reports a target who is not a member as not in the challenge', async () => {
+    await rejectsWith('not-found', MEMBER_GONE, () =>
+      handlers(roster('owner', undefined)).setMemberRole(
+        makeRequest(AUTH, change('admin')),
+      ),
+    );
+  });
+
+  test('refuses a member, who changes nobody', async () => {
+    const error = await rejectsWith('forbidden', DENIED, () =>
+      handlers(
+        roster('member', makeMembership('member', 'active', TARGET)),
+      ).setMemberRole(makeRequest(AUTH, change('admin'))),
+    );
+
+    assert.deepEqual(error.details, {
+      permission: 'member.setRole',
+      role: 'member',
+    });
+  });
+
+  test('refuses an admin granting a role above their own', async () => {
+    await rejectsWith('forbidden', DENIED, () =>
+      handlers(
+        roster('admin', makeMembership('member', 'active', TARGET)),
+      ).setMemberRole(makeRequest(AUTH, change('owner'))),
+    );
+  });
+
+  test('refuses an owner demoting another owner', async () => {
+    await rejectsWith('forbidden', DENIED, () =>
+      handlers(
+        roster('owner', makeMembership('owner', 'active', TARGET)),
+      ).setMemberRole(makeRequest(AUTH, change('member'))),
+    );
+  });
+
+  test('refuses promoting yourself', async () => {
+    await rejectsWith('forbidden', DENIED, () =>
+      handlers({
+        getMembership: membershipOf(makeMembership('admin')),
+        get: () => Promise.resolve(makeChallenge()),
+      }).setMemberRole(makeRequest(AUTH, change('owner', AUTH.uid))),
+    );
+  });
+
+  test('lets an owner step down to a lower role', async () => {
+    const calls: unknown[] = [];
+    await handlers({
+      getMembership: membershipOf(makeMembership('owner')),
+      get: () => Promise.resolve(makeChallenge()),
+      setRole: (challengeId, userId, role) => {
+        calls.push([challengeId, userId, role]);
+        return Promise.resolve();
+      },
+    }).setMemberRole(makeRequest(AUTH, change('member', AUTH.uid)));
+
+    assert.deepEqual(calls, [[CHALLENGE_ID, AUTH.uid, 'member']]);
+  });
+
+  test('forwards the last-owner rejection the repository raises', async () => {
+    await rejectsWith('conflict', LAST_OWNER_ROLE, () =>
+      handlers({
+        getMembership: membershipOf(makeMembership('owner')),
+        get: () => Promise.resolve(makeChallenge()),
+        setRole: () =>
+          Promise.reject(new DomainError('conflict', LAST_OWNER_ROLE)),
+      }).setMemberRole(makeRequest(AUTH, change('member', AUTH.uid))),
+    );
+  });
+
+  for (const [actor, from, to] of [
+    ['admin', 'member', 'admin'],
+    ['owner', 'member', 'owner'],
+    ['owner', 'admin', 'member'],
+  ] as const) {
+    test(`an ${actor} moves a ${from} to ${to}`, async () => {
+      const calls: unknown[] = [];
+      await handlers({
+        ...roster(actor, makeMembership(from, 'active', TARGET)),
+        setRole: (challengeId, userId, role) => {
+          calls.push([challengeId, userId, role]);
+          return Promise.resolve();
+        },
+      }).setMemberRole(makeRequest(AUTH, change(to)));
+
+      assert.deepEqual(calls, [[CHALLENGE_ID, TARGET, to]]);
     });
   }
 });

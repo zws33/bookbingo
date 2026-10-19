@@ -2,7 +2,14 @@ import type { CallableRequest } from 'firebase-functions/v2/https';
 import { parseRequest, requireAuth } from '../callable.js';
 import { DomainError } from '../common/errors.js';
 import { logEvent, reportWriteFailure } from '../observability.js';
-import { hasPermission, statusAllows, type Permission } from './permissions.js';
+import {
+  canRemove,
+  canSelfDemote,
+  canSetRole,
+  hasPermission,
+  statusAllows,
+  type Permission,
+} from './permissions.js';
 import {
   CHALLENGE_GONE,
   type ChallengeRepository,
@@ -19,7 +26,9 @@ import {
   GetChallengeRequestSchema,
   JoinChallengeRequestSchema,
   LeaveChallengeRequestSchema,
+  RemoveMemberRequestSchema,
   RotateJoinCodeRequestSchema,
+  SetMemberRoleRequestSchema,
   UpdateChallengeConfigRequestSchema,
 } from './schema.js';
 
@@ -37,6 +46,11 @@ const JOIN_CLOSED = 'That challenge is complete and is not taking new members.';
 const REJOIN_DENIED = 'You cannot rejoin a challenge you were removed from.';
 
 const MEMBERSHIP_FROZEN = 'A complete challenge cannot be left.';
+
+const MEMBERS_FROZEN =
+  'Membership in a complete challenge can no longer change.';
+
+const MEMBER_GONE = 'That member is not in this challenge.';
 
 export interface ChallengeDetailDTO {
   challenge: ChallengeDTO;
@@ -254,6 +268,98 @@ export function challengeHandlers(challengesRepo: ChallengeRepository) {
       }
 
       logEvent('challenge.leave', { uid, outcome: 'ok', challengeId });
+    },
+
+    /**
+     * Removal reaches a strictly lower rank only, so it can neither take the
+     * last owner nor reach the caller — leaving is `leave`.
+     */
+    async removeMember(request: CallableRequest<unknown>): Promise<void> {
+      const { uid } = requireAuth(request, 'remove a member');
+      const { challengeId, userId } = parseRequest(
+        RemoveMemberRequestSchema,
+        request.data,
+      );
+
+      const actor = await requireActiveMembership(challengeId, uid);
+      await requireStatusAllows(challengeId, 'memberManage', MEMBERS_FROZEN);
+
+      const target = await challengesRepo.getMembership(challengeId, userId);
+      if (target?.status !== 'active') {
+        throw new DomainError('not-found', MEMBER_GONE);
+      }
+      if (!canRemove(actor.role, target.role)) {
+        throw denied(actor, 'member.remove');
+      }
+
+      try {
+        await challengesRepo.upsertMembership(challengeId, userId, {
+          role: target.role,
+          status: 'removed',
+        });
+      } catch (error) {
+        reportWriteFailure(error, 'challenge.removeMember', {
+          uid,
+          challengeId,
+          targetId: userId,
+        });
+      }
+
+      logEvent('challenge.removeMember', {
+        uid,
+        outcome: 'ok',
+        challengeId,
+        targetId: userId,
+        targetRole: target.role,
+      });
+    },
+
+    /**
+     * Two rank rules, by target: stepping down is the only change anyone may
+     * make to their own role (rule 20), and changing someone else's needs both
+     * outranking them and being allowed to grant what they become.
+     */
+    async setMemberRole(request: CallableRequest<unknown>): Promise<void> {
+      const { uid } = requireAuth(request, 'change a role');
+      const { challengeId, userId, role } = parseRequest(
+        SetMemberRoleRequestSchema,
+        request.data,
+      );
+
+      const actor = await requireActiveMembership(challengeId, uid);
+      await requireStatusAllows(challengeId, 'memberManage', MEMBERS_FROZEN);
+
+      const isSelf = userId === uid;
+      const target = isSelf
+        ? actor
+        : await challengesRepo.getMembership(challengeId, userId);
+      if (target?.status !== 'active') {
+        throw new DomainError('not-found', MEMBER_GONE);
+      }
+
+      const allowed = isSelf
+        ? canSelfDemote(target.role, role)
+        : canSetRole(actor.role, target.role, role);
+      if (!allowed) throw denied(actor, 'member.setRole');
+
+      try {
+        await challengesRepo.setRole(challengeId, userId, role);
+      } catch (error) {
+        reportWriteFailure(error, 'challenge.setMemberRole', {
+          uid,
+          challengeId,
+          targetId: userId,
+          role,
+        });
+      }
+
+      logEvent('challenge.setMemberRole', {
+        uid,
+        outcome: 'ok',
+        challengeId,
+        targetId: userId,
+        role,
+      });
     },
 
     /** Gated on `join`: a code for a challenge nobody can join is not worth rotating. */

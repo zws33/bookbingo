@@ -838,6 +838,99 @@ describe('challengeRepository', () => {
     });
   });
 
+  describe('setRole', () => {
+    test('changes the role of an active membership', async () => {
+      const pool = testDb.db;
+      const owner = await seedUser(pool);
+      const member = await seedUser(pool);
+      const challengeId = await seedChallenge(pool, { createdBy: owner });
+      await seedMembership(pool, { challengeId, userId: owner, role: 'owner' });
+      await seedMembership(pool, { challengeId, userId: member });
+
+      await repository().setRole(challengeId, member, 'admin');
+
+      assert.equal(
+        (await repository().getMembership(challengeId, member))?.role,
+        'admin',
+      );
+    });
+
+    test('refuses the last owner stepping down', async () => {
+      const pool = testDb.db;
+      const owner = await seedUser(pool);
+      const challengeId = await seedChallenge(pool, { createdBy: owner });
+      await seedMembership(pool, { challengeId, userId: owner, role: 'owner' });
+
+      await assert.rejects(
+        repository().setRole(challengeId, owner, 'admin'),
+        rejectsWith('conflict'),
+      );
+      assert.equal(
+        (await repository().getMembership(challengeId, owner))?.role,
+        'owner',
+      );
+    });
+
+    test('lets an owner step down while another owner remains', async () => {
+      const pool = testDb.db;
+      const first = await seedUser(pool);
+      const second = await seedUser(pool);
+      const challengeId = await seedChallenge(pool, { createdBy: first });
+      await seedMembership(pool, { challengeId, userId: first, role: 'owner' });
+      await seedMembership(pool, {
+        challengeId,
+        userId: second,
+        role: 'owner',
+      });
+
+      await repository().setRole(challengeId, first, 'member');
+
+      assert.equal(
+        (await repository().getMembership(challengeId, first))?.role,
+        'member',
+      );
+    });
+
+    test('allows the last owner a write that keeps them owner', async () => {
+      const pool = testDb.db;
+      const owner = await seedUser(pool);
+      const challengeId = await seedChallenge(pool, { createdBy: owner });
+      await seedMembership(pool, { challengeId, userId: owner, role: 'owner' });
+
+      await repository().setRole(challengeId, owner, 'owner');
+
+      assert.equal(
+        (await repository().getMembership(challengeId, owner))?.role,
+        'owner',
+      );
+    });
+
+    test('reports a membership that is not active as not found', async () => {
+      const pool = testDb.db;
+      const owner = await seedUser(pool);
+      const member = await seedUser(pool);
+      const challengeId = await seedChallenge(pool, { createdBy: owner });
+      await seedMembership(pool, { challengeId, userId: owner, role: 'owner' });
+      await seedMembership(pool, {
+        challengeId,
+        userId: member,
+        status: 'removed',
+      });
+
+      await assert.rejects(
+        repository().setRole(challengeId, member, 'admin'),
+        rejectsWith('not-found'),
+      );
+    });
+
+    test('reports a malformed id as not found rather than failing', async () => {
+      await assert.rejects(
+        repository().setRole('not-a-uuid', 'nobody', 'admin'),
+        rejectsWith('not-found'),
+      );
+    });
+  });
+
   describe('join codes', () => {
     test('findByJoinCode resolves the challenge the code belongs to', async () => {
       const pool = testDb.db;

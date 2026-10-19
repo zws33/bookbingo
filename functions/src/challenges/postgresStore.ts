@@ -89,6 +89,11 @@ export interface ChallengeRepository {
    * transaction here because a handler cannot open one.
    */
   leave(challengeId: string, userId: string): Promise<void>;
+  /**
+   * Refuses a demotion that would leave no active owner (rule 21), under the
+   * same lock and for the same reason as `leave`.
+   */
+  setRole(challengeId: string, userId: string, role: MemberRole): Promise<void>;
   findByJoinCode(code: string): Promise<{ challengeId: string } | undefined>;
   getJoinCode(challengeId: string): Promise<string | undefined>;
   rotateJoinCode(challengeId: string, createdBy: string): Promise<string>;
@@ -152,6 +157,9 @@ const BLOCKED =
 
 const LAST_OWNER =
   'The last owner cannot leave. Promote another owner first, then leave.';
+
+const LAST_OWNER_ROLE =
+  'The last owner cannot step down. Promote another owner first.';
 
 const ACTIVE_OWNERS = `select user_id from memberships
   where challenge_id = $1 and role = 'owner' and status = 'active'
@@ -450,6 +458,34 @@ export function challengeRepository(
         });
       } catch (error) {
         throw mapError('leave', error);
+      }
+    },
+
+    async setRole(challengeId, userId, role) {
+      try {
+        await inTransaction(db, async (client) => {
+          const { rows } = await client.query<{ user_id: string }>(
+            ACTIVE_OWNERS,
+            [challengeId],
+          );
+          if (
+            role !== 'owner' &&
+            rows.length === 1 &&
+            rows[0]?.user_id === userId
+          ) {
+            throw new DomainError('conflict', LAST_OWNER_ROLE);
+          }
+
+          const { rowCount } = await client.query(
+            `update memberships set role = $3, updated_at = now()
+              where challenge_id = $1 and user_id = $2 and status = 'active'`,
+            [challengeId, userId, role],
+          );
+          if (rowCount === 0)
+            throw new DomainError('not-found', CHALLENGE_GONE);
+        });
+      } catch (error) {
+        throw mapError('setRole', error);
       }
     },
 
