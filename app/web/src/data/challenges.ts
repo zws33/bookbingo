@@ -8,6 +8,8 @@
  * the screens that call them are written against the real shape and the swap
  * is confined to this file.
  */
+import type { ChallengeDetail } from '../types/challenges';
+
 const NOT_WIRED = 'Challenges are not available yet.';
 
 export function createChallenge(_input: {
@@ -18,5 +20,17 @@ export function createChallenge(_input: {
 }
 
 export function joinChallenge(_code: string): Promise<{ challengeId: string }> {
+  return Promise.reject(new Error(NOT_WIRED));
+}
+
+export function getChallenge(_challengeId: string): Promise<ChallengeDetail> {
+  return Promise.reject(new Error(NOT_WIRED));
+}
+
+export function updateChallengeConfig(_input: {
+  challengeId: string;
+  name?: string;
+  tagCap?: number;
+}): Promise<void> {
   return Promise.reject(new Error(NOT_WIRED));
 }
