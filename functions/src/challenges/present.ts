@@ -1,4 +1,4 @@
-import type { Challenge, Membership } from './store.js';
+import type { Challenge, Membership } from './postgresStore.js';
 import type {
   ChallengeStatus,
   MemberRole,
