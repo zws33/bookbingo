@@ -8,8 +8,6 @@ Completes the challenge container on Postgres (Neon). Rules are numbered in `doc
 
 Firestore stays intact and readable for the whole sequence. Nothing dual-writes.
 
-Still absent: every challenge and tag handler, every v2 callable, and any Postgres access from a deployed function.
-
 ## Environments
 
 Cloud SQL is out; Neon replaces it. `pool.ts` needs no change — Neon is a non-loopback host, so `sslFor` already returns `{ rejectUnauthorized: true }`.
@@ -40,9 +38,7 @@ A suffix rather than a second codebase or region: a callable's name is its expor
 4. **v2 handlers.** `challenges/handler.ts` and `tags/handler.ts` as `xHandlers(...repos)` factories. `readings`, `library` and `tbr` get challenge-scoped handlers that check permissions inline and drop rows whose author is not `active` (rule 24). `present.ts` gains `tagIds`. Split per domain, as the repositories were.
 5. **v2 callables.** `listMyChallengesV2`, `getChallengeV2`, `createChallengeV2`, `joinChallengeV2`, `leaveChallengeV2`, `removeMemberV2`, `setMemberRoleV2`, `setChallengeStatusV2`, `updateChallengeConfigV2`, `deleteChallengeV2`, `rotateJoinCodeV2`, tag create/update/delete, and a `challengeId`-taking v2 of each reading, library and TBR callable. `getBoardConfigV2` serves stored tags plus `tag_cap` instead of `TILES`.
 6. **Manual testing on staging.** Web app pointed at the staging project against v2 endpoints. Board renders stored tags; readings, leaderboard, library and TBR match prod.
-
-7. **Client migration.** `challengeId` in every request type and every `queryClient` key — without it the cache serves challenge A's data under challenge B. Challenge selection context and switcher, post-sign-in challenge list, member management gated on role. `useTileCatalog`'s `staleTime: Infinity` is justified by "the catalog changes with a deploy"; that stops being true, so key it on challenge and drop to a finite time.
-   Cutover order: freeze v1 writes, run the migration against empty prod, deploy the client, unfreeze. The freeze covers the whole migration rather than a delta, which is why the rehearsal at step 6 measures how long that is. The freeze is a `/system/maintenance` Firestore flag read by v1 write callables — instant to flip without a redeploy, and it disappears with Firestore at step 8.
+7. **Client migration.** `challengeId` in every request type and every `queryClient` key — without it the cache serves challenge A's data under challenge B. Challenge selection context and switcher, post-sign-in challenge list, member management gated on role. `useTileCatalog`'s `staleTime: Infinity` is justified by "the catalog changes with a deploy"; that stops being true, so key it on challenge and drop to a finite time. Cutover order: freeze v1 writes, run the migration against empty prod, deploy the client, unfreeze. The freeze covers the whole migration rather than a delta, which is why the rehearsal at step 6 measures how long that is. The freeze is a `/system/maintenance` Firestore flag read by v1 write callables — instant to flip without a redeploy, and it disappears with Firestore at step 8.
 8. **Retire Firestore.** Delete the v1 callables, the Firestore `store.ts` paths, `firestore.rules`, `firestore.indexes.json`, the emulator scripts and `firebase-admin` from `functions/`. Rename each `postgresStore.ts` to `store.ts`. Hosting stays.
 
 ## Validation
@@ -51,15 +47,6 @@ A suffix rather than a second codebase or region: a callable's name is its expor
 - Permissions and lifecycle are `node:test` units with no database; the per-handler permission checks are covered by the handler tests against a fake repository. The permission and transition tables get a cell-by-cell loop against a transcription of `challenge-model.md`, not spot checks.
 - Step 1 is not done until `test:db` passes against the integration branch **and** fails against staging.
 - Migration parity: `docs/data-migration-plan.md`.
-
-## Risks
-
-- **Step 4 is the big one.** The Postgres repositories could not keep the Firestore interfaces: `readings.challenge_id` is `not null` with a composite foreign key to `memberships`, and `reading_tags.tag_id` is a uuid, so every reading and TBR signature gained `challengeId` and `tiles` became `tagIds`. Step 4 therefore touches both handlers, both presenters, three test files and `index.ts`. Split it per domain before starting.
-- **`pool.ts` has never run anywhere.** Nothing imports `getPool` outside repository factory defaults, and the DB harness bypasses it. Step 1's deploy is the first execution of `requireConnectionString` and `sslFor`'s non-loopback branch.
-- **Two stores per domain until step 8**, so a change to a shared rule has to be made twice or the two diverge silently.
-- **Deploy ordering is two-sided**, but the `V2` suffix removes it for steps 4–6: no v1 signature changes, so a stale tab keeps working.
-- **Connection count.** `MAX_CONNECTIONS_PER_INSTANCE = 2` against `maxInstances: 10` is the bound.
-- **Dropping `metadata` is wire-breaking.** It joins the pending book-flattening change (CLAUDE.md) and lands with the v2 presenters.
 
 ## Open decisions
 
