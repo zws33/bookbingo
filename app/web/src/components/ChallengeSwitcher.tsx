@@ -5,6 +5,25 @@ import { DropdownMenu } from './ui/DropdownMenu.js';
 import { RoleBadge } from './ui/RoleBadge.js';
 import { StatusChip } from './ui/StatusChip.js';
 
+function ChevronIcon() {
+  return (
+    <svg
+      className="w-4 h-4 shrink-0 text-on-surface-variant"
+      viewBox="0 0 20 20"
+      fill="none"
+      aria-hidden="true"
+    >
+      <path
+        d="M6 8l4 4 4-4"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
 /**
  * The fast path between challenges. `/challenges` is the full list; this is
  * the one-click version, so it names the active challenge rather than a verb.
