@@ -9,6 +9,7 @@ export const queryKeys = {
   boardConfig: ['boardConfig'] as const,
   users: ['users'] as const,
   userProfile: (userId: string) => ['userProfile', userId] as const,
+  myChallenges: ['myChallenges'] as const,
   leaderboard: ['leaderboard'] as const,
   readings: (userId: string) => ['readings', userId] as const,
   library: ['library'] as const,
