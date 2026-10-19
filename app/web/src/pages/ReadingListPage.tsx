@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import type { Book } from '@bookbingo/lib-types';
 import type { TBREntry } from '../types/schemas';
+import { useActiveChallenge } from '../challenge/ChallengeContext';
 import { useTBR } from '../hooks/useTBR';
 import { useInvalidateReadings } from '../hooks/useInvalidateReadings';
 import { useToast } from '../lib/ToastContext';
@@ -36,9 +37,10 @@ export function ReadingListPage({ userId }: ReadingListPageProps) {
   const [dialog, setDialog] = useState<DialogState>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const { entries, loading, error } = useTBR(userId);
+  const { challenge } = useActiveChallenge();
+  const { entries, loading, error } = useTBR(challenge.id, userId);
   const { showSuccess, showError } = useToast();
-  const invalidate = useInvalidateReadings(userId);
+  const invalidate = useInvalidateReadings(challenge.id, userId);
 
   const closeDialog = useCallback(() => setDialog(null), []);
 

@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import type { Book } from '@bookbingo/lib-types';
+import { useActiveChallenge } from '../challenge/ChallengeContext';
 import { useReadings } from '../hooks/useReadings';
 import { useInvalidateReadings } from '../hooks/useInvalidateReadings';
 import { useToast } from '../lib/ToastContext';
@@ -24,6 +25,7 @@ type DialogState =
   | null;
 
 export function MyBooksPage({ userId }: MyBooksPageProps) {
+  const { challenge } = useActiveChallenge();
   const [dialog, setDialog] = useState<DialogState>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { showSuccess, showError } = useToast();
@@ -32,8 +34,8 @@ export function MyBooksPage({ userId }: MyBooksPageProps) {
     score,
     loading: readingsLoading,
     error: readingsError,
-  } = useReadings(userId);
-  const invalidate = useInvalidateReadings(userId);
+  } = useReadings(challenge.id, userId);
+  const invalidate = useInvalidateReadings(challenge.id, userId);
 
   const loading = readingsLoading;
   const error = readingsError;
@@ -106,6 +108,7 @@ export function MyBooksPage({ userId }: MyBooksPageProps) {
         {' '}
         {scoreBreakdown && <ScoreDisplay breakdown={scoreBreakdown} />}{' '}
         <BookList
+          challengeId={challenge.id}
           userId={userId}
           readings={readings}
           loading={loading}

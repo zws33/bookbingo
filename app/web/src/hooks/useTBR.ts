@@ -11,9 +11,9 @@ const NO_ENTRIES: TBREntry[] = [];
  * Takes the id only to decide whether to run: the list the server returns is
  * always the caller's own.
  */
-export function useTBR(userId: string) {
+export function useTBR(challengeId: string, userId: string) {
   const { data, isPending, error } = useQuery({
-    queryKey: queryKeys.tbr(userId),
+    queryKey: queryKeys.tbr(challengeId, userId),
     queryFn: () => listMyTBR(),
     enabled: userId !== '',
   });

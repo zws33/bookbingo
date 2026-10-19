@@ -8,15 +8,21 @@ import { queryKeys } from '../lib/queryClient';
  * library's read counts. Promote also empties the TBR list. Callers await this
  * so the UI they return to is current.
  */
-export function useInvalidateReadings(userId: string) {
+export function useInvalidateReadings(challengeId: string, userId: string) {
   const queryClient = useQueryClient();
 
   return useCallback(async () => {
     await Promise.all([
-      queryClient.invalidateQueries({ queryKey: queryKeys.readings(userId) }),
-      queryClient.invalidateQueries({ queryKey: queryKeys.leaderboard }),
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.readings(challengeId, userId),
+      }),
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.leaderboard(challengeId),
+      }),
       queryClient.invalidateQueries({ queryKey: queryKeys.library }),
-      queryClient.invalidateQueries({ queryKey: queryKeys.tbr(userId) }),
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.tbr(challengeId, userId),
+      }),
     ]);
-  }, [queryClient, userId]);
+  }, [queryClient, challengeId, userId]);
 }

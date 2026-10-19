@@ -13,6 +13,7 @@ import { PageStatus } from './PageStatus';
 import { useInvalidateReadings } from '../hooks/useInvalidateReadings';
 
 interface BookListProps {
+  challengeId: string;
   userId: string;
   readings: Reading[];
   loading: boolean;
@@ -21,6 +22,7 @@ interface BookListProps {
 }
 
 export function BookList({
+  challengeId,
   userId,
   readings,
   loading,
@@ -34,7 +36,7 @@ export function BookList({
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const { showSuccess, showError: showErrorToast } = useToast();
 
-  const invalidateReadings = useInvalidateReadings(userId);
+  const invalidateReadings = useInvalidateReadings(challengeId, userId);
 
   const filteredReadings = useMemo(() => {
     if (!authorFilter.trim()) return readings;

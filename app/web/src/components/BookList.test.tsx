@@ -33,7 +33,14 @@ const READING = makeReading({
 
 function renderBookList() {
   const user = userEvent.setup();
-  render(<BookList userId="user-1" readings={[READING]} loading={false} />);
+  render(
+    <BookList
+      challengeId="ch-1"
+      userId="user-1"
+      readings={[READING]}
+      loading={false}
+    />,
+  );
   return { user };
 }
 
@@ -103,6 +110,7 @@ describe('BookList view modes', () => {
     const user = userEvent.setup();
     render(
       <BookList
+        challengeId="ch-1"
         userId="user-1"
         readings={[makeReading({ bookTitle: 'Dune', isFreebie: true })]}
         loading={false}

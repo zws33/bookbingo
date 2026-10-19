@@ -17,7 +17,7 @@ beforeEach(() => {
 });
 
 const render = (userId: string) =>
-  renderHook(() => useTBR(userId), { wrapper: Providers });
+  renderHook(() => useTBR('ch-1', userId), { wrapper: Providers });
 
 describe('useTBR', () => {
   it('exposes the entries the call resolved', async () => {

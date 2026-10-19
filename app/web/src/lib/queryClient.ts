@@ -11,10 +11,12 @@ export const queryKeys = {
   userProfile: (userId: string) => ['userProfile', userId] as const,
   myChallenges: ['myChallenges'] as const,
   challenge: (challengeId: string) => ['challenge', challengeId] as const,
-  leaderboard: ['leaderboard'] as const,
-  readings: (userId: string) => ['readings', userId] as const,
+  leaderboard: (challengeId: string) => ['leaderboard', challengeId] as const,
+  readings: (challengeId: string, userId: string) =>
+    ['readings', challengeId, userId] as const,
   library: ['library'] as const,
-  tbr: (userId: string) => ['tbr', userId] as const,
+  tbr: (challengeId: string, userId: string) =>
+    ['tbr', challengeId, userId] as const,
 };
 
 /**

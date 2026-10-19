@@ -27,7 +27,7 @@ beforeEach(() => {
 });
 
 const render = (userId: string) =>
-  renderHook(() => useReadings(userId), { wrapper: Providers });
+  renderHook(() => useReadings('ch-1', userId), { wrapper: Providers });
 
 describe('useReadings', () => {
   it('exposes the readings and the score the server computed', async () => {
@@ -75,7 +75,10 @@ describe('useReadings', () => {
     listReadingsMock.mockResolvedValue({ readings: [], score: SCORE });
 
     const { result } = renderHook(
-      () => ({ a: useReadings('user-1'), b: useReadings('user-1') }),
+      () => ({
+        a: useReadings('ch-1', 'user-1'),
+        b: useReadings('ch-1', 'user-1'),
+      }),
       { wrapper: Providers },
     );
 
