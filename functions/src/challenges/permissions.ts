@@ -111,7 +111,6 @@ export const CHALLENGE_ACTIONS = [
   'configEdit',
   'rename',
   'memberManage',
-  'delete',
 ] as const;
 
 export type ChallengeAction = (typeof CHALLENGE_ACTIONS)[number];
@@ -121,7 +120,8 @@ export type ChallengeAction = (typeof CHALLENGE_ACTIONS)[number];
  * `freebieRule`; `rename` is separate because `name` stays editable after the
  * rest freezes. `memberManage` covers removal and role changes.
  *
- * Deletion survives `complete`, so that row is not redundant.
+ * Deletion is absent: it survives every status (rule 36), so `remove` consults
+ * no gate and a row here would never be read.
  */
 const STATUS_ALLOWS: Record<
   ChallengeStatus,
@@ -133,7 +133,6 @@ const STATUS_ALLOWS: Record<
     configEdit: true,
     rename: true,
     memberManage: true,
-    delete: true,
   },
   active: {
     join: true,
@@ -141,7 +140,6 @@ const STATUS_ALLOWS: Record<
     configEdit: false,
     rename: true,
     memberManage: true,
-    delete: true,
   },
   complete: {
     join: false,
@@ -149,7 +147,6 @@ const STATUS_ALLOWS: Record<
     configEdit: false,
     rename: false,
     memberManage: false,
-    delete: true,
   },
 };
 

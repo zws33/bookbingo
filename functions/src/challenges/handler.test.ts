@@ -45,6 +45,9 @@ const MEMBER_GONE = 'That member is not in this challenge.';
 
 const TARGET = 'user-2';
 
+const TRANSITION_DENIED =
+  'A challenge moves from draft to active to complete, one step at a time.';
+
 function fakeRepo(
   overrides: Partial<ChallengeRepository> = {},
 ): ChallengeRepository {
@@ -59,7 +62,7 @@ function fakeRepo(
     getMembership: unexpected('getMembership'),
     listMembers: unexpected('listMembers'),
     listActiveMemberships: unexpected('listActiveMemberships'),
-    listMyChallenges: unexpected('listMyChallenges'),
+    getChallengesByUserId: unexpected('getChallengesByUserId'),
     upsertMembership: unexpected('upsertMembership'),
     listActiveOwners: unexpected('listActiveOwners'),
     leave: unexpected('leave'),
@@ -826,4 +829,189 @@ describe('challengeHandlers.setMemberRole', () => {
       assert.deepEqual(calls, [[CHALLENGE_ID, TARGET, to]]);
     });
   }
+});
+
+describe('challengeHandlers.getMyChallenges', () => {
+  test('requires a signed-in caller', async () => {
+    await assert.rejects(
+      handlers().getMyChallenges(makeRequest(undefined, {})),
+      /Must be signed in to load your challenges\./,
+    );
+  });
+
+  test('returns each challenge with the caller’s membership, encoded', async () => {
+    const result = await handlers({
+      getChallengesByUserId: () =>
+        Promise.resolve([
+          {
+            challenge: makeChallenge(),
+            membership: makeMembership('admin'),
+          },
+        ]),
+    }).getMyChallenges(makeRequest(AUTH, {}));
+
+    assert.deepEqual(result, {
+      challenges: [
+        {
+          challenge: {
+            id: CHALLENGE_ID,
+            name: 'Summer Reading',
+            status: 'active',
+            tagCap: 3,
+            createdBy: 'user-1',
+            createdAt: '2026-01-01T00:00:00.000Z',
+          },
+          membership: {
+            userId: 'user-1',
+            role: 'admin',
+            status: 'active',
+            joinedAt: '2026-01-02T00:00:00.000Z',
+          },
+        },
+      ],
+    });
+  });
+
+  test('passes the caller as the user whose challenges are listed', async () => {
+    const calls: string[] = [];
+    await handlers({
+      getChallengesByUserId: (userId) => {
+        calls.push(userId);
+        return Promise.resolve([]);
+      },
+    }).getMyChallenges(makeRequest(AUTH, {}));
+
+    assert.deepEqual(calls, ['user-1']);
+  });
+});
+
+describe('challengeHandlers.setStatus', () => {
+  const transition = (status: 'draft' | 'active' | 'complete') => ({
+    challengeId: CHALLENGE_ID,
+    status,
+  });
+
+  test('requires a signed-in caller', async () => {
+    await assert.rejects(
+      handlers().setStatus(makeRequest(undefined, transition('active'))),
+      /Must be signed in to change a challenge status\./,
+    );
+  });
+
+  test('tells a non-member the challenge does not exist', async () => {
+    await rejectsWith('not-found', CHALLENGE_GONE, () =>
+      handlers({ getMembership: membershipOf(undefined) }).setStatus(
+        makeRequest(AUTH, transition('active')),
+      ),
+    );
+  });
+
+  for (const role of ['admin', 'member'] as const) {
+    test(`refuses an ${role}, who does not change the status`, async () => {
+      const error = await rejectsWith('forbidden', DENIED, () =>
+        handlers({
+          getMembership: membershipOf(makeMembership(role)),
+        }).setStatus(makeRequest(AUTH, transition('complete'))),
+      );
+
+      assert.deepEqual(error.details, {
+        permission: 'status.change',
+        role,
+      });
+    });
+  }
+
+  for (const [from, to] of [
+    ['draft', 'complete'],
+    ['active', 'draft'],
+    ['complete', 'active'],
+    ['active', 'active'],
+  ] as const) {
+    test(`refuses ${from} to ${to}, which is not the next step`, async () => {
+      const error = await rejectsWith('conflict', TRANSITION_DENIED, () =>
+        handlers({
+          getMembership: membershipOf(makeMembership('owner')),
+          get: () => Promise.resolve(makeChallenge({ status: from })),
+        }).setStatus(makeRequest(AUTH, transition(to))),
+      );
+
+      assert.deepEqual(error.details, { from, to });
+    });
+  }
+
+  for (const [from, to] of [
+    ['draft', 'active'],
+    ['active', 'complete'],
+  ] as const) {
+    test(`an owner moves ${from} to ${to}`, async () => {
+      const calls: unknown[] = [];
+      await handlers({
+        getMembership: membershipOf(makeMembership('owner')),
+        get: () => Promise.resolve(makeChallenge({ status: from })),
+        setStatus: (challengeId, status) => {
+          calls.push([challengeId, status]);
+          return Promise.resolve(from);
+        },
+      }).setStatus(makeRequest(AUTH, transition(to)));
+
+      assert.deepEqual(calls, [[CHALLENGE_ID, to]]);
+    });
+  }
+});
+
+describe('challengeHandlers.remove', () => {
+  const deletion = { challengeId: CHALLENGE_ID };
+
+  test('requires a signed-in caller', async () => {
+    await assert.rejects(
+      handlers().remove(makeRequest(undefined, deletion)),
+      /Must be signed in to delete a challenge\./,
+    );
+  });
+
+  test('tells a non-member the challenge does not exist', async () => {
+    await rejectsWith('not-found', CHALLENGE_GONE, () =>
+      handlers({ getMembership: membershipOf(undefined) }).remove(
+        makeRequest(AUTH, deletion),
+      ),
+    );
+  });
+
+  for (const role of ['admin', 'member'] as const) {
+    test(`refuses an ${role}, who does not delete a challenge`, async () => {
+      const error = await rejectsWith('forbidden', DENIED, () =>
+        handlers({
+          getMembership: membershipOf(makeMembership(role)),
+        }).remove(makeRequest(AUTH, deletion)),
+      );
+
+      assert.deepEqual(error.details, {
+        permission: 'challenge.delete',
+        role,
+      });
+    });
+  }
+
+  test('deletes without reading the status: no lifecycle gate (rule 36)', async () => {
+    const calls: string[] = [];
+    await handlers({
+      getMembership: membershipOf(makeMembership('owner')),
+      remove: (challengeId) => {
+        calls.push(challengeId);
+        return Promise.resolve();
+      },
+    }).remove(makeRequest(AUTH, deletion));
+
+    assert.deepEqual(calls, [CHALLENGE_ID]);
+  });
+
+  test('forwards the repository’s refusal when history still exists', async () => {
+    const blocked = 'That challenge cannot be deleted while readings exist.';
+    await rejectsWith('conflict', blocked, () =>
+      handlers({
+        getMembership: membershipOf(makeMembership('owner')),
+        remove: () => Promise.reject(new DomainError('conflict', blocked)),
+      }).remove(makeRequest(AUTH, deletion)),
+    );
+  });
 });

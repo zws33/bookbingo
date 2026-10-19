@@ -6,6 +6,7 @@ import {
   canRemove,
   canSelfDemote,
   canSetRole,
+  canTransition,
   hasPermission,
   statusAllows,
   type Permission,
@@ -17,19 +18,24 @@ import {
 } from './postgresStore.js';
 import {
   toChallengeDTO,
+  toChallengeMembershipDTO,
   toMembershipDTO,
   type ChallengeDTO,
+  type ChallengeMembershipDTO,
   type MembershipDTO,
 } from './present.js';
 import {
   CreateChallengeRequestSchema,
+  DeleteChallengeRequestSchema,
   GetChallengeRequestSchema,
   JoinChallengeRequestSchema,
   LeaveChallengeRequestSchema,
   RemoveMemberRequestSchema,
   RotateJoinCodeRequestSchema,
+  SetChallengeStatusRequestSchema,
   SetMemberRoleRequestSchema,
   UpdateChallengeConfigRequestSchema,
+  type ChallengeStatus,
 } from './schema.js';
 
 const DENIED = 'You do not have permission to do that in this challenge.';
@@ -51,6 +57,9 @@ const MEMBERS_FROZEN =
   'Membership in a complete challenge can no longer change.';
 
 const MEMBER_GONE = 'That member is not in this challenge.';
+
+const TRANSITION_DENIED =
+  'A challenge moves from draft to active to complete, one step at a time.';
 
 export interface ChallengeDetailDTO {
   challenge: ChallengeDTO;
@@ -119,6 +128,15 @@ export function challengeHandlers(challengesRepo: ChallengeRepository) {
         challengeId: created.challengeId,
       });
       return created;
+    },
+
+    /** Membership is the authorization: the query returns the active ones. */
+    async getMyChallenges(
+      request: CallableRequest<unknown>,
+    ): Promise<{ challenges: ChallengeMembershipDTO[] }> {
+      const { uid } = requireAuth(request, 'load your challenges');
+      const mine = await challengesRepo.getChallengesByUserId(uid);
+      return { challenges: mine.map(toChallengeMembershipDTO) };
     },
 
     /**
@@ -360,6 +378,71 @@ export function challengeHandlers(challengesRepo: ChallengeRepository) {
         targetId: userId,
         role,
       });
+    },
+
+    /** Owners only, one step along `draft` → `active` → `complete` (rule 33). */
+    async setStatus(request: CallableRequest<unknown>): Promise<void> {
+      const { uid } = requireAuth(request, 'change a challenge status');
+      const { challengeId, status } = parseRequest(
+        SetChallengeStatusRequestSchema,
+        request.data,
+      );
+
+      const membership = await requireActiveMembership(challengeId, uid);
+      if (!hasPermission(membership.role, 'status.change')) {
+        throw denied(membership, 'status.change');
+      }
+
+      // A precheck, not the guard: `setStatus` re-applies `canTransition`
+      // under a row lock. This read exists so a caller working from a stale
+      // view is told which step it asked for rather than that it lost a race.
+      const { status: current } = await challengesRepo.get(challengeId);
+      if (!canTransition(current, status)) {
+        throw new DomainError('conflict', TRANSITION_DENIED, {
+          from: current,
+          to: status,
+        });
+      }
+
+      let from: ChallengeStatus;
+      try {
+        from = await challengesRepo.setStatus(challengeId, status);
+      } catch (error) {
+        reportWriteFailure(error, 'challenge.setStatus', { uid, challengeId });
+      }
+
+      logEvent('challenge.setStatus', {
+        uid,
+        outcome: 'ok',
+        challengeId,
+        from,
+        to: status,
+      });
+    },
+
+    /**
+     * No lifecycle gate: deletion survives `complete` (rule 36). The
+     * repository refuses one whose readings or TBR entries still exist.
+     */
+    async remove(request: CallableRequest<unknown>): Promise<void> {
+      const { uid } = requireAuth(request, 'delete a challenge');
+      const { challengeId } = parseRequest(
+        DeleteChallengeRequestSchema,
+        request.data,
+      );
+
+      const membership = await requireActiveMembership(challengeId, uid);
+      if (!hasPermission(membership.role, 'challenge.delete')) {
+        throw denied(membership, 'challenge.delete');
+      }
+
+      try {
+        await challengesRepo.remove(challengeId);
+      } catch (error) {
+        reportWriteFailure(error, 'challenge.remove', { uid, challengeId });
+      }
+
+      logEvent('challenge.remove', { uid, outcome: 'ok', challengeId });
     },
 
     /** Gated on `join`: a code for a challenge nobody can join is not worth rotating. */

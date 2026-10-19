@@ -16,5 +16,5 @@ create table memberships (
   primary key (challenge_id, user_id)
 );
 
--- `listMyChallenges` selects one user's active memberships.
+-- `getChallengesByUserId` selects one user's active memberships.
 create index memberships_user_status_idx on memberships (user_id, status);

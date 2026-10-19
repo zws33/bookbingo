@@ -1,4 +1,8 @@
-import type { Challenge, Membership } from './postgresStore.js';
+import type {
+  Challenge,
+  ChallengeMembership,
+  Membership,
+} from './postgresStore.js';
 import type {
   ChallengeStatus,
   MemberRole,
@@ -42,5 +46,20 @@ export function toMembershipDTO(membership: Membership): MembershipDTO {
     role: membership.role,
     status: membership.status,
     joinedAt: membership.joinedAt.toISOString(),
+  };
+}
+
+export interface ChallengeMembershipDTO {
+  challenge: ChallengeDTO;
+  membership: MembershipDTO;
+}
+
+export function toChallengeMembershipDTO({
+  challenge,
+  membership,
+}: ChallengeMembership): ChallengeMembershipDTO {
+  return {
+    challenge: toChallengeDTO(challenge),
+    membership: toMembershipDTO(membership),
   };
 }

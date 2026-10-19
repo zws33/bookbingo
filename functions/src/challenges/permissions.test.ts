@@ -186,9 +186,9 @@ describe('canEditOthersReading', () => {
 
 /** Transcribed from the spec, not from `STATUS_ALLOWS`, for the same reason. */
 const ALLOWED: Record<ChallengeStatus, ChallengeAction[]> = {
-  draft: ['join', 'configEdit', 'rename', 'memberManage', 'delete'],
-  active: ['join', 'readingWrite', 'rename', 'memberManage', 'delete'],
-  complete: ['delete'],
+  draft: ['join', 'configEdit', 'rename', 'memberManage'],
+  active: ['join', 'readingWrite', 'rename', 'memberManage'],
+  complete: [],
 };
 
 describe('statusAllows', () => {
@@ -208,10 +208,6 @@ describe('statusAllows', () => {
   test('going active locks the config but not the name', () => {
     assert.equal(statusAllows('active', 'configEdit'), false);
     assert.ok(statusAllows('active', 'rename'));
-  });
-
-  test('a complete challenge can still be deleted', () => {
-    assert.ok(statusAllows('complete', 'delete'));
   });
 });
 

@@ -9,6 +9,7 @@ import { dbErrors } from '../db/errors.js';
 import { getPool } from '../db/pool.js';
 import { inTransaction, type Db } from '../db/transaction.js';
 import { generateJoinCode } from './joinCode.js';
+import { canTransition } from './permissions.js';
 import type {
   ChallengeStatus,
   MemberRole,
@@ -57,12 +58,23 @@ export interface ChallengeMembership {
 
 export interface ChallengeRepository {
   get(challengeId: string): Promise<Challenge>;
+  /** One query instead of `listActiveMemberships` plus a `get` per entry. */
+  getChallengesByUserId(userId: string): Promise<ChallengeMembership[]>;
   create(
     userId: string,
     fields: ChallengeFields,
   ): Promise<{ challengeId: string; joinCode: string }>;
   update(challengeId: string, fields: ChallengeUpdate): Promise<void>;
-  setStatus(challengeId: string, status: ChallengeStatus): Promise<void>;
+  /**
+   * Reads the current status under a lock and applies `canTransition` in the
+   * transaction that writes, so of two owners racing to complete an `active`
+   * challenge the second gets a `conflict` rather than silently reopening it.
+   * Returns the status it moved from, which the caller logs.
+   */
+  setStatus(
+    challengeId: string,
+    status: ChallengeStatus,
+  ): Promise<ChallengeStatus>;
   remove(challengeId: string): Promise<void>;
   getMembership(
     challengeId: string,
@@ -70,8 +82,6 @@ export interface ChallengeRepository {
   ): Promise<Membership | undefined>;
   listMembers(challengeId: string): Promise<Membership[]>;
   listActiveMemberships(userId: string): Promise<Map<string, Membership>>;
-  /** One query instead of that map plus a `get` per entry. */
-  listMyChallenges(userId: string): Promise<ChallengeMembership[]>;
   upsertMembership(
     challengeId: string,
     userId: string,
@@ -154,6 +164,9 @@ export const CHALLENGE_GONE = 'That challenge no longer exists.';
 
 const BLOCKED =
   'That challenge cannot be deleted while readings or reading list entries exist in it.';
+
+const STATUS_RACED =
+  'That challenge status changed while you were working. Reload and try again.';
 
 const LAST_OWNER =
   'The last owner cannot leave. Promote another owner first, then leave.';
@@ -306,12 +319,32 @@ export function challengeRepository(
     },
 
     async setStatus(challengeId, status) {
-      const { rowCount } = await query(
-        'setStatus',
-        'update challenges set status = $2, updated_at = now() where id = $1',
-        [challengeId, status],
-      );
-      if (rowCount === 0) throw new DomainError('not-found', CHALLENGE_GONE);
+      try {
+        return await inTransaction(db, async (client) => {
+          const { rows } = await client.query<{ status: ChallengeStatus }>(
+            'select status from challenges where id = $1 for update',
+            [challengeId],
+          );
+          const row = rows[0];
+          if (!row) throw new DomainError('not-found', CHALLENGE_GONE);
+
+          // Under the lock the caller's own check cannot have gone stale on
+          // its own, so a refusal here is a race with another writer.
+          if (!canTransition(row.status, status)) {
+            throw new DomainError('conflict', STATUS_RACED, {
+              status: row.status,
+            });
+          }
+
+          await client.query(
+            'update challenges set status = $2, updated_at = now() where id = $1',
+            [challengeId, status],
+          );
+          return row.status;
+        });
+      } catch (error) {
+        throw mapError('setStatus', error);
+      }
     },
 
     /**
@@ -388,9 +421,9 @@ export function challengeRepository(
       );
     },
 
-    async listMyChallenges(userId) {
+    async getChallengesByUserId(userId) {
       const { rows } = await query<ChallengeMembershipRow>(
-        'listMyChallenges',
+        'getChallengesByUserId',
         `select c.id, c.name, c.tag_cap, c.status, c.created_by, c.created_at,
                 m.user_id, m.role, m.status as membership_status, m.joined_at
            from memberships m

@@ -1,6 +1,10 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert';
-import { toChallengeDTO, toMembershipDTO } from './present.js';
+import {
+  toChallengeDTO,
+  toChallengeMembershipDTO,
+  toMembershipDTO,
+} from './present.js';
 
 const CREATED_AT = new Date('2026-01-02T03:04:05.000Z');
 
@@ -41,6 +45,45 @@ describe('toMembershipDTO', () => {
         role: 'owner',
         status: 'active',
         joinedAt: '2026-01-02T03:04:05.000Z',
+      },
+    );
+  });
+});
+
+describe('toChallengeMembershipDTO', () => {
+  test('encodes both sides of the pair', () => {
+    assert.deepEqual(
+      toChallengeMembershipDTO({
+        challenge: {
+          id: 'challenge-1',
+          name: 'Summer 2026',
+          status: 'active',
+          tagCap: 3,
+          createdBy: 'user-1',
+          createdAt: CREATED_AT,
+        },
+        membership: {
+          userId: 'user-1',
+          role: 'admin',
+          status: 'active',
+          joinedAt: CREATED_AT,
+        },
+      }),
+      {
+        challenge: {
+          id: 'challenge-1',
+          name: 'Summer 2026',
+          status: 'active',
+          tagCap: 3,
+          createdBy: 'user-1',
+          createdAt: '2026-01-02T03:04:05.000Z',
+        },
+        membership: {
+          userId: 'user-1',
+          role: 'admin',
+          status: 'active',
+          joinedAt: '2026-01-02T03:04:05.000Z',
+        },
       },
     );
   });

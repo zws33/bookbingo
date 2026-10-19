@@ -234,14 +234,62 @@ describe('challengeRepository', () => {
   });
 
   describe('setStatus', () => {
-    test('moves the challenge forward', async () => {
+    test('moves the challenge forward and returns the status it left', async () => {
       const pool = testDb.db;
       const userId = await seedUser(pool);
       const challengeId = await seedChallenge(pool, { createdBy: userId });
 
-      await repository().setStatus(challengeId, 'active');
+      assert.equal(
+        await repository().setStatus(challengeId, 'active'),
+        'draft',
+      );
 
       assert.equal((await repository().get(challengeId)).status, 'active');
+    });
+
+    test('rejects a status the challenge already holds', async () => {
+      const pool = testDb.db;
+      const userId = await seedUser(pool);
+      const challengeId = await seedChallenge(pool, {
+        createdBy: userId,
+        status: 'active',
+      });
+
+      await assert.rejects(
+        repository().setStatus(challengeId, 'active'),
+        rejectsWith('conflict'),
+      );
+
+      assert.equal((await repository().get(challengeId)).status, 'active');
+    });
+
+    test('rejects a step that skips a status', async () => {
+      const pool = testDb.db;
+      const userId = await seedUser(pool);
+      const challengeId = await seedChallenge(pool, { createdBy: userId });
+
+      await assert.rejects(
+        repository().setStatus(challengeId, 'complete'),
+        rejectsWith('conflict'),
+      );
+
+      assert.equal((await repository().get(challengeId)).status, 'draft');
+    });
+
+    test('rejects a move back down the lifecycle', async () => {
+      const pool = testDb.db;
+      const userId = await seedUser(pool);
+      const challengeId = await seedChallenge(pool, {
+        createdBy: userId,
+        status: 'complete',
+      });
+
+      await assert.rejects(
+        repository().setStatus(challengeId, 'active'),
+        rejectsWith('conflict'),
+      );
+
+      assert.equal((await repository().get(challengeId)).status, 'complete');
     });
 
     test('rejects a challenge that is gone', async () => {
@@ -537,7 +585,7 @@ describe('challengeRepository', () => {
     });
   });
 
-  describe('listMyChallenges', () => {
+  describe('getChallengesByUserId', () => {
     test('pairs each active membership with its challenge', async () => {
       const pool = testDb.db;
       const userId = await seedUser(pool);
@@ -553,7 +601,7 @@ describe('challengeRepository', () => {
       await seedMembership(pool, { challengeId: owned, userId, role: 'owner' });
       await seedMembership(pool, { challengeId: joined, userId });
 
-      const rows = await repository().listMyChallenges(userId);
+      const rows = await repository().getChallengesByUserId(userId);
 
       assert.deepEqual(
         rows
@@ -598,7 +646,7 @@ describe('challengeRepository', () => {
         status: 'removed',
       });
 
-      assert.deepEqual(await repository().listMyChallenges(userId), []);
+      assert.deepEqual(await repository().getChallengesByUserId(userId), []);
     });
 
     test('omits other people\u2019s memberships', async () => {
@@ -608,7 +656,7 @@ describe('challengeRepository', () => {
       const challengeId = await seedChallenge(pool, { createdBy: mine });
       await seedMembership(pool, { challengeId, userId: theirs });
 
-      assert.deepEqual(await repository().listMyChallenges(mine), []);
+      assert.deepEqual(await repository().getChallengesByUserId(mine), []);
     });
   });
 
