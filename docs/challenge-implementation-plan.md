@@ -28,7 +28,7 @@ Cloud SQL is out; Neon replaces it. `pool.ts` needs no change — Neon is a non-
 
 ## Versioning
 
-v1 callables stay exported and Firestore-backed, untouched. v2 callables are added beside them, Postgres-backed, with a `V2` export suffix (`listReadingsV2`). Both ship from one codebase and one deploy; the client repoints one endpoint at a time; v1 dies at step 9.
+v1 callables stay exported and Firestore-backed, untouched. v2 callables are added beside them, Postgres-backed, with a `V2` export suffix (`listReadingsV2`). Both ship from one codebase and one deploy; the client repoints one endpoint at a time; v1 dies at step 8.
 
 A suffix rather than a second codebase or region: a callable's name is its export name, so the suffix is the entire mechanism — no new deploy target, no routing.
 
@@ -37,14 +37,13 @@ A suffix rather than a second codebase or region: a callable's name is its expor
 1. **Provision Neon.** Three branches. Mark `integration` only. Bind `DATABASE_URL` as a Firebase secret per project, listed in the `secrets` of every v2 callable. Run `db:migrate` against all three, each passed as `--database-url`.
 2. **Data migration script.** `docs/data-migration-plan.md`. Validated against the local container.
 3. **Run against prod.** A full run into Neon prod, unfrozen. Nothing reads it yet; this proves the script against real volume before it matters. Clear prod afterwards — the migration script requires an empty destination
-4. **No guards layer, no `Actor`.** Both existed and were deleted (2026-10-16). `challenges/guards.ts` wrapped each `permissions.ts` predicate in a thrower, which leaked the handler's fetch order and status context into the wrapper's signature, and was chosen before a single handler had been written. `Actor` (`{ role, superadmin }`) existed only to unify member roles with the superadmin exception; dropping superadmin (rules 40–43) collapsed it to a bare `MemberRole`. Every `permissions.ts` predicate now takes `MemberRole`, so `outranks`, `canRemove`, `canSetRole` and `canEditOthersReading` are role-to-role. `tag.delete` moved from the superadmin-only slot to `admin`; `reading_tags`' `on delete restrict` is what stops a destructive delete. Handlers map a missing or non-`active` membership to `not-found` before any permission call (rule 27), then throw `DomainError` inline. The shape of any shared helper is decided after step 5, from the repetition the handlers actually show.
-5. **v2 handlers.** `challenges/handler.ts` and `tags/handler.ts` as `xHandlers(...repos)` factories. `readings`, `library` and `tbr` get challenge-scoped handlers that check permissions inline and drop rows whose author is not `active` (rule 24). `present.ts` gains `tagIds`. Split per domain, as the repositories were.
-6. **v2 callables.** `listMyChallengesV2`, `getChallengeV2`, `createChallengeV2`, `joinChallengeV2`, `leaveChallengeV2`, `removeMemberV2`, `setMemberRoleV2`, `setChallengeStatusV2`, `updateChallengeConfigV2`, `deleteChallengeV2`, `rotateJoinCodeV2`, tag create/update/delete, and a `challengeId`-taking v2 of each reading, library and TBR callable. `getBoardConfigV2` serves stored tags plus `tag_cap` instead of `TILES`.
-7. **Manual testing on staging.** Web app pointed at the staging project against v2 endpoints. Board renders stored tags; readings, leaderboard, library and TBR match prod.
+4. **v2 handlers.** `challenges/handler.ts` and `tags/handler.ts` as `xHandlers(...repos)` factories. `readings`, `library` and `tbr` get challenge-scoped handlers that check permissions inline and drop rows whose author is not `active` (rule 24). `present.ts` gains `tagIds`. Split per domain, as the repositories were.
+5. **v2 callables.** `listMyChallengesV2`, `getChallengeV2`, `createChallengeV2`, `joinChallengeV2`, `leaveChallengeV2`, `removeMemberV2`, `setMemberRoleV2`, `setChallengeStatusV2`, `updateChallengeConfigV2`, `deleteChallengeV2`, `rotateJoinCodeV2`, tag create/update/delete, and a `challengeId`-taking v2 of each reading, library and TBR callable. `getBoardConfigV2` serves stored tags plus `tag_cap` instead of `TILES`.
+6. **Manual testing on staging.** Web app pointed at the staging project against v2 endpoints. Board renders stored tags; readings, leaderboard, library and TBR match prod.
 
-8. **Client migration.** `challengeId` in every request type and every `queryClient` key — without it the cache serves challenge A's data under challenge B. Challenge selection context and switcher, post-sign-in challenge list, member management gated on role. `useTileCatalog`'s `staleTime: Infinity` is justified by "the catalog changes with a deploy"; that stops being true, so key it on challenge and drop to a finite time.
-   Cutover order: freeze v1 writes, run the migration against empty prod, deploy the client, unfreeze. The freeze covers the whole migration rather than a delta, which is why the rehearsal at step 7 measures how long that is. The freeze is a `/system/maintenance` Firestore flag read by v1 write callables — instant to flip without a redeploy, and it disappears with Firestore at step 9.
-9. **Retire Firestore.** Delete the v1 callables, the Firestore `store.ts` paths, `firestore.rules`, `firestore.indexes.json`, the emulator scripts and `firebase-admin` from `functions/`. Rename each `postgresStore.ts` to `store.ts`. Hosting stays.
+7. **Client migration.** `challengeId` in every request type and every `queryClient` key — without it the cache serves challenge A's data under challenge B. Challenge selection context and switcher, post-sign-in challenge list, member management gated on role. `useTileCatalog`'s `staleTime: Infinity` is justified by "the catalog changes with a deploy"; that stops being true, so key it on challenge and drop to a finite time.
+   Cutover order: freeze v1 writes, run the migration against empty prod, deploy the client, unfreeze. The freeze covers the whole migration rather than a delta, which is why the rehearsal at step 6 measures how long that is. The freeze is a `/system/maintenance` Firestore flag read by v1 write callables — instant to flip without a redeploy, and it disappears with Firestore at step 8.
+8. **Retire Firestore.** Delete the v1 callables, the Firestore `store.ts` paths, `firestore.rules`, `firestore.indexes.json`, the emulator scripts and `firebase-admin` from `functions/`. Rename each `postgresStore.ts` to `store.ts`. Hosting stays.
 
 ## Validation
 
@@ -55,16 +54,16 @@ A suffix rather than a second codebase or region: a callable's name is its expor
 
 ## Risks
 
-- **Step 5 is the big one.** The Postgres repositories could not keep the Firestore interfaces: `readings.challenge_id` is `not null` with a composite foreign key to `memberships`, and `reading_tags.tag_id` is a uuid, so every reading and TBR signature gained `challengeId` and `tiles` became `tagIds`. Step 5 therefore touches both handlers, both presenters, three test files and `index.ts`. Split it per domain before starting.
+- **Step 4 is the big one.** The Postgres repositories could not keep the Firestore interfaces: `readings.challenge_id` is `not null` with a composite foreign key to `memberships`, and `reading_tags.tag_id` is a uuid, so every reading and TBR signature gained `challengeId` and `tiles` became `tagIds`. Step 4 therefore touches both handlers, both presenters, three test files and `index.ts`. Split it per domain before starting.
 - **`pool.ts` has never run anywhere.** Nothing imports `getPool` outside repository factory defaults, and the DB harness bypasses it. Step 1's deploy is the first execution of `requireConnectionString` and `sslFor`'s non-loopback branch.
-- **Two stores per domain until step 9**, so a change to a shared rule has to be made twice or the two diverge silently.
-- **Deploy ordering is two-sided**, but the `V2` suffix removes it for steps 4–7: no v1 signature changes, so a stale tab keeps working.
+- **Two stores per domain until step 8**, so a change to a shared rule has to be made twice or the two diverge silently.
+- **Deploy ordering is two-sided**, but the `V2` suffix removes it for steps 4–6: no v1 signature changes, so a stale tab keeps working.
 - **Connection count.** `MAX_CONNECTIONS_PER_INSTANCE = 2` against `maxInstances: 10` is the bound.
 - **Dropping `metadata` is wire-breaking.** It joins the pending book-flattening change (CLAUDE.md) and lands with the v2 presenters.
 
 ## Open decisions
 
-Each blocks step 5.
+Each blocks step 4.
 
 1. **`createManualBook`'s metadata fields.** `BookForm` collects page count, ISBN and the rest and `BookMetadataSchema` validates them; the Postgres book entity has nowhere to put them. Recommend deleting the inputs and the schema with the v2 callable — an input that silently discards what you type is worse than its absence.
 2. **`createChallenge` rate limit.** Dropping the creation cap (rule 39) left the abuse it bounded unhandled; `maxInstances: 10` caps spend, not row count. Recommend accepting it at current scale and writing that down.

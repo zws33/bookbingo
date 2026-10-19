@@ -1,8 +1,6 @@
 # Challenge Model
 
-The durable rules for the challenge container, independent of storage. Supersedes `docs/firestore-challenge-model-plan.md`, whose document layout no longer applies.
-
-Enforcement splits two ways: `db/migrations/` enforces what a constraint can express; `functions/` enforces the rest. `firestore.rules` stays deny-all for as long as Firestore exists, and the client SDK writes nothing either way.
+The durable rules for the challenge container, independent of storage.
 
 ## Entities and relationships
 
@@ -88,7 +86,7 @@ Enforcement splits two ways: `db/migrations/` enforces what a constraint can exp
 
 ### Superadmin — not implemented
 
-40. There is no superadmin. The role ladder is `owner` > `admin` > `member` and nothing sits above it. Removed from the code on 2026-10-16: it was a rank above every role plus a widened permission table, carried by every permission signature, for an operator need no handler had yet expressed.
+40. There is no superadmin. The role ladder is `owner` > `admin` > `member` and nothing sits above it.
 41. The operations it was the only holder of — demoting or removing an owner, reinstating a `removed` member — have no caller. They are direct database writes.
 42. If it returns it is a Firebase Auth custom claim read from the verified token, not a membership row and not a database read, so it stays absent from leaderboards and from the last-owner count (rule 21).
 43. A development and operator tool if reintroduced. Nothing else may depend on it.
@@ -96,7 +94,7 @@ Enforcement splits two ways: `db/migrations/` enforces what a constraint can exp
 ### Private now, public later
 
 44. All challenges are private. Reads require an `active` membership.
-45. Read handlers check `challenge.read` against the actor's role, inline. A non-member — including a `left` or `removed` one — gets `not-found` on every path, worded identically to a missing challenge, so a probe cannot confirm a challenge exists; `forbidden` is only for a member whose role lacks the permission. Going public later relaxes that check in each read handler; there is no shared guard (see `docs/challenge-implementation-plan.md` step 4).
+45. Read handlers check `challenge.read` against the actor's role, inline. A non-member — including a `left` or `removed` one — gets `not-found` on every path, worded identically to a missing challenge, so a probe cannot confirm a challenge exists; `forbidden` is only for a member whose role lacks the permission. Going public later relaxes that check in each read handler; there is no shared guard to change in one place.
 46. Leaderboard and library payloads expose `name` and an opaque user id. `users` stores no email, so there is nothing to leak.
 47. Going public is a per-challenge opt-in, never a migration. Existing readings were logged under "private."
 48. If added, `visibility` (who may read) and `join_policy` (how you join) are separate columns. Deferred.
