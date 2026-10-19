@@ -77,7 +77,7 @@ The durable rules for the challenge container, independent of storage.
 34. `draft`: config and tags editable, joining allowed, reading writes rejected.
 35. `active`: `tag_cap` and the tag set locked; `name` editable; joining and reading writes allowed.
 36. `complete`: readings, membership and config frozen. Deletion still allowed.
-37. Deletion is one `delete from challenges`. Tags, memberships, readings, TBR entries and the join code cascade. `reading_tags` cascades from its reading, not from its tag.
+37. Nothing in a challenge's subtree is deleted implicitly. Every foreign key reaching it is `on delete restrict`, so deletion removes the memberships, tags and join code by name in one transaction, and a challenge holding readings or TBR entries refuses the delete. Clearing history is an explicit ordered script — `reading_tags`, `readings`, `tbr_entry_tags`, `tbr_entries` — never a repository method.
 
 ### Creation
 
