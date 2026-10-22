@@ -522,6 +522,28 @@ describe('challengeRepository', () => {
       );
     });
 
+    test('carries each member profile, so the client joins nothing', async () => {
+      const pool = testDb.db;
+      const owner = await seedUser(pool, {
+        name: 'Ada',
+        photoURL: 'https://example.test/ada.png',
+      });
+      const member = await seedUser(pool, { name: 'Bela' });
+      const challengeId = await seedChallenge(pool, { createdBy: owner });
+      await seedMembership(pool, { challengeId, userId: owner, role: 'owner' });
+      await seedMembership(pool, { challengeId, userId: member });
+
+      const members = await repository().listMembers(challengeId);
+
+      assert.deepEqual(
+        members.map((m) => [m.name, m.photoURL]),
+        [
+          ['Ada', 'https://example.test/ada.png'],
+          ['Bela', null],
+        ],
+      );
+    });
+
     test('excludes members of other challenges', async () => {
       const pool = testDb.db;
       const owner = await seedUser(pool);

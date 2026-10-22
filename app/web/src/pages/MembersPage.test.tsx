@@ -30,8 +30,8 @@ describe('MembersPage', () => {
     getMock.mockResolvedValue({
       challenge: ACTIVE.challenge,
       members: [
-        makeMember({ userId: 'u-dana', displayName: 'Dana Whitfield' }),
-        makeMember({ userId: 'u-priya', displayName: 'Priya Raghunathan' }),
+        makeMember({ userId: 'u-dana', name: 'Dana Whitfield' }),
+        makeMember({ userId: 'u-priya', name: 'Priya Raghunathan' }),
       ],
     });
 
@@ -45,9 +45,9 @@ describe('MembersPage', () => {
     getMock.mockResolvedValue({
       challenge: ACTIVE.challenge,
       members: [
-        makeMember({ userId: 'u-a', displayName: 'Ada', role: 'owner' }),
-        makeMember({ userId: 'u-b', displayName: 'Bo', role: 'admin' }),
-        makeMember({ userId: 'u-c', displayName: 'Cy', role: 'member' }),
+        makeMember({ userId: 'u-a', name: 'Ada', role: 'owner' }),
+        makeMember({ userId: 'u-b', name: 'Bo', role: 'admin' }),
+        makeMember({ userId: 'u-c', name: 'Cy', role: 'member' }),
       ],
     });
 

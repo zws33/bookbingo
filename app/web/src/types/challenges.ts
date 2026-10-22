@@ -32,12 +32,12 @@ export interface Membership {
 }
 
 /**
- * `displayName` and `photoURL` are not on `MembershipDTO` yet. The roster has
- * to render a person, and the client does not join memberships to profiles, so
- * the list read has to carry them once it is wired.
+ * The roster renders a person, and the client does not join memberships to
+ * profiles, so `getChallenge` carries the name and photo on each row. Named as
+ * `UserProfile` names them, not as Firebase Auth does.
  */
 export interface Member extends Membership {
-  displayName: string;
+  name: string;
   photoURL: string | null;
 }
 

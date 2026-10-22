@@ -10,9 +10,16 @@ const unique = (prefix: string) => `${prefix}-${(sequence += 1)}`;
 
 export async function seedUser(
   db: Db,
-  { id = unique('user'), name = 'Reader' }: { id?: string; name?: string } = {},
+  {
+    id = unique('user'),
+    name = 'Reader',
+    photoURL = null,
+  }: { id?: string; name?: string; photoURL?: string | null } = {},
 ): Promise<string> {
-  await db.query('insert into users (id, name) values ($1, $2)', [id, name]);
+  await db.query(
+    'insert into users (id, name, photo_url) values ($1, $2, $3)',
+    [id, name, photoURL],
+  );
   return id;
 }
 

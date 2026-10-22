@@ -51,6 +51,16 @@ export interface MembershipFields {
   status: MembershipStatus;
 }
 
+/**
+ * A roster row: the membership with the person it belongs to. The client never
+ * joins memberships to profiles, so the read that renders a roster carries the
+ * name and photo with it.
+ */
+export interface ChallengeMember extends Membership {
+  name: string;
+  photoURL: string | null;
+}
+
 export interface ChallengeMembership {
   challenge: Challenge;
   membership: Membership;
@@ -80,7 +90,7 @@ export interface ChallengeRepository {
     challengeId: string,
     userId: string,
   ): Promise<Membership | undefined>;
-  listMembers(challengeId: string): Promise<Membership[]>;
+  listMembers(challengeId: string): Promise<ChallengeMember[]>;
   listActiveMemberships(userId: string): Promise<Map<string, Membership>>;
   upsertMembership(
     challengeId: string,
@@ -125,6 +135,11 @@ interface MembershipRow {
   joined_at: Date;
 }
 
+interface ChallengeMemberRow extends MembershipRow {
+  name: string;
+  photo_url: string | null;
+}
+
 interface ChallengeMembershipRow extends ChallengeRow {
   user_id: string;
   role: MemberRole;
@@ -153,6 +168,10 @@ function toMembership(row: MembershipRow): Membership {
 }
 
 const CHALLENGE_COLUMNS = 'id, name, tag_cap, status, created_by, created_at';
+function toChallengeMember(row: ChallengeMemberRow): ChallengeMember {
+  return { ...toMembership(row), name: row.name, photoURL: row.photo_url };
+}
+
 const MEMBERSHIP_COLUMNS = 'user_id, role, status, joined_at';
 
 /**
@@ -396,14 +415,16 @@ export function challengeRepository(
     },
 
     async listMembers(challengeId) {
-      const { rows } = await query<MembershipRow>(
+      const { rows } = await query<ChallengeMemberRow>(
         'listMembers',
-        `select ${MEMBERSHIP_COLUMNS} from memberships
-          where challenge_id = $1
-          order by joined_at, user_id`,
+        `select m.user_id, m.role, m.status, m.joined_at, u.name, u.photo_url
+          from memberships m
+          join users u on u.id = m.user_id
+          where m.challenge_id = $1
+          order by m.joined_at, m.user_id`,
         [challengeId],
       );
-      return rows.map(toMembership);
+      return rows.map(toChallengeMember);
     },
 
     async listActiveMemberships(userId) {
