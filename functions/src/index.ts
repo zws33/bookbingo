@@ -1,5 +1,5 @@
 import { setGlobalOptions } from 'firebase-functions/v2';
-import { onCall } from 'firebase-functions/v2/https';
+import { onCall, type CallableOptions } from 'firebase-functions/v2/https';
 import { defineSecret } from 'firebase-functions/params';
 import { callable } from './callable.js';
 import { submitFeedbackHandler, GITHUB_API_URL } from './feedback/handler.js';
@@ -10,6 +10,8 @@ import {
 import { createManualBookHandler } from './books/manual.js';
 import { bookRepository } from './books/store.js';
 import { getBoardConfigHandler } from './config/handler.js';
+import { challengeHandlers } from './challenges/handler.js';
+import { challengeRepository } from './challenges/postgresStore.js';
 import { userHandlers } from './users/handler.js';
 import { userProfileRepository } from './users/store.js';
 import { readingHandlers } from './readings/handler.js';
@@ -25,6 +27,12 @@ import { tbrEntryRepository } from './tbr/store.js';
 setGlobalOptions({ region: 'northamerica-northeast1', maxInstances: 10 });
 
 const githubPat = defineSecret('GITHUB_PAT');
+const databaseUrl = defineSecret('DATABASE_URL');
+
+const postgresBacked: CallableOptions = {
+  invoker: 'public',
+  secrets: [databaseUrl],
+};
 
 const usersRepo = userProfileRepository();
 const tbrRepo = tbrEntryRepository();
@@ -35,6 +43,17 @@ const users = userHandlers(usersRepo);
 const tbr = tbrHandlers(tbrRepo, booksRepo);
 const readings = readingHandlers(readingsRepo, usersRepo, booksRepo);
 const library = libraryHandlers(readingsRepo, usersRepo, booksRepo);
+
+/**
+ * Built on first request, not at module load: the pool reads DATABASE_URL,
+ * which only exists in a process whose function declares the secret, and
+ * `firebase deploy` loads this module to discover the exports with no secrets
+ * bound. Constructing it here would fail every deploy of the codebase.
+ */
+let challengeApi: ReturnType<typeof challengeHandlers> | undefined;
+function challenges() {
+  return (challengeApi ??= challengeHandlers(challengeRepository()));
+}
 
 export const submitFeedback = onCall(
   { invoker: 'public', secrets: [githubPat] },
@@ -124,4 +143,82 @@ export const deleteTBREntry = onCall(
 export const promoteTBREntry = onCall(
   { invoker: 'public' },
   callable(tbr.promote, 'Failed to save your reading.'),
+);
+
+export const createChallenge = onCall(
+  postgresBacked,
+  callable(
+    (request) => challenges().create(request),
+    'Failed to create the challenge.',
+  ),
+);
+export const getMyChallenges = onCall(
+  postgresBacked,
+  callable(
+    (request) => challenges().getMyChallenges(request),
+    'Could not load your challenges.',
+  ),
+);
+export const getChallenge = onCall(
+  postgresBacked,
+  callable(
+    (request) => challenges().get(request),
+    'Could not load that challenge.',
+  ),
+);
+export const updateChallengeConfig = onCall(
+  postgresBacked,
+  callable(
+    (request) => challenges().updateConfig(request),
+    'Failed to save the challenge settings.',
+  ),
+);
+export const joinChallenge = onCall(
+  postgresBacked,
+  callable(
+    (request) => challenges().join(request),
+    'Failed to join the challenge.',
+  ),
+);
+export const leaveChallenge = onCall(
+  postgresBacked,
+  callable(
+    (request) => challenges().leave(request),
+    'Failed to leave the challenge.',
+  ),
+);
+export const removeMember = onCall(
+  postgresBacked,
+  callable(
+    (request) => challenges().removeMember(request),
+    'Failed to remove that member.',
+  ),
+);
+export const setMemberRole = onCall(
+  postgresBacked,
+  callable(
+    (request) => challenges().setMemberRole(request),
+    'Failed to change the member role.',
+  ),
+);
+export const setChallengeStatus = onCall(
+  postgresBacked,
+  callable(
+    (request) => challenges().setStatus(request),
+    'Failed to change the challenge status.',
+  ),
+);
+export const deleteChallenge = onCall(
+  postgresBacked,
+  callable(
+    (request) => challenges().remove(request),
+    'Failed to delete the challenge.',
+  ),
+);
+export const rotateJoinCode = onCall(
+  postgresBacked,
+  callable(
+    (request) => challenges().rotateJoinCode(request),
+    'Failed to rotate the join code.',
+  ),
 );
