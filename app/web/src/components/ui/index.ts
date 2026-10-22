@@ -7,6 +7,7 @@ export {
   type ButtonProps,
   type ButtonVariant,
 } from './Button.js';
+export { ChevronIcon } from './ChevronIcon.js';
 export { Dialog } from './Dialog.js';
 export { DropdownMenu } from './DropdownMenu.js';
 export { Input, type InputProps } from './Input.js';
