@@ -19,10 +19,10 @@ import {
 import {
   toChallengeDTO,
   toChallengeMembershipDTO,
-  toMembershipDTO,
+  toMemberDTO,
   type ChallengeDTO,
   type ChallengeMembershipDTO,
-  type MembershipDTO,
+  type MemberDTO,
 } from './present.js';
 import {
   CreateChallengeRequestSchema,
@@ -63,7 +63,7 @@ const TRANSITION_DENIED =
 
 export interface ChallengeDetailDTO {
   challenge: ChallengeDTO;
-  members: MembershipDTO[];
+  members: MemberDTO[];
 }
 
 export function challengeHandlers(challengesRepo: ChallengeRepository) {
@@ -165,7 +165,7 @@ export function challengeHandlers(challengesRepo: ChallengeRepository) {
         challenge: toChallengeDTO(challenge),
         members: members
           .filter((member) => member.status === 'active')
-          .map(toMembershipDTO),
+          .map(toMemberDTO),
       };
     },
 

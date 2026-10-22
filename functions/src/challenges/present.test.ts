@@ -3,6 +3,7 @@ import assert from 'node:assert';
 import {
   toChallengeDTO,
   toChallengeMembershipDTO,
+  toMemberDTO,
   toMembershipDTO,
 } from './present.js';
 
@@ -84,6 +85,29 @@ describe('toChallengeMembershipDTO', () => {
           status: 'active',
           joinedAt: '2026-01-02T03:04:05.000Z',
         },
+      },
+    );
+  });
+});
+
+describe('toMemberDTO', () => {
+  test('carries the profile beside the membership', () => {
+    assert.deepEqual(
+      toMemberDTO({
+        userId: 'user-1',
+        role: 'member',
+        status: 'active',
+        joinedAt: CREATED_AT,
+        name: 'Ada',
+        photoURL: 'https://example.test/ada.png',
+      }),
+      {
+        userId: 'user-1',
+        role: 'member',
+        status: 'active',
+        joinedAt: '2026-01-02T03:04:05.000Z',
+        name: 'Ada',
+        photoURL: 'https://example.test/ada.png',
       },
     );
   });

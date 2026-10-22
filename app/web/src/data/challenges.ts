@@ -1,36 +1,56 @@
+import z from 'zod/v4';
+import { createCallable } from '../lib/callable';
+import type { ChallengeDetail, ChallengeSummary } from '../types/challenges';
+import {
+  CreateChallengeResponseSchema,
+  GetChallengeResponseSchema,
+  GetMyChallengesResponseSchema,
+  JoinChallengeResponseSchema,
+} from '../types/schemas';
+
+const VoidResponseSchema = z.unknown().transform(() => undefined);
+
 /**
- * The challenge data seam, not yet connected to anything.
- *
- * `functions/src/challenges/` has handlers for `create`, `get` and
- * `updateConfig` and a `listMyChallenges` store method, but none of them is
- * registered in `functions/src/index.ts`, so there is no callable to bind.
- * These keep the signatures the callables will have and reject until then, so
- * the screens that call them are written against the real shape and the swap
- * is confined to this file.
+ * The challenges the caller is an active member of, newest membership first.
+ * A removed or departed member sees nothing, so this doubles as the check that
+ * a challenge is still theirs.
  */
-import type { ChallengeDetail } from '../types/challenges';
+export const getMyChallenges = createCallable<
+  void,
+  { challenges: ChallengeSummary[] }
+>('getMyChallenges', GetMyChallengesResponseSchema);
 
-const NOT_WIRED = 'Challenges are not available yet.';
+/** The caller becomes the sole owner, and the join code is returned once. */
+export const createChallenge = createCallable<
+  { name: string; tagCap: number },
+  { challengeId: string; joinCode: string }
+>('createChallenge', CreateChallengeResponseSchema);
 
-export function createChallenge(_input: {
-  name: string;
-  tagCap: number;
-}): Promise<{ challengeId: string; joinCode: string }> {
-  return Promise.reject(new Error(NOT_WIRED));
+const callJoinChallenge = createCallable<
+  { code: string },
+  { challengeId: string }
+>('joinChallenge', JoinChallengeResponseSchema);
+
+/** The code is the authorization: no challengeId, because the caller has none yet. */
+export function joinChallenge(code: string): Promise<{ challengeId: string }> {
+  return callJoinChallenge({ code });
 }
 
-export function joinChallenge(_code: string): Promise<{ challengeId: string }> {
-  return Promise.reject(new Error(NOT_WIRED));
+const callGetChallenge = createCallable<
+  { challengeId: string },
+  ChallengeDetail
+>('getChallenge', GetChallengeResponseSchema);
+
+/** The challenge with its active roster. A non-member gets `not-found`. */
+export function getChallenge(challengeId: string): Promise<ChallengeDetail> {
+  return callGetChallenge({ challengeId });
 }
 
-export function getChallenge(_challengeId: string): Promise<ChallengeDetail> {
-  return Promise.reject(new Error(NOT_WIRED));
-}
-
-export function updateChallengeConfig(_input: {
-  challengeId: string;
-  name?: string;
-  tagCap?: number;
-}): Promise<void> {
-  return Promise.reject(new Error(NOT_WIRED));
-}
+/**
+ * A rename and a cap change travel together but are authorized separately: an
+ * active challenge takes the rename and refuses the cap change.
+ */
+export const updateChallengeConfig = createCallable<
+  { challengeId: string; name?: string; tagCap?: number },
+  undefined
+>('updateChallengeConfig', VoidResponseSchema);

@@ -35,12 +35,12 @@ export function MembersPage() {
             className="flex items-center gap-3 px-4 py-3 border-b border-outline-variant last:border-0"
           >
             <Avatar
-              name={member.displayName}
+              name={member.name}
               photoURL={member.photoURL ?? undefined}
             />
             <div className="min-w-0 flex-1">
               <p className="font-medium text-on-surface truncate">
-                {member.displayName}
+                {member.name}
               </p>
               <p className="text-xs text-on-surface-variant">
                 Joined {JOINED.format(member.joinedAt)}

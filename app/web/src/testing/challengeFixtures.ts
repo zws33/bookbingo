@@ -42,7 +42,7 @@ export function makeSummary(
 export function makeMember(overrides: Partial<Member> = {}): Member {
   return {
     ...makeMembership(),
-    displayName: 'Dana Whitfield',
+    name: 'Dana Whitfield',
     photoURL: null,
     ...overrides,
   };

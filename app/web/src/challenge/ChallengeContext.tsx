@@ -14,16 +14,13 @@ const ChallengeContext = createContext<ChallengeContextValue | undefined>(
 );
 
 /**
- * The shape the challenge screens consume, with no data source behind it yet.
+ * The shape the challenge screens consume.
  *
- * The value is passed in rather than fetched because the membership read has
- * no callable to call: `functions/src/challenges/` has a `listMyChallenges`
- * store method, no handler for it, and nothing registered in `index.ts`.
- *
- * When the callable lands, this provider takes over the query and derives
- * `active` from a `/c/:challengeId` route match rather than from a prop — the
- * URL is what a member can share, so it, not a second store, decides which
- * challenge is open.
+ * The value is still passed in rather than fetched here. `getMyChallenges` is
+ * bound in `data/challenges`, but resolving `active` needs the
+ * `/c/:challengeId` route that does not exist yet: the URL is what a member
+ * can share, so it, not a second store, decides which challenge is open. This
+ * provider takes over the query with that route.
  */
 export function ChallengeProvider({
   value,

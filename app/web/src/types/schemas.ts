@@ -1,5 +1,10 @@
 import type { Book } from '@bookbingo/lib-types';
 import z from 'zod/v4';
+import {
+  CHALLENGE_STATUSES,
+  MEMBER_ROLES,
+  MEMBERSHIP_STATUSES,
+} from './challenges';
 
 export const BookSearchResultSchema = z.object({
   externalId: z.string().min(1),
@@ -139,3 +144,45 @@ export const TBREntrySchema = z.object({
 export type TBREntry = z.infer<typeof TBREntrySchema>;
 
 export const ListTBRResponseSchema = z.array(TBREntrySchema);
+
+const ChallengeSchema = z.object({
+  id: z.string().min(1),
+  name: z.string(),
+  status: z.enum(CHALLENGE_STATUSES),
+  tagCap: z.number().int().positive(),
+  createdBy: z.string().min(1),
+  createdAt: Instant,
+});
+
+const MembershipSchema = z.object({
+  userId: z.string().min(1),
+  role: z.enum(MEMBER_ROLES),
+  status: z.enum(MEMBERSHIP_STATUSES),
+  joinedAt: Instant,
+});
+
+/** The roster row, profile included — see `Member`. */
+const MemberSchema = MembershipSchema.extend({
+  name: z.string(),
+  photoURL: z.string().nullable().catch(null),
+});
+
+export const GetMyChallengesResponseSchema = z.object({
+  challenges: z.array(
+    z.object({ challenge: ChallengeSchema, membership: MembershipSchema }),
+  ),
+});
+
+export const GetChallengeResponseSchema = z.object({
+  challenge: ChallengeSchema,
+  members: z.array(MemberSchema),
+});
+
+export const CreateChallengeResponseSchema = z.object({
+  challengeId: z.string().min(1),
+  joinCode: z.string().min(1),
+});
+
+export const JoinChallengeResponseSchema = z.object({
+  challengeId: z.string().min(1),
+});

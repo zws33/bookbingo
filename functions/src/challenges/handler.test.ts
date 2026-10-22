@@ -6,6 +6,7 @@ import { DomainError } from '../common/errors.js';
 import {
   CHALLENGE_GONE,
   type Challenge,
+  type ChallengeMember,
   type ChallengeRepository,
   type Membership,
 } from './postgresStore.js';
@@ -111,6 +112,18 @@ function makeMembership(
     role,
     status,
     joinedAt: new Date('2026-01-02T00:00:00.000Z'),
+  };
+}
+
+function makeMember(
+  role: MemberRole,
+  status: MembershipStatus = 'active',
+  userId = AUTH.uid,
+): ChallengeMember {
+  return {
+    ...makeMembership(role, status, userId),
+    name: 'Ada',
+    photoURL: null,
   };
 }
 
@@ -223,7 +236,7 @@ describe('challengeHandlers.get', () => {
       const result = await handlers({
         getMembership: membershipOf(makeMembership(role)),
         get: () => Promise.resolve(makeChallenge()),
-        listMembers: () => Promise.resolve([makeMembership(role)]),
+        listMembers: () => Promise.resolve([makeMember(role)]),
       }).get(makeRequest(AUTH, { challengeId: CHALLENGE_ID }));
 
       assert.equal(result.challenge.id, CHALLENGE_ID);
@@ -234,6 +247,8 @@ describe('challengeHandlers.get', () => {
           role,
           status: 'active',
           joinedAt: '2026-01-02T00:00:00.000Z',
+          name: 'Ada',
+          photoURL: null,
         },
       ]);
     });
@@ -245,9 +260,9 @@ describe('challengeHandlers.get', () => {
       get: () => Promise.resolve(makeChallenge()),
       listMembers: () =>
         Promise.resolve([
-          makeMembership('member'),
-          makeMembership('member', 'left', 'user-2'),
-          makeMembership('admin', 'removed', 'user-3'),
+          makeMember('member'),
+          makeMember('member', 'left', 'user-2'),
+          makeMember('admin', 'removed', 'user-3'),
         ]),
     }).get(makeRequest(AUTH, { challengeId: CHALLENGE_ID }));
 
