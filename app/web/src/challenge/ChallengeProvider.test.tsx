@@ -3,7 +3,8 @@ import { render, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { makeSummary } from '../testing/challengeFixtures';
-import { ChallengeProvider, useChallenges } from './ChallengeContext';
+import { useChallenges } from './ChallengeContext';
+import { ChallengeProvider } from './ChallengeProvider';
 
 vi.mock('../data/challenges', () => ({
   getMyChallenges: vi.fn(),

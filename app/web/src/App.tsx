@@ -5,7 +5,7 @@ import { syncMyProfile } from './data/userProfile';
 import { useAuth } from './hooks/useAuth';
 import { useReadings } from './hooks/useReadings';
 import { BingoBoard } from './components/BingoBoard';
-import { ChallengeProvider } from './challenge/ChallengeContext';
+import { ChallengeProvider } from './challenge/ChallengeProvider';
 import { ChallengeLayout } from './challenge/ChallengeLayout';
 import { ChallengeResolver } from './challenge/ChallengeResolver';
 import { ChallengeSwitcher } from './components/ChallengeSwitcher';
