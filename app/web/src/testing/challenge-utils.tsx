@@ -4,7 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
 import { ToastProvider } from '../lib/ToastContext';
 import {
-  ChallengeProvider,
+  ChallengeContext,
   type ChallengeContextValue,
 } from '../challenge/ChallengeContext';
 import type { ChallengeSummary } from '../types/challenges';
@@ -25,9 +25,11 @@ interface Options extends Partial<ChallengeContextValue> {
 const NO_CHALLENGES: ChallengeSummary[] = [];
 
 /**
- * Renders inside a `ChallengeProvider` holding exactly the memberships the
- * test names. The provider takes its value as a prop, so there is no fetch to
- * stub and no module to mock — the component is the only thing under test.
+ * Renders inside a challenge context holding exactly the memberships the test
+ * names. The value is supplied here rather than fetched, so there is no fetch
+ * to stub and no module to mock — the component is the only thing under test.
+ * `ChallengeProvider` itself resolves `active` from the route; a test that
+ * needs that behavior renders the provider.
  */
 export function renderInChallenge(
   ui: ReactNode,
@@ -44,7 +46,7 @@ export function renderInChallenge(
     <MemoryRouter initialEntries={[route]}>
       <QueryClientProvider client={makeQueryClient()}>
         <ToastProvider>
-          <ChallengeProvider value={{ challenges, active, loading, error }}>
+          <ChallengeContext value={{ challenges, active, loading, error }}>
             {path ? (
               <Routes>
                 <Route path={path} element={ui} />
@@ -52,7 +54,7 @@ export function renderInChallenge(
             ) : (
               ui
             )}
-          </ChallengeProvider>
+          </ChallengeContext>
         </ToastProvider>
       </QueryClientProvider>
     </MemoryRouter>,
