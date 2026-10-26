@@ -58,12 +58,21 @@ const MEMBERS_FROZEN =
 
 const MEMBER_GONE = 'That member is not in this challenge.';
 
+const NO_JOIN_CODE = 'Challenge has no join_codes row.';
+
 const TRANSITION_DENIED =
   'A challenge moves from draft to active to complete, one step at a time.';
 
 export interface ChallengeDetailDTO {
   challenge: ChallengeDTO;
   members: MemberDTO[];
+  /**
+   * Always present. A challenge is created with its code in one transaction
+   * and loses it only when it is deleted, so an absent one is corrupt state,
+   * not a case the response models. Every active member reads it; rotating it
+   * is what `joinCode.manage` gates.
+   */
+  joinCode: string;
 }
 
 export function challengeHandlers(challengesRepo: ChallengeRepository) {
@@ -156,13 +165,19 @@ export function challengeHandlers(challengesRepo: ChallengeRepository) {
         throw denied(membership, 'challenge.read');
       }
 
-      const [challenge, members] = await Promise.all([
+      const [challenge, members, joinCode] = await Promise.all([
         challengesRepo.get(challengeId),
         challengesRepo.listMembers(challengeId),
+        challengesRepo.getJoinCode(challengeId),
       ]);
+
+      if (!joinCode) {
+        throw new DomainError('corrupt', NO_JOIN_CODE, { challengeId });
+      }
 
       return {
         challenge: toChallengeDTO(challenge),
+        joinCode,
         members: members
           .filter((member) => member.status === 'active')
           .map(toMemberDTO),
