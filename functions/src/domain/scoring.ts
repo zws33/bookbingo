@@ -27,8 +27,7 @@ export function calculateVarietyPoints(
  * For each tile, contributes H(count) - 1 (the first book is counted in variety points).
  *
  * Harmonic rather than logarithmic decay: with log₂ the 2nd book in a tile scores a
- * full 1.0 — identical to covering a brand-new tile — which erases the variety signal
- * at exactly the margin where it should bite hardest. Harmonic gives it 0.5.
+ * full 1.0 — identical to covering a brand-new tile. Harmonic gives it 0.5.
  */
 export function calculateVolumePoints(tileCounts: Map<string, number>): number {
   let volume = 0;
