@@ -70,4 +70,3 @@ Three alternatives are closed, so that they are not re-litigated:
 - `pnpm run verify` after every commit; `pnpm run test:db` before every push.
 - Permissions and lifecycle are `node:test` units with no database; the per-handler permission checks are covered by the handler tests against a fake repository. The permission and transition tables get a cell-by-cell loop against a transcription of `challenge-model.md`, not spot checks.
 - Step 1 is not done until `test:db` passes against the integration branch **and** fails against staging.
-- Migration parity: `docs/data-migration-plan.md`.

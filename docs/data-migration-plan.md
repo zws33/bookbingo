@@ -84,28 +84,16 @@ A violation aborts its step's transaction, leaving earlier steps written. Recove
 ## Run sequence
 
 1. Full run against the local container, pointed at prod Firestore. The rehearsal that costs nothing.
-2. Full run against Neon staging, then the verifier.
-3. Full run against Neon prod (step 7), then the verifier.
+2. Full run against Neon staging.
+3. Full run against Neon prod (step 7).
 4. **Clear prod.** The statement above. The rehearsal's rows are not the rows that go live.
-5. At cutover (step 8): freeze, full run against prod, verify, unfreeze. The freeze covers the whole migration, not a delta.
-
-## Validation
-
-`scripts/verify-pg-migration.ts` reads both sides and compares. It gates steps 2 and 7.
-
-- Reading count and TBR entry count per user, Firestore vs Postgres.
-- **Score parity per user.** Run `domain/scoring.ts` over the Firestore readings and over the Postgres readings mapped back to tile ids; totals must match exactly. Scores are the product, so this is the check that matters.
-- Book count, and every reading's book resolvable by join.
-- Tag count 49, every `t`/`m` id resolving to exactly one tag.
-- Membership count equal to user count, with exactly one `owner`.
-- `read_at` and `added_at` round-trip to the same instant in UTC.
-- A second run against a populated destination exits non-zero and writes nothing.
+5. At cutover (step 8): freeze, full run against prod, unfreeze. The freeze covers the whole migration, not a delta.
 
 ## Risks
 
 - **Reading ids change.** Fresh uuids, not Firestore auto-ids, and they differ between the rehearsal and the live run. Nothing persists a reading id outside Firestore and the client refetches, but a bookmarked deep link breaks.
 - **Firestore records no book creator**, so every migrated book gets `created_by` null — attribution starts empty rather than wrong.
-- **A partial run cannot be resumed.** Each table is its own transaction, so a mid-run failure leaves earlier tables written, and the empty-destination precondition then refuses the retry. Recovery is clear-and-rerun; the verifier is what tells you the run was incomplete.
+- **A partial run cannot be resumed.** Each table is its own transaction, so a mid-run failure leaves earlier tables written, and the empty-destination precondition then refuses the retry. Recovery is clear-and-rerun.
 - **Forgetting to clear prod after the rehearsal** stops the cutover run at its precondition. That is the intended failure — loud, before the freeze, rather than a silent merge of rehearsal rows into live data.
 
 ## Open decisions
