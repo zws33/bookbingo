@@ -23,24 +23,39 @@ import type { ChallengeStatus } from '../types/challenges';
 
 const MAX_NAME_LENGTH = 100;
 
-/** Each step is one-way, so both are confirmed and both say what they cost. */
-const TRANSITIONS: Record<
-  ChallengeStatus,
-  { label: string; title: string; message: string } | undefined
-> = {
-  draft: {
+interface Transition {
+  label: string;
+  title: string;
+  hint: string;
+  message: string;
+  success: string;
+}
+
+/**
+ * Keyed by destination, so `nextStatus` stays the only place the chain is
+ * written: a step the lifecycle does not offer has no copy and renders
+ * nothing. Each step is one-way, so each is confirmed and each says what it
+ * costs.
+ */
+const TRANSITIONS: Record<ChallengeStatus, Transition | undefined> = {
+  // Nothing transitions into draft.
+  draft: undefined,
+  active: {
     label: 'Start challenge',
     title: 'Start this challenge?',
+    hint: 'Nobody can log a book until the challenge starts.',
     message:
       'Books can be logged from then on, and the tags-per-book cap locks because scores depend on it. There is no going back to draft.',
+    success: 'Challenge started.',
   },
-  active: {
+  complete: {
     label: 'Finish challenge',
     title: 'Finish this challenge?',
+    hint: 'Finishing freezes books, membership and settings.',
     message:
       'Books, membership and settings freeze, and scores become final. There is no reopening it.',
+    success: 'Challenge finished.',
   },
-  complete: undefined,
 };
 
 export function ChallengeSettingsPage() {
@@ -63,7 +78,7 @@ export function ChallengeSettingsPage() {
   const capEditable = canEditConfig(membership.role, challenge.status);
   const ownsLifecycle = canChangeStatus(membership.role);
   const target = nextStatus(challenge.status);
-  const transition = TRANSITIONS[challenge.status];
+  const transition = target ? TRANSITIONS[target] : undefined;
 
   const nameChanged = nameEditable && name.trim() !== challenge.name;
   const capChanged = capEditable && Number(tagCap) !== challenge.tagCap;
@@ -106,17 +121,15 @@ export function ChallengeSettingsPage() {
     }
   };
 
-  const handleTransition = async () => {
-    if (!target) return;
-
+  const handleTransition = async (to: ChallengeStatus, step: Transition) => {
     setIsConfirmingTransition(false);
     setIsTransitioning(true);
     try {
-      await setChallengeStatus({ challengeId: challenge.id, status: target });
-      await queryClient.invalidateQueries({ queryKey: queryKeys.myChallenges });
-      showSuccess(
-        target === 'active' ? 'Challenge started.' : 'Challenge finished.',
-      );
+      await setChallengeStatus({ challengeId: challenge.id, status: to });
+      showSuccess(step.success);
+      // Not awaited: the toast is the confirmation, and the refetch behind
+      // this invalidation would delay it by a round trip.
+      void queryClient.invalidateQueries({ queryKey: queryKeys.myChallenges });
     } catch (transitionError) {
       showError(
         transitionError instanceof Error
@@ -133,6 +146,9 @@ export function ChallengeSettingsPage() {
     setIsDeleting(true);
     try {
       await deleteChallenge({ challengeId: challenge.id });
+      // Awaited, unlike the transition's: the list this invalidates is where
+      // the navigation lands, and from a stale cache it would still offer the
+      // deleted challenge.
       await queryClient.invalidateQueries({ queryKey: queryKeys.myChallenges });
       navigate('/challenges', { replace: true });
     } catch (deleteError) {
@@ -141,6 +157,7 @@ export function ChallengeSettingsPage() {
           ? deleteError.message
           : 'Could not delete the challenge.',
       );
+    } finally {
       setIsDeleting(false);
     }
   };
@@ -204,9 +221,7 @@ export function ChallengeSettingsPage() {
             <section className="mt-10 border-t border-outline-variant pt-6">
               <h3 className="font-medium text-on-surface">Lifecycle</h3>
               <p className="mt-1 text-sm text-on-surface-variant">
-                {challenge.status === 'draft'
-                  ? 'Nobody can log a book until the challenge starts.'
-                  : 'Finishing freezes books, membership and settings.'}
+                {transition.hint}
               </p>
               <Button
                 variant="outline"
@@ -237,11 +252,11 @@ export function ChallengeSettingsPage() {
         </>
       )}
 
-      {transition && (
+      {transition && target && (
         <AlertDialog
           isOpen={isConfirmingTransition}
           onClose={() => setIsConfirmingTransition(false)}
-          onConfirm={() => void handleTransition()}
+          onConfirm={() => void handleTransition(target, transition)}
           title={transition.title}
           message={transition.message}
           confirmLabel={transition.label}

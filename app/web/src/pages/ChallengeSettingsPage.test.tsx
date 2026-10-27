@@ -162,6 +162,7 @@ describe('ChallengeSettingsPage', () => {
       challengeId: 'ch-main',
       status: 'active',
     });
+    expect(await screen.findByText('Challenge started.')).toBeInTheDocument();
   });
 
   it('asks for the next status, not the current one, when finishing', async () => {
@@ -178,6 +179,7 @@ describe('ChallengeSettingsPage', () => {
       challengeId: 'ch-main',
       status: 'complete',
     });
+    expect(await screen.findByText('Challenge finished.')).toBeInTheDocument();
   });
 
   it('deletes only after the confirmation is accepted', async () => {
