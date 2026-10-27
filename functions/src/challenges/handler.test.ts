@@ -232,15 +232,17 @@ describe('challengeHandlers.get', () => {
   }
 
   for (const role of ['owner', 'admin', 'member'] as const) {
-    test(`a ${role} reads the challenge and its roster`, async () => {
+    test(`a ${role} reads the challenge, its roster and the join code`, async () => {
       const result = await handlers({
         getMembership: membershipOf(makeMembership(role)),
         get: () => Promise.resolve(makeChallenge()),
         listMembers: () => Promise.resolve([makeMember(role)]),
+        getJoinCode: () => Promise.resolve(JOIN_CODE),
       }).get(makeRequest(AUTH, { challengeId: CHALLENGE_ID }));
 
       assert.equal(result.challenge.id, CHALLENGE_ID);
       assert.equal(result.challenge.createdAt, '2026-01-01T00:00:00.000Z');
+      assert.equal(result.joinCode, JOIN_CODE);
       assert.deepEqual(result.members, [
         {
           userId: 'user-1',
@@ -258,6 +260,7 @@ describe('challengeHandlers.get', () => {
     const result = await handlers({
       getMembership: membershipOf(makeMembership('member')),
       get: () => Promise.resolve(makeChallenge()),
+      getJoinCode: () => Promise.resolve(JOIN_CODE),
       listMembers: () =>
         Promise.resolve([
           makeMember('member'),
@@ -270,6 +273,23 @@ describe('challengeHandlers.get', () => {
       result.members.map((member) => member.userId),
       ['user-1'],
     );
+  });
+
+  test('a challenge with no join code is corrupt, and says so without the id', async () => {
+    const error = await rejectsWith(
+      'corrupt',
+      'Challenge has no join_codes row.',
+      () =>
+        handlers({
+          getMembership: membershipOf(makeMembership('owner')),
+          get: () => Promise.resolve(makeChallenge()),
+          listMembers: () => Promise.resolve([makeMember('owner')]),
+          getJoinCode: () => Promise.resolve(undefined),
+        }).get(makeRequest(AUTH, { challengeId: CHALLENGE_ID })),
+    );
+
+    assert.ok(!error.message.includes(CHALLENGE_ID));
+    assert.deepEqual(error.details, { challengeId: CHALLENGE_ID });
   });
 });
 

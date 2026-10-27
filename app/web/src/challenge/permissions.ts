@@ -91,3 +91,16 @@ export function canManageMembers(
 export function canChangeStatus(role: MemberRole): boolean {
   return atLeast(role, 'owner');
 }
+
+/** A linear chain, so a complete challenge has no next step and no way back. */
+const NEXT_STATUS: Record<ChallengeStatus, ChallengeStatus | undefined> = {
+  draft: 'active',
+  active: 'complete',
+  complete: undefined,
+};
+
+export function nextStatus(
+  status: ChallengeStatus,
+): ChallengeStatus | undefined {
+  return NEXT_STATUS[status];
+}

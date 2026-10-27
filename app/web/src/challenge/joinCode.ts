@@ -19,3 +19,8 @@ export function normalizeJoinCode(input: string): string {
     .replace(/O/g, '0')
     .replace(/[IL]/g, '1');
 }
+
+/** Grouped in fours for reading aloud. `normalizeJoinCode` strips the space again. */
+export function formatJoinCode(code: string): string {
+  return `${code.slice(0, 4)} ${code.slice(4)}`;
+}

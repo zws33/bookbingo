@@ -176,6 +176,7 @@ export const GetMyChallengesResponseSchema = z.object({
 export const GetChallengeResponseSchema = z.object({
   challenge: ChallengeSchema,
   members: z.array(MemberSchema),
+  joinCode: z.string().min(1),
 });
 
 export const CreateChallengeResponseSchema = z.object({

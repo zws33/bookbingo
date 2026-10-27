@@ -67,7 +67,7 @@ The durable rules for the challenge container, independent of storage.
 
 28. Joining is by code only. There is no user-facing challenge identifier; `challenges.id` is an opaque uuid.
 29. A code is 8 characters of Crockford base32 (40 bits) from `crypto.randomBytes`. `join_codes.challenge_id` is unique, so a challenge has exactly one live code.
-30. Codes are multi-use and never expire. `rotateJoinCode` deletes the old row and inserts the new one in one transaction. There is no revoke without replacement — it would leave a challenge unjoinable.
+30. Codes are multi-use and never expire. `rotateJoinCode` deletes the old row and inserts the new one in one transaction. There is no revoke without replacement — it would leave a challenge unjoinable. A challenge therefore always has exactly one live code, written with it and removed only by deletion: `getChallenge` returns it to every active member, and an absent one is corrupt state. Rotation stays admin+, so any member may pass the code on but only an admin can invalidate it.
 31. `joinChallenge(code)`: missing code → `not-found`, which also covers a rotated-away code; challenge `complete` → `failed-precondition`; membership `removed` → `permission-denied`; `active` → no-op; `left` or absent → `active` `member`.
 32. Expiry was considered and dropped. A window short enough to bound a leak also kills codes for anyone opening the group chat a day late, while brute force works in seconds. Rotation bounds a leak on demand, and membership is visible.
 

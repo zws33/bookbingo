@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { screen } from '@testing-library/react';
+import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { renderInChallenge } from '../testing/challenge-utils';
 import { makeSummary } from '../testing/challengeFixtures';
@@ -8,15 +8,27 @@ import { ChallengeSettingsPage } from './ChallengeSettingsPage';
 
 vi.mock('../data/challenges', () => ({
   updateChallengeConfig: vi.fn(),
+  setChallengeStatus: vi.fn(),
+  deleteChallenge: vi.fn(),
 }));
 
-import { updateChallengeConfig } from '../data/challenges';
+import {
+  deleteChallenge,
+  setChallengeStatus,
+  updateChallengeConfig,
+} from '../data/challenges';
 
 const updateMock = vi.mocked(updateChallengeConfig);
+const statusMock = vi.mocked(setChallengeStatus);
+const deleteMock = vi.mocked(deleteChallenge);
 
 beforeEach(() => {
   updateMock.mockReset();
   updateMock.mockResolvedValue(undefined);
+  statusMock.mockReset();
+  statusMock.mockResolvedValue(undefined);
+  deleteMock.mockReset();
+  deleteMock.mockResolvedValue(undefined);
 });
 
 function renderSettings(status: ChallengeStatus, role: MemberRole = 'admin') {
@@ -101,5 +113,97 @@ describe('ChallengeSettingsPage', () => {
       await screen.findByText('A name is 1 to 100 characters.'),
     ).toBeInTheDocument();
     expect(updateMock).not.toHaveBeenCalled();
+  });
+
+  it('offers an owner the one step the lifecycle allows', () => {
+    renderSettings('draft', 'owner');
+
+    expect(
+      screen.getByRole('button', { name: 'Start challenge' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Finish challenge' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('offers a finished challenge no further step, but still a delete', () => {
+    renderSettings('complete', 'owner');
+
+    expect(screen.queryByText('Lifecycle')).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Delete challenge' }),
+    ).toBeInTheDocument();
+  });
+
+  it('keeps lifecycle and delete away from an admin', () => {
+    renderSettings('draft', 'admin');
+
+    expect(
+      screen.queryByRole('button', { name: 'Start challenge' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Delete challenge' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('starts the challenge only after the confirmation is accepted', async () => {
+    const { user } = renderSettings('draft', 'owner');
+
+    await user.click(screen.getByRole('button', { name: 'Start challenge' }));
+    expect(statusMock).not.toHaveBeenCalled();
+
+    await user.click(
+      within(screen.getByRole('alertdialog')).getByRole('button', {
+        name: 'Start challenge',
+      }),
+    );
+
+    expect(statusMock).toHaveBeenCalledWith({
+      challengeId: 'ch-main',
+      status: 'active',
+    });
+    expect(await screen.findByText('Challenge started.')).toBeInTheDocument();
+  });
+
+  it('asks for the next status, not the current one, when finishing', async () => {
+    const { user } = renderSettings('active', 'owner');
+
+    await user.click(screen.getByRole('button', { name: 'Finish challenge' }));
+    await user.click(
+      within(screen.getByRole('alertdialog')).getByRole('button', {
+        name: 'Finish challenge',
+      }),
+    );
+
+    expect(statusMock).toHaveBeenCalledWith({
+      challengeId: 'ch-main',
+      status: 'complete',
+    });
+    expect(await screen.findByText('Challenge finished.')).toBeInTheDocument();
+  });
+
+  it('deletes only after the confirmation is accepted', async () => {
+    const { user } = renderSettings('active', 'owner');
+
+    await user.click(screen.getByRole('button', { name: 'Delete challenge' }));
+    expect(deleteMock).not.toHaveBeenCalled();
+
+    await user.click(screen.getByRole('button', { name: 'Delete' }));
+
+    expect(deleteMock).toHaveBeenCalledWith({ challengeId: 'ch-main' });
+  });
+
+  it('surfaces the refusal when a challenge still holds books', async () => {
+    deleteMock.mockRejectedValue(
+      new Error('Delete the books in this challenge first.'),
+    );
+    const { user } = renderSettings('active', 'owner');
+
+    await user.click(screen.getByRole('button', { name: 'Delete challenge' }));
+    await user.click(screen.getByRole('button', { name: 'Delete' }));
+
+    expect(
+      await screen.findByText('Delete the books in this challenge first.'),
+    ).toBeInTheDocument();
   });
 });

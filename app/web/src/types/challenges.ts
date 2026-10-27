@@ -50,4 +50,6 @@ export interface ChallengeSummary {
 export interface ChallengeDetail {
   challenge: Challenge;
   members: Member[];
+  /** Always present: a challenge is written with its code and loses it only when deleted. */
+  joinCode: string;
 }

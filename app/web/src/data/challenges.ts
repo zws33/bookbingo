@@ -1,6 +1,10 @@
 import z from 'zod/v4';
 import { createCallable } from '../lib/callable';
-import type { ChallengeDetail, ChallengeSummary } from '../types/challenges';
+import type {
+  ChallengeDetail,
+  ChallengeStatus,
+  ChallengeSummary,
+} from '../types/challenges';
 import {
   CreateChallengeResponseSchema,
   GetChallengeResponseSchema,
@@ -54,3 +58,37 @@ export const updateChallengeConfig = createCallable<
   { challengeId: string; name?: string; tagCap?: number },
   undefined
 >('updateChallengeConfig', VoidResponseSchema);
+
+/**
+ * One step along `draft` → `active` → `complete`, owners only. The server
+ * re-reads the current status under a lock, so a stale view is refused rather
+ * than applied.
+ */
+export const setChallengeStatus = createCallable<
+  { challengeId: string; status: ChallengeStatus },
+  undefined
+>('setChallengeStatus', VoidResponseSchema);
+
+/**
+ * Refused while any reading or TBR entry still references the challenge —
+ * nothing in its subtree is deleted implicitly.
+ */
+export const deleteChallenge = createCallable<
+  { challengeId: string },
+  undefined
+>('deleteChallenge', VoidResponseSchema);
+
+/** Refused for the last active owner. Readings stay, excluded from scores. */
+export const leaveChallenge = createCallable<
+  { challengeId: string },
+  undefined
+>('leaveChallenge', VoidResponseSchema);
+
+/**
+ * Replaces the live code and returns the new one. There is no revoke without
+ * replacement: a challenge always has exactly one code.
+ */
+export const rotateJoinCode = createCallable<
+  { challengeId: string },
+  { joinCode: string }
+>('rotateJoinCode', z.object({ joinCode: z.string().min(1) }));

@@ -5,6 +5,7 @@ import {
   canEditConfig,
   canManageMembers,
   canRename,
+  nextStatus,
   outranks,
   statusAllows,
 } from './permissions';
@@ -57,5 +58,11 @@ describe('composed UI gates', () => {
   it('reserves status changes for the owner', () => {
     expect(canChangeStatus('owner')).toBe(true);
     expect(canChangeStatus('admin')).toBe(false);
+  });
+
+  it('walks the lifecycle one step forward and stops', () => {
+    expect(nextStatus('draft')).toBe('active');
+    expect(nextStatus('active')).toBe('complete');
+    expect(nextStatus('complete')).toBeUndefined();
   });
 });
