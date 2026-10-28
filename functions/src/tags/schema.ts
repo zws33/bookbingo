@@ -1,11 +1,8 @@
 import z from 'zod/v4';
+import { ChallengeRef } from '../challenges/schema.js';
 
 /** Matches the `tags_label_check` bound, so a too-long label never reaches the insert. */
 const TagLabel = z.string().trim().min(1).max(100);
-
-const ChallengeRef = z.object({
-  challengeId: z.string().trim().min(1),
-});
 
 const TagRef = ChallengeRef.extend({
   tagId: z.string().trim().min(1),

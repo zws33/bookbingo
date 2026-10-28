@@ -9,7 +9,10 @@ import {
 } from './books/handler.js';
 import { createManualBookHandler } from './books/manual.js';
 import { bookRepository } from './books/store.js';
-import { getBoardConfigHandler } from './config/handler.js';
+import {
+  boardConfigHandlers,
+  getBoardConfigHandler,
+} from './config/handler.js';
 import { challengeHandlers } from './challenges/handler.js';
 import { challengeRepository } from './challenges/postgresStore.js';
 import { tagHandlers } from './tags/handler.js';
@@ -60,6 +63,14 @@ function challenges() {
 let tagApi: ReturnType<typeof tagHandlers> | undefined;
 function tags() {
   return (tagApi ??= tagHandlers(tagRepository(), challengeRepository()));
+}
+
+let boardConfigApi: ReturnType<typeof boardConfigHandlers> | undefined;
+function boardConfig() {
+  return (boardConfigApi ??= boardConfigHandlers(
+    tagRepository(),
+    challengeRepository(),
+  ));
 }
 
 export const submitFeedback = onCall(
@@ -248,4 +259,12 @@ export const updateTag = onCall(
 export const deleteTag = onCall(
   postgresBacked,
   callable((request) => tags().remove(request), 'Failed to delete the tag.'),
+);
+
+export const getBoardConfigV2 = onCall(
+  postgresBacked,
+  callable(
+    (request) => boardConfig().get(request),
+    'Failed to load board configuration.',
+  ),
 );

@@ -42,7 +42,7 @@ const ChallengeName = z.string().trim().min(1).max(100);
 const TagCap = z.number().int().positive();
 
 /** Every callable but `createChallenge` and `joinChallenge` addresses one challenge. */
-const ChallengeRef = z.object({
+export const ChallengeRef = z.object({
   challengeId: z.string().trim().min(1),
 });
 
