@@ -12,6 +12,8 @@ import { bookRepository } from './books/store.js';
 import { getBoardConfigHandler } from './config/handler.js';
 import { challengeHandlers } from './challenges/handler.js';
 import { challengeRepository } from './challenges/postgresStore.js';
+import { tagHandlers } from './tags/handler.js';
+import { tagRepository } from './tags/postgresStore.js';
 import { userHandlers } from './users/handler.js';
 import { userProfileRepository } from './users/store.js';
 import { readingHandlers } from './readings/handler.js';
@@ -53,6 +55,11 @@ const library = libraryHandlers(readingsRepo, usersRepo, booksRepo);
 let challengeApi: ReturnType<typeof challengeHandlers> | undefined;
 function challenges() {
   return (challengeApi ??= challengeHandlers(challengeRepository()));
+}
+
+let tagApi: ReturnType<typeof tagHandlers> | undefined;
+function tags() {
+  return (tagApi ??= tagHandlers(tagRepository(), challengeRepository()));
 }
 
 export const submitFeedback = onCall(
@@ -221,4 +228,24 @@ export const rotateJoinCode = onCall(
     (request) => challenges().rotateJoinCode(request),
     'Failed to rotate the join code.',
   ),
+);
+
+export const listTags = onCall(
+  postgresBacked,
+  callable(
+    (request) => tags().list(request),
+    'Could not load the challenge tags.',
+  ),
+);
+export const createTag = onCall(
+  postgresBacked,
+  callable((request) => tags().create(request), 'Failed to add the tag.'),
+);
+export const updateTag = onCall(
+  postgresBacked,
+  callable((request) => tags().update(request), 'Failed to rename the tag.'),
+);
+export const deleteTag = onCall(
+  postgresBacked,
+  callable((request) => tags().remove(request), 'Failed to delete the tag.'),
 );
