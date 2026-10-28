@@ -1,16 +1,12 @@
 import type { CallableRequest } from 'firebase-functions/v2/https';
 import { parseRequest, requireAuth } from '../callable.js';
 import {
-  hasPermission,
-  statusAllows,
-  type Permission,
-} from '../challenges/permissions.js';
-import {
-  CHALLENGE_GONE,
-  type ChallengeRepository,
-  type Membership,
-} from '../challenges/postgresStore.js';
-import { DomainError } from '../common/errors.js';
+  denied,
+  requireActiveMembership,
+  requireStatusAllows,
+} from '../challenges/access.js';
+import { hasPermission, type Permission } from '../challenges/permissions.js';
+import type { ChallengeRepository } from '../challenges/postgresStore.js';
 import { logEvent, reportWriteFailure } from '../observability.js';
 import type { Tag, TagRepository } from './postgresStore.js';
 import {
@@ -20,8 +16,6 @@ import {
   UpdateTagRequestSchema,
 } from './schema.js';
 
-const DENIED = 'You do not have permission to do that in this challenge.';
-
 const VOCABULARY_LOCKED =
   'The tag set cannot change once the challenge has started, because scores already depend on it.';
 
@@ -29,29 +23,6 @@ export function tagHandlers(
   tagsRepo: TagRepository,
   challengesRepo: ChallengeRepository,
 ) {
-  /**
-   * A missing row and a non-`active` one are the same answer (rule 27), and it
-   * is worded as a missing challenge so a non-member cannot confirm this one
-   * exists (rule 45).
-   */
-  async function requireActiveMembership(
-    challengeId: string,
-    uid: string,
-  ): Promise<Membership> {
-    const membership = await challengesRepo.getMembership(challengeId, uid);
-    if (membership?.status !== 'active') {
-      throw new DomainError('not-found', CHALLENGE_GONE);
-    }
-    return membership;
-  }
-
-  function denied(membership: Membership, permission: Permission): DomainError {
-    return new DomainError('forbidden', DENIED, {
-      permission,
-      role: membership.role,
-    });
-  }
-
   /**
    * Every write goes through this in one order: membership, then the
    * permission, then the lifecycle. The status read is last so a non-member
@@ -62,15 +33,21 @@ export function tagHandlers(
     uid: string,
     permission: Permission,
   ): Promise<void> {
-    const membership = await requireActiveMembership(challengeId, uid);
+    const membership = await requireActiveMembership(
+      challengesRepo,
+      challengeId,
+      uid,
+    );
     if (!hasPermission(membership.role, permission)) {
       throw denied(membership, permission);
     }
 
-    const { status } = await challengesRepo.get(challengeId);
-    if (!statusAllows(status, 'configEdit')) {
-      throw new DomainError('conflict', VOCABULARY_LOCKED, { status });
-    }
+    await requireStatusAllows(
+      challengesRepo,
+      challengeId,
+      'configEdit',
+      VOCABULARY_LOCKED,
+    );
   }
 
   return {
@@ -79,7 +56,11 @@ export function tagHandlers(
       const { uid } = requireAuth(request, 'load the tags');
       const { challengeId } = parseRequest(ListTagsRequestSchema, request.data);
 
-      const membership = await requireActiveMembership(challengeId, uid);
+      const membership = await requireActiveMembership(
+        challengesRepo,
+        challengeId,
+        uid,
+      );
       if (!hasPermission(membership.role, 'challenge.read')) {
         throw denied(membership, 'challenge.read');
       }

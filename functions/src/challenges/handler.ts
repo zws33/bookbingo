@@ -3,19 +3,19 @@ import { parseRequest, requireAuth } from '../callable.js';
 import { DomainError } from '../common/errors.js';
 import { logEvent, reportWriteFailure } from '../observability.js';
 import {
+  denied,
+  requireActiveMembership as requireActiveMembershipOf,
+  requireStatusAllows as requireStatusAllowsOf,
+} from './access.js';
+import {
   canRemove,
   canSelfDemote,
   canSetRole,
   canTransition,
   hasPermission,
   statusAllows,
-  type Permission,
 } from './permissions.js';
-import {
-  CHALLENGE_GONE,
-  type ChallengeRepository,
-  type Membership,
-} from './postgresStore.js';
+import type { ChallengeRepository } from './postgresStore.js';
 import {
   toChallengeDTO,
   toChallengeMembershipDTO,
@@ -37,8 +37,6 @@ import {
   UpdateChallengeConfigRequestSchema,
   type ChallengeStatus,
 } from './schema.js';
-
-const DENIED = 'You do not have permission to do that in this challenge.';
 
 const RENAME_LOCKED = 'A complete challenge cannot be renamed.';
 
@@ -76,39 +74,17 @@ export interface ChallengeDetailDTO {
 }
 
 export function challengeHandlers(challengesRepo: ChallengeRepository) {
-  /**
-   * A missing row and a non-`active` one are the same answer (rule 27), and it
-   * is worded as a missing challenge so a non-member cannot confirm this one
-   * exists (rule 45). Every permission check below reads the role this returns.
-   */
-  async function requireActiveMembership(
-    challengeId: string,
-    uid: string,
-  ): Promise<Membership> {
-    const membership = await challengesRepo.getMembership(challengeId, uid);
-    if (membership?.status !== 'active') {
-      throw new DomainError('not-found', CHALLENGE_GONE);
-    }
-    return membership;
-  }
+  // Bound to this factory's repository so the method bodies read as they did
+  // when these were private. Every permission check below reads the role
+  // `requireActiveMembership` returns.
+  const requireActiveMembership = (challengeId: string, uid: string) =>
+    requireActiveMembershipOf(challengesRepo, challengeId, uid);
 
-  function denied(membership: Membership, permission: Permission): DomainError {
-    return new DomainError('forbidden', DENIED, {
-      permission,
-      role: membership.role,
-    });
-  }
-
-  async function requireStatusAllows(
+  const requireStatusAllows = (
     challengeId: string,
     action: 'join' | 'memberManage',
     message: string,
-  ): Promise<void> {
-    const { status } = await challengesRepo.get(challengeId);
-    if (!statusAllows(status, action)) {
-      throw new DomainError('conflict', message, { status });
-    }
-  }
+  ) => requireStatusAllowsOf(challengesRepo, challengeId, action, message);
 
   return {
     /**
