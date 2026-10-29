@@ -101,7 +101,6 @@ export const ScoreSchema = z.object({
   score: z.number(),
   varietyPoints: z.number(),
   volumePoints: z.number(),
-  balanceFactor: z.number(),
   tileCounts: z.record(z.string(), z.number()),
   totalBooks: z.number().int().nonnegative(),
 });

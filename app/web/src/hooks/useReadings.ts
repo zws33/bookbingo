@@ -9,7 +9,6 @@ const NO_SCORE: Score = {
   score: 0,
   varietyPoints: 0,
   volumePoints: 0,
-  balanceFactor: 1,
   tileCounts: {},
   totalBooks: 0,
 };
