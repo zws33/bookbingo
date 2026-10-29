@@ -40,6 +40,13 @@ export const CreateManualBookRequestSchema = z.object({
   metadata: BookMetadataSchema,
 });
 
+/** The cover is the only metadata `books` stores. */
+export const CreateManualBookV2RequestSchema = z.object({
+  title: z.string().trim().min(1),
+  author: z.string().trim().min(1),
+  thumbnailUrl: z.url().nullable(),
+});
+
 /*
  * Read-time schemas for stored book documents.
  *
