@@ -24,6 +24,8 @@ import { readingRepository } from './readings/store.js';
 import { readingHandlers as postgresReadingHandlers } from './readings/postgresHandler.js';
 import { readingRepository as postgresReadingRepository } from './readings/postgresStore.js';
 import { bookRepository as postgresBookRepository } from './books/postgresStore.js';
+import { bookHandlers as postgresBookHandlers } from './books/postgresHandler.js';
+import { userProfileRepository as postgresUserProfileRepository } from './users/postgresStore.js';
 import { libraryHandlers } from './library/handler.js';
 import { libraryHandlers as postgresLibraryHandlers } from './library/postgresHandler.js';
 import { tbrHandlers } from './tbr/handler.js';
@@ -67,6 +69,7 @@ function buildPostgresApi() {
   const booksRepo = postgresBookRepository();
   const readingsRepo = postgresReadingRepository();
   const tbrRepo = postgresTbrEntryRepository();
+  const postgresUsersRepo = postgresUserProfileRepository();
 
   return {
     challenges: challengeHandlers(challengesRepo),
@@ -75,6 +78,11 @@ function buildPostgresApi() {
     readings: postgresReadingHandlers(readingsRepo, booksRepo, challengesRepo),
     library: postgresLibraryHandlers(readingsRepo, booksRepo, challengesRepo),
     tbr: postgresTbrHandlers(tbrRepo, booksRepo, challengesRepo),
+    books: postgresBookHandlers(booksRepo),
+    // The Postgres and Firestore user repositories declare the same interface,
+    // so this is the Firestore factory over the other store, not a second
+    // handler module.
+    users: userHandlers(postgresUsersRepo),
   };
 }
 
@@ -365,5 +373,41 @@ export const promoteTBREntryV2 = onCall(
   callable(
     (request) => postgres().tbr.promote(request),
     'Failed to save your reading.',
+  ),
+);
+
+export const fetchBookDetailsV2 = onCall(
+  postgresBacked,
+  callable(
+    (request) => postgres().books.fetchDetails(request),
+    'Could not load book details.',
+  ),
+);
+export const createManualBookV2 = onCall(
+  postgresBacked,
+  callable(
+    (request) => postgres().books.createManual(request),
+    'Failed to create book.',
+  ),
+);
+export const listUsersV2 = onCall(
+  postgresBacked,
+  callable(
+    (request) => postgres().users.list(request),
+    'Failed to load users.',
+  ),
+);
+export const getUserProfileV2 = onCall(
+  postgresBacked,
+  callable(
+    (request) => postgres().users.get(request),
+    'Failed to load profile.',
+  ),
+);
+export const syncMyProfileV2 = onCall(
+  postgresBacked,
+  callable(
+    (request) => postgres().users.sync(request),
+    'Failed to save profile.',
   ),
 );
