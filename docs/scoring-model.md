@@ -97,7 +97,3 @@ Consequences of the invariants, not preferences. Reject a challenge whose values
 - I3 — property test still outstanding. Only one family of distributions has been checked.
 - Scoring reads no measure of unevenness, so `calculateCV` and `calculateStdDev` have no caller.
 - Reference profiles pin magnitudes, not design claims. Re-derive their expected values rather than preserving them.
-
-## Migration
-
-- `balanceFactor` is on the wire and rendered as `x{balanceFactor.toFixed(2)}`. Removing it is non-backward-compatible across `lib/types/src/index.ts:71`, `readings/validate.ts:75,89`, `app/web/src/types/schemas.ts:104`, `components/ScoreDisplay.tsx:27,103` and `hooks/useReadings.ts:12`. Bundle it with the pending book-flattening change rather than spending a second coordinated `deploy:all`.
