@@ -17,7 +17,6 @@ const SCORE: Score = {
   score: 4.5,
   varietyPoints: 3,
   volumePoints: 2,
-  balanceFactor: 0.75,
   tileCounts: { t02: 2 },
   totalBooks: 2,
 };

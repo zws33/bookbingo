@@ -24,8 +24,7 @@ function InfoIcon() {
 }
 
 export function ScoreDisplay({ breakdown }: ScoreDisplayProps) {
-  const { score, varietyPoints, volumePoints, balanceFactor, totalBooks } =
-    breakdown;
+  const { score, varietyPoints, volumePoints, totalBooks } = breakdown;
 
   return (
     <div className="bg-surface-container-lowest rounded-lg shadow-sm border border-outline-variant overflow-hidden">
@@ -40,7 +39,7 @@ export function ScoreDisplay({ breakdown }: ScoreDisplayProps) {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 divide-y md:divide-y-0 md:divide-x divide-outline-variant">
+      <div className="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-outline-variant">
         <div className="px-6 py-4">
           <div className="text-label-caps uppercase text-on-surface-variant mb-1">
             Books Read
@@ -83,24 +82,6 @@ export function ScoreDisplay({ breakdown }: ScoreDisplayProps) {
           </div>
           <div className="text-xl font-semibold text-on-surface">
             {volumePoints.toFixed(2)}
-          </div>
-        </div>
-
-        <div className="px-6 py-4">
-          <div className="flex items-center gap-1 text-label-caps uppercase text-on-surface-variant mb-1">
-            Balance Factor
-            <Tooltip content="Scales volume points based on how evenly books are spread. Higher is better.">
-              <button
-                type="button"
-                className="inline-flex text-on-surface-variant hover:text-on-surface focus:outline-none focus:text-on-surface"
-                aria-label="About balance factor"
-              >
-                <InfoIcon />
-              </button>
-            </Tooltip>
-          </div>
-          <div className="text-xl font-semibold text-on-surface">
-            x{balanceFactor.toFixed(2)}
           </div>
         </div>
       </div>
