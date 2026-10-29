@@ -512,7 +512,7 @@ describe('readingHandlers.create', () => {
   test('rejects a duplicate tag', async () => {
     await rejectsWith(
       'invalid-input',
-      'A reading cannot use the same tag twice.',
+      'A tag list cannot use the same tag twice.',
       () =>
         handlers({}, asRole('member')).create(
           makeRequest(AUTH, { ...CREATE, tagIds: ['tag-1', 'tag-1'] }),

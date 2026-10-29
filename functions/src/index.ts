@@ -28,6 +28,8 @@ import { libraryHandlers } from './library/handler.js';
 import { libraryHandlers as postgresLibraryHandlers } from './library/postgresHandler.js';
 import { tbrHandlers } from './tbr/handler.js';
 import { tbrEntryRepository } from './tbr/store.js';
+import { tbrHandlers as postgresTbrHandlers } from './tbr/postgresHandler.js';
+import { tbrEntryRepository as postgresTbrEntryRepository } from './tbr/postgresStore.js';
 
 // Caps the blast radius of a runaway caller rather than the traffic: nothing
 // rate-limits these endpoints, and the platform default of 100 instances lets
@@ -64,6 +66,7 @@ function buildPostgresApi() {
   const tagsRepo = tagRepository();
   const booksRepo = postgresBookRepository();
   const readingsRepo = postgresReadingRepository();
+  const tbrRepo = postgresTbrEntryRepository();
 
   return {
     challenges: challengeHandlers(challengesRepo),
@@ -71,6 +74,7 @@ function buildPostgresApi() {
     boardConfig: boardConfigHandlers(tagsRepo, challengesRepo),
     readings: postgresReadingHandlers(readingsRepo, booksRepo, challengesRepo),
     library: postgresLibraryHandlers(readingsRepo, booksRepo, challengesRepo),
+    tbr: postgresTbrHandlers(tbrRepo, booksRepo, challengesRepo),
   };
 }
 
@@ -325,5 +329,41 @@ export const getLibraryV2 = onCall(
   callable(
     (request) => postgres().library.get(request),
     'Failed to load the library.',
+  ),
+);
+
+export const listMyTBRV2 = onCall(
+  postgresBacked,
+  callable(
+    (request) => postgres().tbr.list(request),
+    'Failed to load your reading list.',
+  ),
+);
+export const createTBREntryV2 = onCall(
+  postgresBacked,
+  callable(
+    (request) => postgres().tbr.create(request),
+    'Failed to save your reading list.',
+  ),
+);
+export const updateTBREntryV2 = onCall(
+  postgresBacked,
+  callable(
+    (request) => postgres().tbr.update(request),
+    'Failed to save your reading list.',
+  ),
+);
+export const deleteTBREntryV2 = onCall(
+  postgresBacked,
+  callable(
+    (request) => postgres().tbr.remove(request),
+    'Failed to save your reading list.',
+  ),
+);
+export const promoteTBREntryV2 = onCall(
+  postgresBacked,
+  callable(
+    (request) => postgres().tbr.promote(request),
+    'Failed to save your reading.',
   ),
 );
