@@ -72,7 +72,6 @@ export interface ScoreDTO {
   score: number;
   varietyPoints: number;
   volumePoints: number;
-  balanceFactor: number;
   tileCounts: Record<string, number>;
   totalBooks: number;
 }
@@ -86,7 +85,6 @@ function toScoreDTO(breakdown: ScoreBreakdown): ScoreDTO {
     score: breakdown.score,
     varietyPoints: breakdown.varietyPoints,
     volumePoints: breakdown.volumePoints,
-    balanceFactor: breakdown.balanceFactor,
     tileCounts: Object.fromEntries(breakdown.tileCounts),
     totalBooks: breakdown.totalBooks,
   };
