@@ -28,8 +28,6 @@ const BOOK_ID = 'a'.repeat(32);
 
 const OTHER = 'user-2';
 
-const READINGS_FROZEN = 'This challenge is not taking readings right now.';
-
 const ENTRY_GONE = 'That reading list entry no longer exists.';
 
 const unexpected = (name: string) => () =>
@@ -273,14 +271,35 @@ for (const { name, action, data, call } of METHODS) {
 }
 
 describe('tbrHandlers lifecycle', () => {
-  // The challenge repository's `get` rejects unless overridden, so a handler
-  // that consulted the lifecycle would fail here rather than pass.
+  const FROZEN: Record<string, string> = {
+    create: 'This challenge is not taking reading list changes right now.',
+    update: 'This challenge is not taking reading list changes right now.',
+    remove: 'This challenge is not taking reading list changes right now.',
+    promote: 'This challenge is not taking readings right now.',
+  };
+
   for (const { name, data, call } of [
     METHODS[1],
     METHODS[2],
     METHODS[3],
+    METHODS[4],
   ] as const) {
-    test(`${name} never reads the challenge status`, async () => {
+    for (const status of ['draft', 'complete'] as const) {
+      test(`${name} refuses a ${status} challenge`, async () => {
+        const error = await rejectsWith('conflict', FROZEN[name]!, () =>
+          call(
+            handlers(
+              { get: () => Promise.resolve(makeEntry()) },
+              asRole('member', status),
+            ),
+            makeRequest(AUTH, data),
+          ),
+        );
+        assert.equal(error.details.status, status);
+      });
+    }
+
+    test(`${name} is allowed in an active challenge`, async () => {
       await call(
         handlers(
           {
@@ -288,22 +307,17 @@ describe('tbrHandlers lifecycle', () => {
             create: () => Promise.resolve(TBR_ID),
             update: () => Promise.resolve(),
             remove: () => Promise.resolve(),
+            promote: () =>
+              Promise.resolve({
+                readingId: TBR_ID,
+                bookId: BOOK_ID,
+                alreadyLogged: false,
+              }),
           },
-          { getMembership: membershipOf(makeMembership('member')) },
+          asRole('member'),
         ),
         makeRequest(AUTH, data),
       );
-    });
-  }
-
-  for (const status of ['draft', 'complete'] as const) {
-    test(`promote refuses a ${status} challenge`, async () => {
-      const error = await rejectsWith('conflict', READINGS_FROZEN, () =>
-        handlers({}, asRole('member', status)).promote(
-          makeRequest(AUTH, PROMOTE),
-        ),
-      );
-      assert.equal(error.details.status, status);
     });
   }
 });
@@ -365,7 +379,7 @@ describe('tbrHandlers.create', () => {
           return Promise.resolve(TBR_ID);
         },
       },
-      { getMembership: membershipOf(makeMembership('member')) },
+      asRole('member'),
     ).create(
       makeRequest(AUTH, {
         ...CREATE,
@@ -390,7 +404,7 @@ describe('tbrHandlers.create', () => {
   test('accepts more planned tags than the cap', async () => {
     const result = await handlers(
       { create: () => Promise.resolve(TBR_ID) },
-      { getMembership: membershipOf(makeMembership('member')) },
+      asRole('member'),
     ).create(
       makeRequest(AUTH, {
         ...CREATE,
@@ -406,10 +420,7 @@ describe('tbrHandlers.create', () => {
       'invalid-input',
       'A tag list cannot use the same tag twice.',
       () =>
-        handlers(
-          {},
-          { getMembership: membershipOf(makeMembership('member')) },
-        ).create(
+        handlers({}, asRole('member')).create(
           makeRequest(AUTH, { ...CREATE, plannedTagIds: ['tag-1', 'tag-1'] }),
         ),
     );
@@ -432,7 +443,10 @@ describe('tbrHandlers ownership', () => {
         call(
           handlers(
             { get: () => Promise.resolve(makeEntry({ userId: OTHER })) },
-            { getMembership: membershipOf(makeMembership('owner')) },
+            {
+              getMembership: membershipOf(makeMembership('owner')),
+              get: () => Promise.resolve(makeChallenge()),
+            },
           ),
           makeRequest(AUTH, data),
         ),
@@ -442,10 +456,7 @@ describe('tbrHandlers ownership', () => {
     test(`${name} reports an unknown entry as missing`, async () => {
       await rejectsWith('not-found', ENTRY_GONE, () =>
         call(
-          handlers(
-            { get: () => Promise.resolve(undefined) },
-            { getMembership: membershipOf(makeMembership('member')) },
-          ),
+          handlers({ get: () => Promise.resolve(undefined) }, asRole('member')),
           makeRequest(AUTH, data),
         ),
       );
@@ -462,7 +473,7 @@ describe('tbrHandlers ownership', () => {
           return Promise.resolve();
         },
       },
-      { getMembership: membershipOf(makeMembership('member')) },
+      asRole('member'),
     ).update(makeRequest(AUTH, { ...UPDATE, notes: 'soon' }));
 
     assert.deepEqual(calls, [
@@ -480,7 +491,7 @@ describe('tbrHandlers ownership', () => {
           return Promise.resolve();
         },
       },
-      { getMembership: membershipOf(makeMembership('member')) },
+      asRole('member'),
     ).remove(makeRequest(AUTH, DELETE));
 
     assert.deepEqual(calls, [[CHALLENGE_ID, TBR_ID]]);

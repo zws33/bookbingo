@@ -29,6 +29,9 @@ import {
   UpdateChallengeTBRRequestSchema,
 } from './schema.js';
 
+const ENTRIES_FROZEN =
+  'This challenge is not taking reading list changes right now.';
+
 const READINGS_FROZEN = 'This challenge is not taking readings right now.';
 
 const ENTRY_GONE = 'That reading list entry no longer exists.';
@@ -38,7 +41,16 @@ export function tbrHandlers(
   booksRepo: BookRepository,
   challengesRepo: ChallengeRepository,
 ) {
-  async function requireWriteAccess(challengeId: string, uid: string) {
+  /**
+   * An entry's lifecycle is a reading's lifecycle: both depend on the
+   * challenge being `active`. The challenge is returned because `promote`
+   * needs `tagCap`, and reading it again would double the query.
+   */
+  async function requireWritableChallenge(
+    challengeId: string,
+    uid: string,
+    message: string,
+  ): Promise<Challenge> {
     const membership = await requireActiveMembership(
       challengesRepo,
       challengeId,
@@ -47,7 +59,15 @@ export function tbrHandlers(
     if (!hasPermission(membership.role, 'reading.write.own')) {
       throw denied(membership, 'reading.write.own');
     }
-    return membership;
+
+    const challenge = await challengesRepo.get(challengeId);
+    if (!statusAllows(challenge.status, 'readingWrite')) {
+      throw new DomainError('conflict', message, {
+        status: challenge.status,
+      });
+    }
+
+    return challenge;
   }
 
   /**
@@ -66,16 +86,6 @@ export function tbrHandlers(
       throw new DomainError('not-found', ENTRY_GONE);
     }
     return entry;
-  }
-
-  async function requireReadingsOpen(challengeId: string): Promise<Challenge> {
-    const challenge = await challengesRepo.get(challengeId);
-    if (!statusAllows(challenge.status, 'readingWrite')) {
-      throw new DomainError('conflict', READINGS_FROZEN, {
-        status: challenge.status,
-      });
-    }
-    return challenge;
   }
 
   return {
@@ -118,11 +128,7 @@ export function tbrHandlers(
       }
     },
 
-    /**
-     * Planned tags get no cap and no lifecycle gate: a plan is not a reading,
-     * and planning before a challenge starts is the point of `draft`. An
-     * unknown tag fails its foreign key.
-     */
+    /** Planned tags get no cap: a plan is not a reading. */
     async create(
       request: CallableRequest<unknown>,
     ): Promise<{ tbrId: string }> {
@@ -132,7 +138,7 @@ export function tbrHandlers(
         request.data,
       );
 
-      await requireWriteAccess(challengeId, uid);
+      await requireWritableChallenge(challengeId, uid, ENTRIES_FROZEN);
       validateDistinctTags(plannedTagIds);
 
       let tbrId: string;
@@ -163,7 +169,7 @@ export function tbrHandlers(
         request.data,
       );
 
-      await requireWriteAccess(challengeId, uid);
+      await requireWritableChallenge(challengeId, uid, ENTRIES_FROZEN);
       await requireOwnEntry(challengeId, tbrId, uid);
       validateDistinctTags(plannedTagIds);
 
@@ -183,7 +189,7 @@ export function tbrHandlers(
         request.data,
       );
 
-      await requireWriteAccess(challengeId, uid);
+      await requireWritableChallenge(challengeId, uid, ENTRIES_FROZEN);
       await requireOwnEntry(challengeId, tbrId, uid);
 
       try {
@@ -195,10 +201,7 @@ export function tbrHandlers(
       logEvent('tbr.delete', { uid, outcome: 'ok', challengeId, tbrId });
     },
 
-    /**
-     * Promotion creates a reading, so unlike the other entry writes it needs
-     * the lifecycle to permit one and the tags to satisfy the cap.
-     */
+    /** Promotion creates a reading, so the tags have to satisfy the cap. */
     async promote(
       request: CallableRequest<unknown>,
     ): Promise<{ readingId: string }> {
@@ -208,8 +211,11 @@ export function tbrHandlers(
         request.data,
       );
 
-      await requireWriteAccess(challengeId, uid);
-      const challenge = await requireReadingsOpen(challengeId);
+      const challenge = await requireWritableChallenge(
+        challengeId,
+        uid,
+        READINGS_FROZEN,
+      );
       validateReadingTags(tagIds, isFreebie, challenge.tagCap);
 
       let outcome: PromotionOutcome;
