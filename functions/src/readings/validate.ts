@@ -71,17 +71,21 @@ export function validateReadingTiles(
  * freebie, and the duplicate check, which has to run before the insert so the
  * message names the cause rather than a primary key.
  */
+export function validateDistinctTags(tagIds: string[]): void {
+  if (new Set(tagIds).size !== tagIds.length) {
+    throw new DomainError(
+      'invalid-input',
+      'A tag list cannot use the same tag twice.',
+    );
+  }
+}
+
 export function validateReadingTags(
   tagIds: string[],
   isFreebie: boolean,
   maxTags: number,
 ): void {
-  if (new Set(tagIds).size !== tagIds.length) {
-    throw new DomainError(
-      'invalid-input',
-      'A reading cannot use the same tag twice.',
-    );
-  }
+  validateDistinctTags(tagIds);
 
   if (!isFreebie && tagIds.length > maxTags) {
     throw new DomainError(

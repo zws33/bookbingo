@@ -74,9 +74,9 @@ The durable rules for the challenge container, independent of storage.
 ### Challenge lifecycle
 
 33. `status` is `draft` → `active` → `complete`, one-way, owners only. The enum is declared in lifecycle order so `status < 'complete'` orders correctly.
-34. `draft`: config and tags editable, joining allowed, reading writes rejected.
-35. `active`: `tag_cap` and the tag set locked; `name` editable; joining and reading writes allowed.
-36. `complete`: readings, membership and config frozen. Deletion still allowed.
+34. `draft`: config and tags editable, joining allowed, reading and TBR entry writes rejected.
+35. `active`: `tag_cap` and the tag set locked; `name` editable; joining, reading and TBR entry writes allowed. A TBR entry's lifecycle is a reading's: creating, editing, deleting and promoting one all need `active`. A plan is exempt from the tag cap (rule 11), not from the lifecycle.
+36. `complete`: readings, TBR entries, membership and config frozen. Deletion still allowed.
 37. Nothing in a challenge's subtree is deleted implicitly. Every foreign key reaching it is `on delete restrict`, so deletion removes the memberships, tags and join code by name in one transaction, and a challenge holding readings or TBR entries refuses the delete. Clearing history is an explicit ordered script — `reading_tags`, `readings`, `tbr_entry_tags`, `tbr_entries` — never a repository method.
 
 ### Creation
