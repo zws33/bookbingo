@@ -21,6 +21,9 @@ import { userHandlers } from './users/handler.js';
 import { userProfileRepository } from './users/store.js';
 import { readingHandlers } from './readings/handler.js';
 import { readingRepository } from './readings/store.js';
+import { readingHandlers as postgresReadingHandlers } from './readings/postgresHandler.js';
+import { readingRepository as postgresReadingRepository } from './readings/postgresStore.js';
+import { bookRepository as postgresBookRepository } from './books/postgresStore.js';
 import { libraryHandlers } from './library/handler.js';
 import { tbrHandlers } from './tbr/handler.js';
 import { tbrEntryRepository } from './tbr/store.js';
@@ -58,11 +61,14 @@ const library = libraryHandlers(readingsRepo, usersRepo, booksRepo);
 function buildPostgresApi() {
   const challengesRepo = challengeRepository();
   const tagsRepo = tagRepository();
+  const booksRepo = postgresBookRepository();
+  const readingsRepo = postgresReadingRepository();
 
   return {
     challenges: challengeHandlers(challengesRepo),
     tags: tagHandlers(tagsRepo, challengesRepo),
     boardConfig: boardConfigHandlers(tagsRepo, challengesRepo),
+    readings: postgresReadingHandlers(readingsRepo, booksRepo, challengesRepo),
   };
 }
 
@@ -273,5 +279,41 @@ export const getBoardConfigV2 = onCall(
   callable(
     (request) => postgres().boardConfig.get(request),
     'Failed to load board configuration.',
+  ),
+);
+
+export const listReadingsV2 = onCall(
+  postgresBacked,
+  callable(
+    (request) => postgres().readings.list(request),
+    'Failed to load readings.',
+  ),
+);
+export const getLeaderboardV2 = onCall(
+  postgresBacked,
+  callable(
+    (request) => postgres().readings.leaderboard(request),
+    'Failed to load leaderboard.',
+  ),
+);
+export const createReadingV2 = onCall(
+  postgresBacked,
+  callable(
+    (request) => postgres().readings.create(request),
+    'Failed to save your reading.',
+  ),
+);
+export const updateReadingV2 = onCall(
+  postgresBacked,
+  callable(
+    (request) => postgres().readings.update(request),
+    'Failed to update your reading.',
+  ),
+);
+export const deleteReadingV2 = onCall(
+  postgresBacked,
+  callable(
+    (request) => postgres().readings.remove(request),
+    'Failed to delete your reading.',
   ),
 );

@@ -63,6 +63,42 @@ export function validateReadingTiles(
 }
 
 /**
+ * The rules for a reading whose tags the database validates.
+ *
+ * No catalog: an unknown tag fails `reading_tags_tag_id_challenge_id_fkey` on
+ * insert, so checking the vocabulary here would cost a query to reach the same
+ * rejection. What the constraints cannot express is the cap, which exempts a
+ * freebie, and the duplicate check, which has to run before the insert so the
+ * message names the cause rather than a primary key.
+ */
+export function validateReadingTags(
+  tagIds: string[],
+  isFreebie: boolean,
+  maxTags: number,
+): void {
+  if (new Set(tagIds).size !== tagIds.length) {
+    throw new DomainError(
+      'invalid-input',
+      'A reading cannot use the same tag twice.',
+    );
+  }
+
+  if (!isFreebie && tagIds.length > maxTags) {
+    throw new DomainError(
+      'invalid-input',
+      `A reading can use at most ${maxTags} tags unless it is a freebie.`,
+    );
+  }
+
+  if (isFreebie && tagIds.length === 0) {
+    throw new DomainError(
+      'invalid-input',
+      'A freebie reading must use at least one tag.',
+    );
+  }
+}
+
+/**
  * The score breakdown as the API returns it.
  *
  * `tileCounts` is a Record, not the domain's Map: JSON has no Map, and an
