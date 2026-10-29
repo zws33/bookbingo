@@ -9,7 +9,10 @@ import {
 } from './books/handler.js';
 import { createManualBookHandler } from './books/manual.js';
 import { bookRepository } from './books/store.js';
-import { getBoardConfigHandler } from './config/handler.js';
+import {
+  boardConfigHandlers,
+  getBoardConfigHandler,
+} from './config/handler.js';
 import { challengeHandlers } from './challenges/handler.js';
 import { challengeRepository } from './challenges/postgresStore.js';
 import { tagHandlers } from './tags/handler.js';
@@ -52,14 +55,20 @@ const library = libraryHandlers(readingsRepo, usersRepo, booksRepo);
  * `firebase deploy` loads this module to discover the exports with no secrets
  * bound. Constructing it here would fail every deploy of the codebase.
  */
-let challengeApi: ReturnType<typeof challengeHandlers> | undefined;
-function challenges() {
-  return (challengeApi ??= challengeHandlers(challengeRepository()));
+function buildPostgresApi() {
+  const challengesRepo = challengeRepository();
+  const tagsRepo = tagRepository();
+
+  return {
+    challenges: challengeHandlers(challengesRepo),
+    tags: tagHandlers(tagsRepo, challengesRepo),
+    boardConfig: boardConfigHandlers(tagsRepo, challengesRepo),
+  };
 }
 
-let tagApi: ReturnType<typeof tagHandlers> | undefined;
-function tags() {
-  return (tagApi ??= tagHandlers(tagRepository(), challengeRepository()));
+let postgresApi: ReturnType<typeof buildPostgresApi> | undefined;
+function postgres() {
+  return (postgresApi ??= buildPostgresApi());
 }
 
 export const submitFeedback = onCall(
@@ -155,77 +164,77 @@ export const promoteTBREntry = onCall(
 export const createChallenge = onCall(
   postgresBacked,
   callable(
-    (request) => challenges().create(request),
+    (request) => postgres().challenges.create(request),
     'Failed to create the challenge.',
   ),
 );
 export const getMyChallenges = onCall(
   postgresBacked,
   callable(
-    (request) => challenges().getMyChallenges(request),
+    (request) => postgres().challenges.getMyChallenges(request),
     'Could not load your challenges.',
   ),
 );
 export const getChallenge = onCall(
   postgresBacked,
   callable(
-    (request) => challenges().get(request),
+    (request) => postgres().challenges.get(request),
     'Could not load that challenge.',
   ),
 );
 export const updateChallengeConfig = onCall(
   postgresBacked,
   callable(
-    (request) => challenges().updateConfig(request),
+    (request) => postgres().challenges.updateConfig(request),
     'Failed to save the challenge settings.',
   ),
 );
 export const joinChallenge = onCall(
   postgresBacked,
   callable(
-    (request) => challenges().join(request),
+    (request) => postgres().challenges.join(request),
     'Failed to join the challenge.',
   ),
 );
 export const leaveChallenge = onCall(
   postgresBacked,
   callable(
-    (request) => challenges().leave(request),
+    (request) => postgres().challenges.leave(request),
     'Failed to leave the challenge.',
   ),
 );
 export const removeMember = onCall(
   postgresBacked,
   callable(
-    (request) => challenges().removeMember(request),
+    (request) => postgres().challenges.removeMember(request),
     'Failed to remove that member.',
   ),
 );
 export const setMemberRole = onCall(
   postgresBacked,
   callable(
-    (request) => challenges().setMemberRole(request),
+    (request) => postgres().challenges.setMemberRole(request),
     'Failed to change the member role.',
   ),
 );
 export const setChallengeStatus = onCall(
   postgresBacked,
   callable(
-    (request) => challenges().setStatus(request),
+    (request) => postgres().challenges.setStatus(request),
     'Failed to change the challenge status.',
   ),
 );
 export const deleteChallenge = onCall(
   postgresBacked,
   callable(
-    (request) => challenges().remove(request),
+    (request) => postgres().challenges.remove(request),
     'Failed to delete the challenge.',
   ),
 );
 export const rotateJoinCode = onCall(
   postgresBacked,
   callable(
-    (request) => challenges().rotateJoinCode(request),
+    (request) => postgres().challenges.rotateJoinCode(request),
     'Failed to rotate the join code.',
   ),
 );
@@ -233,19 +242,36 @@ export const rotateJoinCode = onCall(
 export const listTags = onCall(
   postgresBacked,
   callable(
-    (request) => tags().list(request),
+    (request) => postgres().tags.list(request),
     'Could not load the challenge tags.',
   ),
 );
 export const createTag = onCall(
   postgresBacked,
-  callable((request) => tags().create(request), 'Failed to add the tag.'),
+  callable(
+    (request) => postgres().tags.create(request),
+    'Failed to add the tag.',
+  ),
 );
 export const updateTag = onCall(
   postgresBacked,
-  callable((request) => tags().update(request), 'Failed to rename the tag.'),
+  callable(
+    (request) => postgres().tags.update(request),
+    'Failed to rename the tag.',
+  ),
 );
 export const deleteTag = onCall(
   postgresBacked,
-  callable((request) => tags().remove(request), 'Failed to delete the tag.'),
+  callable(
+    (request) => postgres().tags.remove(request),
+    'Failed to delete the tag.',
+  ),
+);
+
+export const getBoardConfigV2 = onCall(
+  postgresBacked,
+  callable(
+    (request) => postgres().boardConfig.get(request),
+    'Failed to load board configuration.',
+  ),
 );
