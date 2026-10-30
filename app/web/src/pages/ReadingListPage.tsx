@@ -197,7 +197,6 @@ export function ReadingListPage({ userId }: ReadingListPageProps) {
             <TBREntryCard
               key={entry.id}
               entry={entry}
-              readOnly={!writable}
               onEdit={() => setDialog({ kind: 'edit', entry })}
               onDelete={() => setDialog({ kind: 'delete', entry })}
               onPromote={() => setDialog({ kind: 'promote', entry })}
@@ -328,7 +327,6 @@ export function ReadingListPage({ userId }: ReadingListPageProps) {
 
 interface TBREntryCardProps {
   entry: TBREntry;
-  readOnly: boolean;
   onEdit: () => void;
   onDelete: () => void;
   onPromote: () => void;
@@ -336,7 +334,6 @@ interface TBREntryCardProps {
 
 function TBREntryCard({
   entry,
-  readOnly,
   onEdit,
   onDelete,
   onPromote,
@@ -348,25 +345,22 @@ function TBREntryCard({
       tiles={entry.plannedTagIds}
       thumbnailUrl={entry.book.thumbnailUrl}
       notes={entry.notes}
-      readOnly={readOnly}
       footer={
-        readOnly ? undefined : (
-          <div className="flex justify-end gap-2">
-            <Button variant="ghost" className="text-sm" onClick={onEdit}>
-              Edit
-            </Button>
-            <Button
-              variant="ghost"
-              className="text-sm text-error hover:text-error/90"
-              onClick={onDelete}
-            >
-              Remove
-            </Button>
-            <Button variant="outline" className="text-sm" onClick={onPromote}>
-              Mark as Read
-            </Button>
-          </div>
-        )
+        <div className="flex justify-end gap-2">
+          <Button variant="ghost" className="text-sm" onClick={onEdit}>
+            Edit
+          </Button>
+          <Button
+            variant="ghost"
+            className="text-sm text-error hover:text-error/90"
+            onClick={onDelete}
+          >
+            Remove
+          </Button>
+          <Button variant="outline" className="text-sm" onClick={onPromote}>
+            Mark as Read
+          </Button>
+        </div>
       }
     />
   );
