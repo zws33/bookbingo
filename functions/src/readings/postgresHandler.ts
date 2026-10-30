@@ -25,7 +25,9 @@ import {
   ListChallengeReadingsRequestSchema,
   UpdateChallengeReadingRequestSchema,
 } from './schema.js';
-import { scoreOf, validateReadingTags, type ScoreDTO } from './validate.js';
+import { toScoringInputs, type ScoreDTO } from '../scoring/present.js';
+import type { Scorer } from '../scoring/scorer.js';
+import { validateReadingTags } from './validate.js';
 
 const READINGS_FROZEN = 'This challenge is not taking readings right now.';
 
@@ -39,17 +41,11 @@ export interface LeaderboardRow {
   bookCount: number;
 }
 
-/** Scoring reads tag ids as opaque strings, under the field name it declares. */
-const asScoringInput = (readings: Reading[]) =>
-  readings.map((reading) => ({
-    tiles: reading.tagIds,
-    isFreebie: reading.isFreebie,
-  }));
-
 export function readingHandlers(
   readingsRepo: ReadingRepository,
   booksRepo: BookRepository,
   challengesRepo: ChallengeRepository,
+  scorer: Scorer,
 ) {
   /**
    * Returns the challenge rather than only gating on it: every write needs
@@ -137,13 +133,16 @@ export function readingHandlers(
         await requireActiveMembership(challengesRepo, challengeId, userId);
       }
 
-      const readings = await readingsRepo.list(challengeId, userId);
+      const [readings, scoreOf] = await Promise.all([
+        readingsRepo.list(challengeId, userId),
+        scorer.forChallenge(challengeId),
+      ]);
 
       try {
         const joined = await attachBooks(booksRepo, readings);
         return {
           readings: joined.map(toReadingDTO),
-          score: scoreOf(asScoringInput(readings)),
+          score: scoreOf(toScoringInputs(readings)),
         };
       } catch (error) {
         if (error instanceof MissingBookError) {
@@ -180,9 +179,10 @@ export function readingHandlers(
         throw denied(membership, 'challenge.read');
       }
 
-      const [members, byUser] = await Promise.all([
+      const [members, byUser, scoreOf] = await Promise.all([
         challengesRepo.listMembers(challengeId),
         readingsRepo.listByChallenge(challengeId),
+        scorer.forChallenge(challengeId),
       ]);
 
       return members
@@ -193,7 +193,7 @@ export function readingHandlers(
             userId: member.userId,
             name: member.name,
             photoURL: member.photoURL,
-            score: scoreOf(asScoringInput(readings)).score,
+            score: scoreOf(toScoringInputs(readings)).score,
             bookCount: readings.length,
           };
         })

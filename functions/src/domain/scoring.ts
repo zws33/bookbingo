@@ -1,9 +1,12 @@
-import type {
-  ScoringInput,
-  ScoreBreakdown,
-  ScoringStrategy,
-} from '@bookbingo/lib-types';
+import type { ScoringInput, ScoreBreakdown } from '@bookbingo/lib-types';
 import { calculateCV, calculateTileCounts, harmonicSum } from './statistics.js';
+
+/**
+ * The two pre-decay curves. Local to this module rather than shared: strategy
+ * names never cross the wire, and `scoringEngines.ts` owns the set a caller
+ * may choose from.
+ */
+export type ScoringStrategy = 'harmonic' | 'balanced-harmonic';
 
 const DEFAULT_STRATEGY: ScoringStrategy = 'balanced-harmonic';
 
@@ -94,7 +97,6 @@ export function getScoreBreakdown(
       score: 0,
       varietyPoints: 0,
       volumePoints: 0,
-      balanceFactor: 1,
       tileCounts: new Map(),
       totalBooks: 0,
     };
@@ -111,7 +113,6 @@ export function getScoreBreakdown(
     score,
     varietyPoints,
     volumePoints,
-    balanceFactor,
     tileCounts,
     totalBooks,
   };

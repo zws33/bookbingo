@@ -1,6 +1,7 @@
-import type { ScoreBreakdown, ScoringInput } from '@bookbingo/lib-types';
+import type { ScoringInput } from '@bookbingo/lib-types';
 import { DomainError } from '../common/errors.js';
 import { getScoreBreakdown } from '../domain/scoring.js';
+import { toScoreDTO, type ScoreDTO } from '../scoring/present.js';
 
 /**
  * Tiles must be real and distinct. Applies to any tile list, planned or read.
@@ -103,29 +104,10 @@ export function validateReadingTags(
 }
 
 /**
- * The score breakdown as the API returns it.
- *
- * `tileCounts` is a Record, not the domain's Map: JSON has no Map, and an
- * encoded one arrives as `{}`.
+ * v1 only: the Firestore path has no challenge, so it cannot resolve the tag
+ * vocabulary size the challenge-scoped engines take. Challenge-scoped scoring
+ * goes through `scoring/scorer.ts`.
  */
-export interface ScoreDTO {
-  score: number;
-  varietyPoints: number;
-  volumePoints: number;
-  tileCounts: Record<string, number>;
-  totalBooks: number;
-}
-
 export function scoreOf(readings: ScoringInput[]): ScoreDTO {
   return toScoreDTO(getScoreBreakdown(readings));
-}
-
-function toScoreDTO(breakdown: ScoreBreakdown): ScoreDTO {
-  return {
-    score: breakdown.score,
-    varietyPoints: breakdown.varietyPoints,
-    volumePoints: breakdown.volumePoints,
-    tileCounts: Object.fromEntries(breakdown.tileCounts),
-    totalBooks: breakdown.totalBooks,
-  };
 }

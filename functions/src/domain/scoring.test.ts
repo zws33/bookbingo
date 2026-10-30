@@ -188,7 +188,7 @@ test('Scoring', async (t) => {
       assert.equal(b.totalBooks, 10);
       assert.equal(b.varietyPoints, 25);
       assert.ok(Math.abs(b.volumePoints - 2.5) < 1e-10);
-      assert.ok(Math.abs(b.balanceFactor - 0.9) < 1e-4);
+      assert.ok(Math.abs(calculateBalanceFactor(b.tileCounts) - 0.9) < 1e-4);
       assert.ok(Math.abs(b.score - 27.25) < 1e-4);
     });
 
@@ -196,7 +196,7 @@ test('Scoring', async (t) => {
       const b = getScoreBreakdown(unbalanced10);
       assert.equal(b.totalBooks, 10);
       assert.equal(b.varietyPoints, 12);
-      assert.ok(Math.abs(b.balanceFactor - 0.6944) < 1e-4);
+      assert.ok(Math.abs(calculateBalanceFactor(b.tileCounts) - 0.6944) < 1e-4);
       assert.ok(Math.abs(b.score - 16.4097) < 1e-4);
     });
 
@@ -204,7 +204,7 @@ test('Scoring', async (t) => {
       const b = getScoreBreakdown(stacker30);
       assert.equal(b.totalBooks, 30);
       assert.equal(b.varietyPoints, 15);
-      assert.ok(Math.abs(b.balanceFactor - 0.6667) < 1e-4);
+      assert.ok(Math.abs(calculateBalanceFactor(b.tileCounts) - 0.6667) < 1e-4);
       assert.ok(Math.abs(b.score - 27.5663) < 1e-4);
     });
 
@@ -212,7 +212,7 @@ test('Scoring', async (t) => {
       const b = getScoreBreakdown(balanced30);
       assert.equal(b.totalBooks, 30);
       assert.equal(b.varietyPoints, 40);
-      assert.ok(Math.abs(b.balanceFactor - 0.9643) < 1e-4);
+      assert.ok(Math.abs(calculateBalanceFactor(b.tileCounts) - 0.9643) < 1e-4);
       assert.ok(Math.abs(b.score - 62.5) < 1e-4);
     });
 
@@ -255,7 +255,6 @@ test('Scoring', async (t) => {
       assert.equal(b.score, 0);
       assert.equal(b.varietyPoints, 0);
       assert.equal(b.volumePoints, 0);
-      assert.equal(b.balanceFactor, 1);
       assert.equal(b.totalBooks, 0);
       assert.equal(b.tileCounts.size, 0);
     });
@@ -274,7 +273,6 @@ test('Scoring', async (t) => {
         const score = calculateScore(books, 'harmonic');
         const breakdown = getScoreBreakdown(books, 'harmonic');
         assert.equal(breakdown.score, score);
-        assert.equal(breakdown.balanceFactor, 1);
       },
     );
 
