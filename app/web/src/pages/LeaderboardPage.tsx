@@ -1,10 +1,12 @@
 import { Link } from 'react-router-dom';
+import { useActiveChallenge } from '../challenge/ChallengeContext';
 import { useLeaderboard } from '../hooks/useLeaderboard';
 import { PageStatus } from '../components/PageStatus';
 import { Avatar } from '../components/ui';
 
 export function LeaderboardPage() {
-  const { rows, loading, error } = useLeaderboard();
+  const { challenge } = useActiveChallenge();
+  const { rows, loading, error } = useLeaderboard(challenge.id);
 
   if (loading || error) {
     return <PageStatus loading={loading} error={error} />;
@@ -39,7 +41,7 @@ export function LeaderboardPage() {
               </td>
               <td className="px-4 py-3">
                 <Link
-                  to={`/users/${userId}`}
+                  to={`/c/${challenge.id}/users/${userId}`}
                   className="flex items-center gap-3 hover:text-primary"
                 >
                   <Avatar name={name} photoURL={photoURL ?? undefined} />

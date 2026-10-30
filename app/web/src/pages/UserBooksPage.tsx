@@ -1,4 +1,5 @@
 import { Link, useParams } from 'react-router-dom';
+import { useActiveChallenge } from '../challenge/ChallengeContext';
 import { useReadings } from '../hooks/useReadings';
 import { useUserProfile } from '../hooks/useUserProfile';
 import { BookList } from '../components/BookList';
@@ -9,6 +10,7 @@ function getFirstName(fullName: string): string {
 }
 
 export function UserBooksPage() {
+  const { challenge } = useActiveChallenge();
   const { userId } = useParams<{ userId: string }>();
   const { profile, loading: profileLoading } = useUserProfile(userId ?? '');
   const {
@@ -16,7 +18,7 @@ export function UserBooksPage() {
     score,
     loading: readingsLoading,
     error: readingsError,
-  } = useReadings(userId ?? '');
+  } = useReadings(challenge.id, userId ?? '');
   const loading = readingsLoading;
   const error = readingsError;
   const scoreBreakdown = readings.length > 0 ? score : null;
@@ -45,7 +47,7 @@ export function UserBooksPage() {
     <div className="space-y-6">
       <div className="flex items-center gap-3">
         <Link
-          to="/leaderboard"
+          to={`/c/${challenge.id}/leaderboard`}
           className="text-primary hover:text-on-primary-container"
           aria-label="Back to leaderboard"
         >
@@ -71,6 +73,7 @@ export function UserBooksPage() {
       {scoreBreakdown && <ScoreDisplay breakdown={scoreBreakdown} />}
 
       <BookList
+        challengeId={challenge.id}
         userId={userId}
         readings={readings}
         loading={loading}

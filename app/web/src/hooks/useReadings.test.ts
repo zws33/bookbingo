@@ -25,8 +25,10 @@ beforeEach(() => {
   listReadingsMock.mockReset();
 });
 
+const CHALLENGE_ID = 'challenge-1';
+
 const render = (userId: string) =>
-  renderHook(() => useReadings(userId), { wrapper: Providers });
+  renderHook(() => useReadings(CHALLENGE_ID, userId), { wrapper: Providers });
 
 describe('useReadings', () => {
   it('exposes the readings and the score the server computed', async () => {
@@ -38,7 +40,10 @@ describe('useReadings', () => {
     await waitFor(() => expect(result.current.loading).toBe(false));
     expect(result.current.readings).toEqual(readings);
     expect(result.current.score).toEqual(SCORE);
-    expect(listReadingsMock).toHaveBeenCalledWith({ userId: 'user-1' });
+    expect(listReadingsMock).toHaveBeenCalledWith({
+      challengeId: CHALLENGE_ID,
+      userId: 'user-1',
+    });
   });
 
   it('does not call the function for an empty user id', () => {
@@ -74,7 +79,10 @@ describe('useReadings', () => {
     listReadingsMock.mockResolvedValue({ readings: [], score: SCORE });
 
     const { result } = renderHook(
-      () => ({ a: useReadings('user-1'), b: useReadings('user-1') }),
+      () => ({
+        a: useReadings(CHALLENGE_ID, 'user-1'),
+        b: useReadings(CHALLENGE_ID, 'user-1'),
+      }),
       { wrapper: Providers },
     );
 

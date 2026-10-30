@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import type { Book } from '@bookbingo/lib-types';
+import { useActiveChallenge } from '../challenge/ChallengeContext';
 import { useReadings } from '../hooks/useReadings';
 import { useInvalidateReadings } from '../hooks/useInvalidateReadings';
 import { useToast } from '../lib/ToastContext';
@@ -11,6 +11,7 @@ import { Dialog } from '../components/ui/index.js';
 import { BookForm, type BookFormData } from '../components/BookForm';
 import { log } from '@bookbingo/lib-util';
 import { createManualBook } from '../lib/createManualBook';
+import type { Book } from '../types/schemas';
 import { ReadingForm } from 'src/components/ReadingForm.js';
 
 interface MyBooksPageProps {
@@ -24,6 +25,7 @@ type DialogState =
   | null;
 
 export function MyBooksPage({ userId }: MyBooksPageProps) {
+  const { challenge } = useActiveChallenge();
   const [dialog, setDialog] = useState<DialogState>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { showSuccess, showError } = useToast();
@@ -32,8 +34,8 @@ export function MyBooksPage({ userId }: MyBooksPageProps) {
     score,
     loading: readingsLoading,
     error: readingsError,
-  } = useReadings(userId);
-  const invalidate = useInvalidateReadings(userId);
+  } = useReadings(challenge.id, userId);
+  const invalidate = useInvalidateReadings(challenge.id, userId);
 
   const loading = readingsLoading;
   const error = readingsError;
@@ -56,11 +58,12 @@ export function MyBooksPage({ userId }: MyBooksPageProps) {
       const book = await createManualBook(
         data.title,
         data.author,
-        data.metadata,
+        data.thumbnailUrl ?? null,
       );
       await createReading({
+        challengeId: challenge.id,
         bookId: book.id,
-        tiles: data.tiles,
+        tagIds: data.tiles,
         isFreebie: data.isFreebie,
       });
       await invalidate();
@@ -84,8 +87,9 @@ export function MyBooksPage({ userId }: MyBooksPageProps) {
     setIsSubmitting(true);
     try {
       await createReading({
+        challengeId: challenge.id,
         bookId: dialog.book.id,
-        tiles: data.tiles,
+        tagIds: data.tiles,
         isFreebie: data.isFreebie,
       });
       await invalidate();
@@ -106,6 +110,7 @@ export function MyBooksPage({ userId }: MyBooksPageProps) {
         {' '}
         {scoreBreakdown && <ScoreDisplay breakdown={scoreBreakdown} />}{' '}
         <BookList
+          challengeId={challenge.id}
           userId={userId}
           readings={readings}
           loading={loading}
@@ -160,7 +165,7 @@ export function MyBooksPage({ userId }: MyBooksPageProps) {
         {dialog?.kind === 'manualEntry' && (
           <BookForm
             identityLocked={false}
-            collectMetadata
+            collectCover
             onSubmit={handleAddBook}
             onCancel={handleAddModalClose}
             isSubmitting={isSubmitting}

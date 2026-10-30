@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { render } from '../testing/test-utils';
-import { makeReading, TILE } from '../testing/fixtures';
+import { makeBook, makeReading, TILE } from '../testing/fixtures';
 import { BookList } from './BookList';
 
 // Mock only the I/O seams: the reading writes, and the two hooks that fetch
@@ -26,14 +26,20 @@ const deleteReadingMock = vi.mocked(deleteReading);
 // Readings arrive with their book already joined, so the list needs no book
 // lookup of its own.
 const READING = makeReading({
-  bookTitle: 'Dune',
-  bookAuthor: 'Frank Herbert',
-  tiles: [TILE.series.id],
+  book: makeBook({ title: 'Dune', author: 'Frank Herbert' }),
+  tagIds: [TILE.series.id],
 });
 
 function renderBookList() {
   const user = userEvent.setup();
-  render(<BookList userId="user-1" readings={[READING]} loading={false} />);
+  render(
+    <BookList
+      challengeId="challenge-1"
+      userId="user-1"
+      readings={[READING]}
+      loading={false}
+    />,
+  );
   return { user };
 }
 
@@ -72,9 +78,10 @@ describe('BookList edit flow', () => {
 
     await waitFor(() => {
       expect(updateReadingMock).toHaveBeenCalledWith({
+        challengeId: 'challenge-1',
         readingId: 'reading-1',
         bookId: 'book-1',
-        tiles: [TILE.series.id, TILE.reread.id],
+        tagIds: [TILE.series.id, TILE.reread.id],
         isFreebie: false,
       });
     });
@@ -92,6 +99,7 @@ describe('BookList edit flow', () => {
 
     await waitFor(() => {
       expect(deleteReadingMock).toHaveBeenCalledWith({
+        challengeId: 'challenge-1',
         readingId: 'reading-1',
       });
     });
@@ -103,8 +111,11 @@ describe('BookList view modes', () => {
     const user = userEvent.setup();
     render(
       <BookList
+        challengeId="challenge-1"
         userId="user-1"
-        readings={[makeReading({ bookTitle: 'Dune', isFreebie: true })]}
+        readings={[
+          makeReading({ book: makeBook({ title: 'Dune' }), isFreebie: true }),
+        ]}
         loading={false}
       />,
     );

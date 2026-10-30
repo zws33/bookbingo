@@ -1,9 +1,11 @@
+import { useActiveChallenge } from '../challenge/ChallengeContext';
 import { useLibrary } from '../hooks/useLibrary';
 import { PageStatus } from '../components/PageStatus';
 import { Accordion, Avatar, TileBadge } from '../components/ui';
 
 export function LibraryPage() {
-  const { books, loading, error } = useLibrary();
+  const { challenge } = useActiveChallenge();
+  const { books, loading, error } = useLibrary(challenge.id);
 
   if (loading || error) {
     return <PageStatus loading={loading} error={error} />;
@@ -20,7 +22,7 @@ export function LibraryPage() {
   return (
     <div className="bg-surface-container-lowest rounded-lg shadow overflow-hidden">
       <Accordion.Root type="multiple">
-        {books.map(({ book, readCount, uniqueTiles, readers }) => (
+        {books.map(({ book, readCount, uniqueTagIds, readers }) => (
           <Accordion.Item key={book.id} value={book.id}>
             <Accordion.Trigger>
               <div className="flex flex-1 flex-col sm:flex-row sm:items-center sm:gap-4 min-w-0">
@@ -38,10 +40,10 @@ export function LibraryPage() {
                       {readCount} {readCount === 1 ? 'reader' : 'readers'}
                     </span>
                   )}
-                  {uniqueTiles.length > 0 && (
+                  {uniqueTagIds.length > 0 && (
                     <div className="flex flex-wrap gap-1">
-                      {uniqueTiles.map((tileId) => (
-                        <TileBadge key={tileId} tileId={tileId} />
+                      {uniqueTagIds.map((tagId: string) => (
+                        <TileBadge key={tagId} tileId={tagId} />
                       ))}
                     </div>
                   )}
@@ -51,7 +53,7 @@ export function LibraryPage() {
             {readers.length > 0 && (
               <Accordion.Content>
                 <ul className="px-4 pb-3 space-y-2">
-                  {readers.map(({ userId, name, photoURL, tiles }) => (
+                  {readers.map(({ userId, name, photoURL, tagIds }) => (
                     <li key={userId} className="flex items-start gap-2">
                       <Avatar
                         name={name}
@@ -63,12 +65,12 @@ export function LibraryPage() {
                         <p className="text-sm font-medium text-on-surface">
                           {name}
                         </p>
-                        {tiles.length > 0 && (
+                        {tagIds.length > 0 && (
                           <div className="flex flex-wrap gap-1 mt-0.5">
-                            {tiles.map((tileId) => (
+                            {tagIds.map((tagId: string) => (
                               <TileBadge
-                                key={tileId}
-                                tileId={tileId}
+                                key={tagId}
+                                tileId={tagId}
                                 variant="secondary"
                               />
                             ))}

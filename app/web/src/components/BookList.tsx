@@ -13,6 +13,7 @@ import { PageStatus } from './PageStatus';
 import { useInvalidateReadings } from '../hooks/useInvalidateReadings';
 
 interface BookListProps {
+  challengeId: string;
   userId: string;
   readings: Reading[];
   loading: boolean;
@@ -21,6 +22,7 @@ interface BookListProps {
 }
 
 export function BookList({
+  challengeId,
   userId,
   readings,
   loading,
@@ -34,12 +36,12 @@ export function BookList({
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const { showSuccess, showError: showErrorToast } = useToast();
 
-  const invalidateReadings = useInvalidateReadings(userId);
+  const invalidateReadings = useInvalidateReadings(challengeId, userId);
 
   const filteredReadings = useMemo(() => {
     if (!authorFilter.trim()) return readings;
     const filter = authorFilter.toLowerCase();
-    return readings.filter((r) => r.bookAuthor.toLowerCase().includes(filter));
+    return readings.filter((r) => r.book.author.toLowerCase().includes(filter));
   }, [readings, authorFilter]);
 
   const handleEdit = async (data: BookFormData) => {
@@ -47,9 +49,10 @@ export function BookList({
     setIsSubmitting(true);
     try {
       await updateReading({
+        challengeId,
         readingId: selectedReading.id,
         bookId: selectedReading.bookId,
-        tiles: data.tiles,
+        tagIds: data.tiles,
         isFreebie: data.isFreebie,
       });
       await invalidateReadings();
@@ -67,7 +70,7 @@ export function BookList({
     if (!selectedReading) return;
     setIsSubmitting(true);
     try {
-      await deleteReading({ readingId: selectedReading.id });
+      await deleteReading({ challengeId, readingId: selectedReading.id });
       await invalidateReadings();
       showSuccess('Book deleted successfully');
       setShowDeleteConfirm(false);
@@ -89,8 +92,8 @@ export function BookList({
   }
 
   const selectedBook = {
-    title: selectedReading?.bookTitle ?? '',
-    author: selectedReading?.bookAuthor ?? '',
+    title: selectedReading?.book.title ?? '',
+    author: selectedReading?.book.author ?? '',
   };
 
   const isCards = viewMode === 'cards';
@@ -165,10 +168,10 @@ export function BookList({
           {filteredReadings.map((reading) => (
             <ItemComponent
               key={reading.id}
-              bookTitle={reading.bookTitle}
-              bookAuthor={reading.bookAuthor}
-              thumbnailUrl={reading.bookMetadata.thumbnailUrl}
-              tiles={reading.tiles}
+              bookTitle={reading.book.title}
+              bookAuthor={reading.book.author}
+              thumbnailUrl={reading.book.thumbnailUrl}
+              tiles={reading.tagIds}
               isFreebie={reading.isFreebie}
               onClick={() => setSelectedReading(reading)}
               readOnly={readOnly}
@@ -187,7 +190,7 @@ export function BookList({
           initialData={{
             title: selectedBook.title,
             author: selectedBook.author,
-            tiles: selectedReading?.tiles ?? [],
+            tiles: selectedReading?.tagIds ?? [],
             isFreebie: selectedReading?.isFreebie ?? false,
           }}
           onSubmit={handleEdit}

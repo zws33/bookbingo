@@ -1,4 +1,3 @@
-import type { Book } from '@bookbingo/lib-types';
 import z from 'zod/v4';
 import {
   CHALLENGE_STATUSES,
@@ -33,25 +32,17 @@ export const BoardConfigResponseSchema = z.object({
 });
 
 /**
- * Metadata as the API returns it: total, every field nullable. The per-field
- * `.catch()` mirrors the server's read schema, so a single bad stored value
- * cannot blank a whole book in the UI.
+ * A book as stored: the cover is the only catalog metadata kept. The client
+ * takes its `Book` from this schema rather than `@bookbingo/lib-types`, whose
+ * six-field version is what the retiring v1 endpoints still return.
  */
-export const BookMetadataResponseSchema = z.object({
-  pageCount: z.number().int().nonnegative().nullable().catch(null),
-  publishedDate: z.string().nullable().catch(null),
-  categories: z.array(z.string()).catch(() => []),
-  language: z.string().nullable().catch(null),
-  isbn: z.string().nullable().catch(null),
-  thumbnailUrl: z.url().nullable().catch(null),
-});
-
 export const BookResponseSchema = z.object({
   id: z.string().min(1),
   title: z.string(),
   author: z.string(),
-  metadata: BookMetadataResponseSchema,
-}) satisfies z.ZodType<Book>;
+  thumbnailUrl: z.url().nullable().catch(null),
+});
+export type Book = z.infer<typeof BookResponseSchema>;
 
 export const UserProfileResponseSchema = z.object({
   id: z.string().min(1),
@@ -85,11 +76,10 @@ const Instant = z.iso.datetime().transform((value) => new Date(value));
  */
 export const ReadingSchema = z.object({
   id: z.string().min(1),
+  userId: z.string().min(1),
   bookId: z.string().min(1),
-  bookTitle: z.string(),
-  bookAuthor: z.string(),
-  bookMetadata: BookMetadataResponseSchema,
-  tiles: z.array(z.string()),
+  book: BookResponseSchema,
+  tagIds: z.array(z.string()),
   isFreebie: z.boolean(),
   readAt: Instant,
   createdAt: Instant,
@@ -115,13 +105,13 @@ export const LibraryReaderSchema = z.object({
   userId: z.string().min(1),
   name: z.string(),
   photoURL: z.string().nullable().catch(null),
-  tiles: z.array(z.string()),
+  tagIds: z.array(z.string()),
 });
 
 export const LibraryBookSchema = z.object({
   book: BookResponseSchema,
   readCount: z.number().int().nonnegative(),
-  uniqueTiles: z.array(z.string()),
+  uniqueTagIds: z.array(z.string()),
   readers: z.array(LibraryReaderSchema),
 });
 export type LibraryBook = z.infer<typeof LibraryBookSchema>;
@@ -131,11 +121,10 @@ export const GetLibraryResponseSchema = z.array(LibraryBookSchema);
 /** A planned reading, with its book resolved by the server. */
 export const TBREntrySchema = z.object({
   id: z.string().min(1),
+  userId: z.string().min(1),
   bookId: z.string().min(1),
-  bookTitle: z.string(),
-  bookAuthor: z.string(),
-  bookMetadata: BookMetadataResponseSchema,
-  plannedTiles: z.array(z.string()),
+  book: BookResponseSchema,
+  plannedTagIds: z.array(z.string()),
   notes: z.string().optional(),
   addedAt: Instant,
   updatedAt: Instant.optional(),

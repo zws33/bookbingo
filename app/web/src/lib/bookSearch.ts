@@ -1,16 +1,17 @@
 import { httpsCallable } from 'firebase/functions';
-import type { Book } from '@bookbingo/lib-types';
 import { log } from '@bookbingo/lib-util';
 import { errorCode } from './callable';
 import { functions } from './firebase';
 import {
   BookResponseSchema,
   SearchBooksResponseSchema,
+  type Book,
   type BookSearchResult,
 } from 'src/types/schemas';
 
+// `searchBooks` has no v2: it reads the provider and touches no store.
 const api = {
-  fetchBookDetails: httpsCallable(functions, 'fetchBookDetails'),
+  fetchBookDetails: httpsCallable(functions, 'fetchBookDetailsV2'),
   searchBooks: httpsCallable(functions, 'searchBooks'),
 };
 
@@ -34,7 +35,7 @@ export async function searchBooks(query: string): Promise<BookSearchResult[]> {
   }
 }
 
-/** Ensures the catalog book exists in `/books` and returns it whole. */
+/** Ensures the catalog book exists and returns it whole. */
 export async function resolveBook(externalId: string): Promise<Book> {
   const startedAt = Date.now();
   try {

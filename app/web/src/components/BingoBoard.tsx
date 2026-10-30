@@ -15,7 +15,7 @@ export function BingoBoard({ readings }: BingoBoardProps) {
   const tileReadingCounts = useMemo(() => {
     const map = new Map<string, number>();
     for (const reading of readings) {
-      for (const tileId of reading.tiles) {
+      for (const tileId of reading.tagIds) {
         map.set(tileId, (map.get(tileId) ?? 0) + 1);
       }
     }
@@ -25,7 +25,7 @@ export function BingoBoard({ readings }: BingoBoardProps) {
   const selectedTile = selectedTileId ? getTileById(selectedTileId) : null;
   const selectedBooks = useMemo(() => {
     if (!selectedTileId) return [];
-    return readings.filter((r) => r.tiles.includes(selectedTileId));
+    return readings.filter((r) => r.tagIds.includes(selectedTileId));
   }, [readings, selectedTileId]);
 
   return (
@@ -56,10 +56,10 @@ export function BingoBoard({ readings }: BingoBoardProps) {
             {selectedBooks.map((reading) => (
               <li key={reading.id} className="py-2">
                 <div className="font-medium text-on-surface">
-                  {reading.bookTitle}
+                  {reading.book.title}
                 </div>
                 <div className="text-sm text-on-surface-variant">
-                  {reading.bookAuthor}
+                  {reading.book.author}
                 </div>
               </li>
             ))}

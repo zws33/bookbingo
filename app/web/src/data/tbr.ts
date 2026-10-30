@@ -5,29 +5,39 @@ import { ListTBRResponseSchema, type TBREntry } from '../types/schemas';
 const VoidResponseSchema = z.unknown().transform(() => undefined);
 
 /**
- * The caller's own reading list, newest first, each entry with its book
- * resolved. There is no userId parameter — a TBR list is private, so the
- * server only ever returns the caller's.
+ * The caller's own reading list for a challenge, newest first, each entry with
+ * its book resolved. There is no userId parameter — a reading list is private,
+ * so the server only ever returns the caller's.
  */
-export const listMyTBR = createCallable<void, TBREntry[]>(
-  'listMyTBR',
+export const listMyTBR = createCallable<{ challengeId: string }, TBREntry[]>(
+  'listMyTBRV2',
   ListTBRResponseSchema,
 );
 
 export const createTBREntry = createCallable<
-  { bookId: string; plannedTiles: string[]; notes?: string },
+  {
+    challengeId: string;
+    bookId: string;
+    plannedTagIds: string[];
+    notes?: string;
+  },
   { tbrId: string }
->('createTBREntry', z.object({ tbrId: z.string().min(1) }));
+>('createTBREntryV2', z.object({ tbrId: z.string().min(1) }));
 
 export const updateTBREntry = createCallable<
-  { tbrId: string; plannedTiles: string[]; notes?: string },
+  {
+    challengeId: string;
+    tbrId: string;
+    plannedTagIds: string[];
+    notes?: string;
+  },
   undefined
->('updateTBREntry', VoidResponseSchema);
+>('updateTBREntryV2', VoidResponseSchema);
 
-export const deleteTBREntry = createCallable<{ tbrId: string }, undefined>(
-  'deleteTBREntry',
-  VoidResponseSchema,
-);
+export const deleteTBREntry = createCallable<
+  { challengeId: string; tbrId: string },
+  undefined
+>('deleteTBREntryV2', VoidResponseSchema);
 
 /**
  * Turns a planned entry into a reading and removes the entry, atomically.
@@ -37,6 +47,11 @@ export const deleteTBREntry = createCallable<{ tbrId: string }, undefined>(
  * the stored entry already names it.
  */
 export const promoteTBREntry = createCallable<
-  { tbrId: string; tiles: string[]; isFreebie: boolean },
+  {
+    challengeId: string;
+    tbrId: string;
+    tagIds: string[];
+    isFreebie: boolean;
+  },
   { readingId: string }
->('promoteTBREntry', z.object({ readingId: z.string().min(1) }));
+>('promoteTBREntryV2', z.object({ readingId: z.string().min(1) }));

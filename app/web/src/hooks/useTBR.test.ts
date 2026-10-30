@@ -16,8 +16,10 @@ beforeEach(() => {
   listMyTBRMock.mockReset();
 });
 
+const CHALLENGE_ID = 'challenge-1';
+
 const render = (userId: string) =>
-  renderHook(() => useTBR(userId), { wrapper: Providers });
+  renderHook(() => useTBR(CHALLENGE_ID, userId), { wrapper: Providers });
 
 describe('useTBR', () => {
   it('exposes the entries the call resolved', async () => {
@@ -31,13 +33,13 @@ describe('useTBR', () => {
   });
 
   // The list is always the caller's own; the id only gates the request.
-  it('sends no arguments to the callable', async () => {
+  it("sends only the challenge: the list is always the caller's own", async () => {
     listMyTBRMock.mockResolvedValue([]);
 
     const { result } = render('user-1');
 
     await waitFor(() => expect(result.current.loading).toBe(false));
-    expect(listMyTBRMock).toHaveBeenCalledWith();
+    expect(listMyTBRMock).toHaveBeenCalledWith({ challengeId: CHALLENGE_ID });
   });
 
   it('does not call the function for an empty user id', () => {

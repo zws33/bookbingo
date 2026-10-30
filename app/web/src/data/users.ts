@@ -7,12 +7,15 @@ import {
 } from '../types/schemas';
 
 export const listUsers = createCallable<void, UserProfile[]>(
-  'listUsers',
+  'listUsersV2',
   ListUsersResponseSchema,
 );
 
-/** Every user with their score, highest first. The server owns the scoring. */
-export const getLeaderboard = createCallable<void, LeaderboardRow[]>(
-  'getLeaderboard',
-  GetLeaderboardResponseSchema,
-);
+/**
+ * Every active member of the challenge with their score, highest first. The
+ * server owns the scoring.
+ */
+export const getLeaderboard = createCallable<
+  { challengeId: string },
+  LeaderboardRow[]
+>('getLeaderboardV2', GetLeaderboardResponseSchema);
