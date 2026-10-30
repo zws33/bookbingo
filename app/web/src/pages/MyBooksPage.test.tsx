@@ -13,6 +13,13 @@ vi.mock('../data/readings', () => ({
   deleteReading: vi.fn(),
 }));
 vi.mock('../data/boardConfig', () => ({ getBoardConfig: vi.fn() }));
+// Both reach `lib/firebase`, which throws without a Firebase config. CI's
+// verify job supplies none, so an unmocked path here fails there and not here.
+vi.mock('../lib/bookSearch', () => ({
+  searchBooks: vi.fn(),
+  resolveBook: vi.fn(),
+}));
+vi.mock('../lib/createManualBook', () => ({ createManualBook: vi.fn() }));
 
 import { listReadings } from '../data/readings';
 import { getBoardConfig } from '../data/boardConfig';
