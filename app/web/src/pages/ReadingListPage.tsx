@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import type { Book, TBREntry } from '../types/schemas';
 import { useActiveChallenge } from '../challenge/ChallengeContext';
+import { statusAllows } from '../challenge/permissions';
 import { useTBR } from '../hooks/useTBR';
 import { useInvalidateReadings } from '../hooks/useInvalidateReadings';
 import { useToast } from '../lib/ToastContext';
@@ -37,6 +38,7 @@ export function ReadingListPage({ userId }: ReadingListPageProps) {
   const [dialog, setDialog] = useState<DialogState>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const writable = statusAllows(challenge.status, 'readingWrite');
   const { entries, loading, error } = useTBR(challenge.id, userId);
   const { showSuccess, showError } = useToast();
   const invalidate = useInvalidateReadings(challenge.id, userId);
@@ -185,7 +187,9 @@ export function ReadingListPage({ userId }: ReadingListPageProps) {
               Your reading list is empty
             </h3>
             <p className="mt-1 text-on-surface-variant">
-              Add books you plan to read using the button below.
+              {writable
+                ? 'Add books you plan to read using the button below.'
+                : 'The reading list opens once the challenge starts.'}
             </p>
           </div>
         ) : (
@@ -200,27 +204,29 @@ export function ReadingListPage({ userId }: ReadingListPageProps) {
           ))
         )}
 
-        <div className="fixed right-4 bottom-20 sm:right-8">
-          <button
-            onClick={() => setDialog({ kind: 'search' })}
-            className="flex h-14 w-14 items-center justify-center rounded-full bg-primary text-on-primary shadow-lg transition-colors hover:bg-primary/90 focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:outline-none"
-            aria-label="Add to reading list"
-          >
-            <svg
-              className="h-8 w-8"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
+        {writable && (
+          <div className="fixed right-4 bottom-20 sm:right-8">
+            <button
+              onClick={() => setDialog({ kind: 'search' })}
+              className="flex h-14 w-14 items-center justify-center rounded-full bg-primary text-on-primary shadow-lg transition-colors hover:bg-primary/90 focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:outline-none"
+              aria-label="Add to reading list"
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 4v16m8-8H4"
-              />
-            </svg>
-          </button>
-        </div>
+              <svg
+                className="h-8 w-8"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 4v16m8-8H4"
+                />
+              </svg>
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Add dialog */}
