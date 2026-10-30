@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { useActiveChallenge } from '../challenge/ChallengeContext';
+import { statusAllows } from '../challenge/permissions';
 import { useReadings } from '../hooks/useReadings';
 import { useInvalidateReadings } from '../hooks/useInvalidateReadings';
 import { useToast } from '../lib/ToastContext';
@@ -26,6 +27,7 @@ type DialogState =
 
 export function MyBooksPage({ userId }: MyBooksPageProps) {
   const { challenge } = useActiveChallenge();
+  const writable = statusAllows(challenge.status, 'readingWrite');
   const [dialog, setDialog] = useState<DialogState>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { showSuccess, showError } = useToast();
@@ -115,28 +117,31 @@ export function MyBooksPage({ userId }: MyBooksPageProps) {
           readings={readings}
           loading={loading}
           error={error}
+          readOnly={!writable}
         />
-        <div className="fixed right-4 bottom-20 sm:right-8">
-          <button
-            onClick={() => setDialog({ kind: 'search' })}
-            className="flex h-14 w-14 items-center justify-center rounded-full bg-primary text-on-primary shadow-lg transition-colors hover:bg-primary/90 focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:outline-none"
-            aria-label="Add book"
-          >
-            <svg
-              className="h-8 w-8"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
+        {writable && (
+          <div className="fixed right-4 bottom-20 sm:right-8">
+            <button
+              onClick={() => setDialog({ kind: 'search' })}
+              className="flex h-14 w-14 items-center justify-center rounded-full bg-primary text-on-primary shadow-lg transition-colors hover:bg-primary/90 focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:outline-none"
+              aria-label="Add book"
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 4v16m8-8H4"
-              />
-            </svg>
-          </button>
-        </div>
+              <svg
+                className="h-8 w-8"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 4v16m8-8H4"
+                />
+              </svg>
+            </button>
+          </div>
+        )}
       </div>
       <Dialog
         isOpen={dialog !== null}
