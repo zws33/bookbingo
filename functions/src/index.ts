@@ -27,6 +27,8 @@ import { bookRepository as postgresBookRepository } from './books/postgresStore.
 import { bookHandlers as postgresBookHandlers } from './books/postgresHandler.js';
 import { userProfileRepository as postgresUserProfileRepository } from './users/postgresStore.js';
 import { libraryHandlers } from './library/handler.js';
+import { scoringHandlers } from './scoring/handler.js';
+import { scorer } from './scoring/scorer.js';
 import { libraryHandlers as postgresLibraryHandlers } from './library/postgresHandler.js';
 import { tbrHandlers } from './tbr/handler.js';
 import { tbrEntryRepository } from './tbr/store.js';
@@ -69,13 +71,20 @@ function buildPostgresApi() {
   const booksRepo = postgresBookRepository();
   const readingsRepo = postgresReadingRepository();
   const tbrRepo = postgresTbrEntryRepository();
+  const challengeScorer = scorer(tagsRepo);
   const postgresUsersRepo = postgresUserProfileRepository();
 
   return {
     challenges: challengeHandlers(challengesRepo),
     tags: tagHandlers(tagsRepo, challengesRepo),
     boardConfig: boardConfigHandlers(tagsRepo, challengesRepo),
-    readings: postgresReadingHandlers(readingsRepo, booksRepo, challengesRepo),
+    readings: postgresReadingHandlers(
+      readingsRepo,
+      booksRepo,
+      challengesRepo,
+      challengeScorer,
+    ),
+    scoring: scoringHandlers(readingsRepo, challengesRepo, challengeScorer),
     library: postgresLibraryHandlers(readingsRepo, booksRepo, challengesRepo),
     tbr: postgresTbrHandlers(tbrRepo, booksRepo, challengesRepo),
     books: postgresBookHandlers(booksRepo),
@@ -329,6 +338,14 @@ export const deleteReadingV2 = onCall(
   callable(
     (request) => postgres().readings.remove(request),
     'Failed to delete your reading.',
+  ),
+);
+
+export const getScore = onCall(
+  postgresBacked,
+  callable(
+    (request) => postgres().scoring.get(request),
+    'Could not load that score.',
   ),
 );
 

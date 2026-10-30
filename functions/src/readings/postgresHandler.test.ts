@@ -16,6 +16,8 @@ import type {
   MembershipStatus,
 } from '../challenges/schema.js';
 import { DomainError } from '../common/errors.js';
+import { scorer } from '../scoring/scorer.js';
+import type { Tag, TagRepository } from '../tags/postgresStore.js';
 import { readingHandlers } from './postgresHandler.js';
 import type { Reading, ReadingRepository } from './postgresStore.js';
 
@@ -85,6 +87,21 @@ function fakeChallengeRepo(
   };
 }
 
+/** Wide enough that the test tags are a small fraction of it, as in a real board. */
+const VOCABULARY: Tag[] = Array.from({ length: 25 }, (_, i) => ({
+  id: `tag-${i + 1}`,
+  label: `tag ${i + 1}`,
+}));
+
+function fakeTagRepo(): TagRepository {
+  return {
+    listByChallenge: () => Promise.resolve(VOCABULARY),
+    create: unexpected('create'),
+    update: unexpected('update'),
+    remove: unexpected('remove'),
+  };
+}
+
 const handlers = (
   readings: Partial<ReadingRepository> = {},
   challenges: Partial<ChallengeRepository> = {},
@@ -94,6 +111,7 @@ const handlers = (
     fakeReadingRepo(readings),
     fakeBookRepo(books),
     fakeChallengeRepo(challenges),
+    scorer(fakeTagRepo()),
   );
 
 function makeRequest(

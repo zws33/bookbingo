@@ -29,7 +29,7 @@ y_min = 0.20        y_max = 0.50
 - `p` is the decay exponent. Each time a tag's depth doubles, the next book there is worth `2^p` times less.
 - `y` is `ρ(2)`, the value of a tag's first repeat. The curve is set by `y` rather than by `p` because `y` is the quantity a member experiences directly, and because moving `y` in equal steps makes every tag covered worth the same improvement in decay rate.
 - `y_min` and `y_max` are the only knobs. They are the value of a tag's first repeat at the two ends of the coverage range: `y_min` at `k = 1`, `y_max` at `k = N`. Everything else about the curve follows from them.
-- Both arrive as inputs to the scoring call alongside `N`, per challenge. Not module constants.
+- Both arrive as inputs when the engine is built, alongside `N`, so scoring itself takes only readings. `scoring/scorer.ts` is the only place they are chosen: it reads `N` from the challenge's tag vocabulary and supplies `DEFAULT_KNOBS` until they become a challenge column.
 - The ramp divides by `N−1`, not `N`, so both ends are hit exactly. With `k/N` a reader at `k = 1` lands at 0.206 rather than 0.200, and `y_min` would not mean what it says. `k = 0` is unreachable: no books, no repeats, score 0.
 - `p` is computed once per score from `k` and held constant across the sum. Coverage sets the slope of the decay; it never scales the total.
 - The current values are provisional. No reading data or stated group expectation has validated them.

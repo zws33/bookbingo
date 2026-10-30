@@ -13,7 +13,8 @@ import { toReadingDTO, type ReadingDTO } from './present.js';
 import { attachBooks } from '../books/join.js';
 import { MissingBookError } from '../books/errors.js';
 import type { BookRepository } from '../books/store.js';
-import { scoreOf, validateReadingTiles, type ScoreDTO } from './validate.js';
+import { scoreOf, validateReadingTiles } from './validate.js';
+import type { ScoreDTO } from '../scoring/present.js';
 import { MAX_TILES_PER_BOOK, TILE_IDS } from '../domain/constants.js';
 
 export interface LeaderboardRow {
