@@ -94,6 +94,6 @@ Consequences of the invariants, not preferences. Reject a challenge whose values
 
 - I1 — brute force over random states crossed with three move types: a repeat, a new tag, and a multi-tag book at `tag_cap`. Run at the bound-case parameters `y_min = 0.20`, `y_max = 0.90`, not only at the current values: minimum score change over 200k moves is +0.0016.
 - I2 — repeat values strictly decreasing at fixed coverage, across a range of `k`.
-- I3 — property test still outstanding. Only one family of distributions has been checked.
-- Scoring reads no measure of unevenness, so `calculateCV` and `calculateStdDev` have no caller.
+- I3 — `ρ(j)` asserted rising across every `k` from 2 to `N`, for one family of distributions: one tag at depth `j` and the rest at 1. Other families are still unchecked.
+- The decay engine reads no measure of unevenness. `calculateCV` and `calculateStdDev` keep their caller only through `balanced-harmonic`, which stays registered in `domain/scoringEngines.ts` to compare against and is reachable by changing `ACTIVE_ENGINE`.
 - Reference profiles pin magnitudes, not design claims. Re-derive their expected values rather than preserving them.
