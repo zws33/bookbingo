@@ -6,15 +6,17 @@ import { QueryClient } from '@tanstack/react-query';
  * caller passes are sorted and deduped here rather than at each call site.
  */
 export const queryKeys = {
-  boardConfig: ['boardConfig'] as const,
   users: ['users'] as const,
   userProfile: (userId: string) => ['userProfile', userId] as const,
   myChallenges: ['myChallenges'] as const,
   challenge: (challengeId: string) => ['challenge', challengeId] as const,
-  leaderboard: ['leaderboard'] as const,
-  readings: (userId: string) => ['readings', userId] as const,
-  library: ['library'] as const,
-  tbr: (userId: string) => ['tbr', userId] as const,
+  boardConfig: (challengeId: string) => ['boardConfig', challengeId] as const,
+  leaderboard: (challengeId: string) => ['leaderboard', challengeId] as const,
+  readings: (challengeId: string, userId: string) =>
+    ['readings', challengeId, userId] as const,
+  library: (challengeId: string) => ['library', challengeId] as const,
+  tbr: (challengeId: string, userId: string) =>
+    ['tbr', challengeId, userId] as const,
 };
 
 /**
@@ -23,6 +25,9 @@ export const queryKeys = {
  *
  * `staleTime` 30s: at 0 every navigation refetches through a callable that may
  * cold-start, for data that changes a few times a week.
+ *
+ * Every challenge-scoped key names its challenge. Without that, switching
+ * challenges serves the previous one's readings, board and scores from cache.
  *
  * One retry covers a cold start failing once; more only delays the error.
  */

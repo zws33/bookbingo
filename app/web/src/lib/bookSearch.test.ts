@@ -52,14 +52,7 @@ describe('resolveBook', () => {
         id: 'abc123',
         title: 'Dune',
         author: 'Frank Herbert',
-        metadata: {
-          pageCount: 412,
-          publishedDate: '1965',
-          categories: [],
-          language: 'en',
-          isbn: null,
-          thumbnailUrl: null,
-        },
+        thumbnailUrl: 'https://example.com/dune.jpg',
       },
     });
 
@@ -67,7 +60,7 @@ describe('resolveBook', () => {
 
     expect(book.id).toBe('abc123');
     expect(book.title).toBe('Dune');
-    expect(book.metadata.pageCount).toBe(412);
+    expect(book.thumbnailUrl).toBe('https://example.com/dune.jpg');
   });
 
   it('rejects a response with no book id', async () => {

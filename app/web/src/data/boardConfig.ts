@@ -3,13 +3,13 @@ import { createCallable } from '../lib/callable';
 import { BoardConfigResponseSchema } from '../types/schemas';
 
 /**
- * The tile vocabulary and the per-reading tile cap.
+ * The challenge's tag vocabulary and its per-reading cap.
  *
- * Served rather than bundled so the catalog has one owner: the reading
- * endpoints reject a tile that is not in it, and a client constant could drift
- * from what they accept.
+ * `tiles[].id` is a stored tag id, not a catalog constant: the reading
+ * endpoints reject a tag outside this challenge's vocabulary, and a client
+ * constant could drift from what they accept.
  */
-export const getBoardConfig = createCallable<void, BoardConfig>(
-  'getBoardConfig',
-  BoardConfigResponseSchema,
-);
+export const getBoardConfig = createCallable<
+  { challengeId: string },
+  BoardConfig
+>('getBoardConfigV2', BoardConfigResponseSchema);

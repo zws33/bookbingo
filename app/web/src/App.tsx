@@ -5,6 +5,7 @@ import { syncMyProfile } from './data/userProfile';
 import { useAuth } from './hooks/useAuth';
 import { useReadings } from './hooks/useReadings';
 import { BingoBoard } from './components/BingoBoard';
+import { useActiveChallenge } from './challenge/ChallengeContext';
 import { ChallengeProvider } from './challenge/ChallengeProvider';
 import { ChallengeLayout } from './challenge/ChallengeLayout';
 import { ChallengeResolver } from './challenge/ChallengeResolver';
@@ -27,13 +28,9 @@ import { useEffect, useState, useCallback } from 'react';
 
 const isStaging = import.meta.env.MODE === 'staging';
 
-/**
- * Mounted under the challenge layout, but `useReadings` is not challenge-aware
- * yet: the v1 endpoint returns every reading the user has, whichever challenge
- * the URL names. The board becomes challenge-scoped with the v2 reading reads.
- */
 function BoardRoute({ userId }: { userId: string }) {
-  const { readings } = useReadings(userId);
+  const { challenge } = useActiveChallenge();
+  const { readings } = useReadings(challenge.id, userId);
   return <BingoBoard readings={readings} />;
 }
 

@@ -16,81 +16,26 @@ beforeEach(() => {
 });
 
 describe('createManualBook', () => {
-  it('returns the created book', async () => {
+  it('sends the cover url it was given', async () => {
     mockHttpsCallable.mockResolvedValue({
       data: {
         id: 'abc123',
         title: 'Dune',
         author: 'Frank Herbert',
-        metadata: {
-          pageCount: 412,
-          publishedDate: '1965',
-          categories: [],
-          language: 'en',
-          isbn: null,
-          thumbnailUrl: null,
-        },
+        thumbnailUrl: 'https://example.com/dune.jpg',
       },
     });
 
-    await expect(createManualBook('Dune', 'Frank Herbert')).resolves.toEqual({
-      id: 'abc123',
-      title: 'Dune',
-      author: 'Frank Herbert',
-      metadata: {
-        pageCount: 412,
-        publishedDate: '1965',
-        categories: [],
-        language: 'en',
-        isbn: null,
-        thumbnailUrl: null,
-      },
-    });
-    expect(mockHttpsCallable).toHaveBeenCalledWith({
-      title: 'Dune',
-      author: 'Frank Herbert',
-      metadata: {
-        pageCount: null,
-        publishedDate: null,
-        categories: [],
-        language: null,
-        isbn: null,
-        thumbnailUrl: null,
-      },
-    });
-  });
-
-  it('passes through explicit metadata when provided', async () => {
-    mockHttpsCallable.mockResolvedValue({
-      data: {
-        id: 'abc123',
-        title: 'Dune',
-        author: 'Frank Herbert',
-        metadata: {
-          pageCount: 412,
-          publishedDate: '1965',
-          categories: [],
-          language: 'en',
-          isbn: null,
-          thumbnailUrl: null,
-        },
-      },
-    });
-    const metadata = {
-      pageCount: 412,
-      publishedDate: '1965',
-      categories: ['Science Fiction'],
-      language: 'en',
-      isbn: '9780441172719',
-      thumbnailUrl: null,
-    };
-
-    await createManualBook('Dune', 'Frank Herbert', metadata);
+    await createManualBook(
+      'Dune',
+      'Frank Herbert',
+      'https://example.com/dune.jpg',
+    );
 
     expect(mockHttpsCallable).toHaveBeenCalledWith({
       title: 'Dune',
       author: 'Frank Herbert',
-      metadata,
+      thumbnailUrl: 'https://example.com/dune.jpg',
     });
   });
 

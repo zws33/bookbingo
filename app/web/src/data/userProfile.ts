@@ -9,7 +9,7 @@ import {
 export const getUserProfile = createCallable<
   { userId: string },
   UserProfile | null
->('getUserProfile', GetUserProfileResponseSchema);
+>('getUserProfileV2', GetUserProfileResponseSchema);
 
 /**
  * Writes the signed-in user's profile.
@@ -18,6 +18,6 @@ export const getUserProfile = createCallable<
  * the client cannot claim someone else's.
  */
 export const syncMyProfile = createCallable<void, UserProfile>(
-  'syncMyProfile',
+  'syncMyProfileV2',
   UserProfileResponseSchema,
 );
