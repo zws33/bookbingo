@@ -1,32 +1,40 @@
 # Data Migration Plan — Firestore to Neon
 
-Copies all live Firestore data into an **empty** Neon database satisfying `db/migrations/0001`–`0007`. Steps 2 (staging) and 7 (prod) of `docs/challenge-implementation-plan.md`.
+Copies all live Firestore data into a Neon database satisfying `db/migrations/0001`–`0007`. Steps 2 (staging) and 3 (prod) of `docs/challenge-implementation-plan.md`; run again at the step 7 cutover.
 
 Firestore is left intact: the script never writes to it or deletes from it.
 
 ## Objective
 
-`scripts/firestore_pg_migration/`, **single-run** — it requires an empty destination. Running it twice is not supported; the way to run it again is to clear the destination first. The migration happens once per database, so idempotent upserts and a stored id remap buy nothing and cost a derivation that has to be right.
+`scripts/firestore_pg_migration/`, **rerunnable**. Every table upserts on a key derived from the Firestore source, so a second run updates the rows the first one wrote rather than duplicating or colliding. The destination does not have to be empty, and a failed run is recovered by running it again.
 
 ```
 pnpm run db:import:firestore -- \
   [--database-url <url>] \
-  --project <firebase-project> [--owner-uid <uid>] [--challenge-name <name>]
+  --project <firebase-project> [--owner-uid <uid>] [--challenge-name <name>] \
+  [--no-prune]
 ```
 
 Run it through the package script, not `tsx` directly: the script loads `functions/.env.local` with `--env-file-if-exists`, which is where `TEST_DATABASE_URL` comes from. A raw `tsx` invocation has no destination to default to.
 
 `--database-url` names the destination and defaults to `TEST_DATABASE_URL`, so an unqualified run writes to the local Docker Postgres. Neon is reached only by passing the flag. `DATABASE_URL` is not read — it is the application's connection, and a staging or prod secret. `--project` defaults to staging; `--owner` defaults to the operator's email and is resolved to a uid through Auth. The resolved destination is logged before the first write.
 
-No explicit emptiness pre-check was built. A second run conflicts on `users.id` in the first step and aborts before anything else is written, which is the same stop for one fewer moving part. The pre-flight checks below were likewise not built: every one of them is a constraint the destination already enforces, so a violation surfaces as the failing insert.
+The pre-flight checks below were not built: every one of them is a constraint the destination already enforces, so a violation surfaces as the failing insert.
+
+**Pruning is on by default and deletes.** A run makes the destination mirror Firestore: readings, TBR entries and their tag rows that exist in Postgres but not in the source are removed, as are `openLibrary` external refs whose work key changed. That is correct while Firestore is the source of truth, and wrong the moment it is not — after cutover, a prune-on run would delete every reading logged through the v2 client. `--no-prune` skips the deletes and upserts only. A run whose source collection comes back empty logs `source is empty, skipping prune` rather than emptying the table.
+
+Two things are never rewritten, because they are live application data by the time any rerun happens:
+
+- The challenge row, its join code and every membership (`on conflict do nothing`). A rerun will not revert a rename, a rotated code, a role change or a member who left.
+- Tags. They are matched by `lower(label)`, not by the ids the script generates, so a rerun reuses the rows readings are already attached to. A label dropped from `TILES` keeps its tag row, because `reading_tags` restricts the delete and the row still carries scoring history.
 
 Each step is a module exporting one function, composed in order by `index.ts`. A step takes a Firestore handle and a pg client and returns whatever the next step needs; `challenges.ts` takes no Firestore handle, since it synthesizes its rows and reads its member set from the `users` table.
 
 ## Ids
 
-`readings.id`, `tbr_entries.id` and `tags.id` are uuids and Firestore auto-ids are not, so all three are generated, not derived. `gen_random_uuid()` supplies them; nothing outside this run needs to predict one.
+`readings.id` and `tbr_entries.id` are a **uuid v5 of the Firestore document path** (`ids.ts`, namespace `IMPORT_NAMESPACE`). Postgres stores no Firestore id, so the path is the only stable identity available, and deriving the key from it is what makes a rerun upsert its own earlier row. Changing `IMPORT_NAMESPACE` re-keys every reading and TBR entry, so a rerun would delete and reinsert the whole subtree.
 
-`tags` is inserted before `reading_tags` and `tbr_entry_tags`, so the script holds a `Map<tileId, uuid>` built from that insert's `returning id` and uses it for both tag join tables. In memory for the length of the run, never persisted — the run that writes the tags is the run that writes the rows referencing them.
+`tags.id` is a fresh `randomUUID()`, but the tile-to-tag map is resolved from the labels already stored rather than from the ids just generated, so a rerun reuses the existing rows. `tags` is written before `reading_tags` and `tbr_entry_tags`, and the map lives in memory for the length of the run.
 
 `users.id` and `books.id` carry over unchanged — Firebase uids and the 32-hex derived book ids are already the Postgres keys.
 
@@ -38,7 +46,9 @@ CHALLENGE_ID = '2c91359f-260f-4372-a379-6a2c45488e84'
 
 ## Clearing a destination
 
-Required before the real prod run, because the rehearsal at step 7 leaves prod populated and the script refuses a populated destination.
+**Not part of the cutover.** The script upserts, so the step-3 rehearsal leaving prod populated is fine — the cutover run updates those rows in place.
+
+For a genuine reset (a corrupted database, or re-testing from nothing):
 
 ```sql
 truncate table reading_tags, readings, tbr_entry_tags, tbr_entries,
@@ -51,6 +61,8 @@ One statement naming every table, so the `on delete restrict` foreign keys never
 ## Mapping
 
 Foreign-key order. Each table is one transaction; the run is not, so a failure leaves earlier tables written — clear the destination and run again.
+
+Each table is one transaction; the run is not. A failure leaves earlier tables written, which a rerun then reconciles.
 
 | #   | Target               | Source                          | Notes                                                                                                                                                                                                                                                                         |
 | --- | -------------------- | ------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -85,16 +97,16 @@ A violation aborts its step's transaction, leaving earlier steps written. Recove
 
 1. Full run against the local container, pointed at prod Firestore. The rehearsal that costs nothing.
 2. Full run against Neon staging.
-3. Full run against Neon prod (step 7).
-4. **Clear prod.** The statement above. The rehearsal's rows are not the rows that go live.
-5. At cutover (step 8): freeze, full run against prod, unfreeze. The freeze covers the whole migration, not a delta.
+3. Full run against Neon prod (step 3). Nothing reads it yet; this proves the script against real volume before it matters. The rows it writes stay — the cutover run updates them.
+4. At cutover (step 7): announce the window, run against prod, verify, reopen. The run covers everything, not a delta, so it is timed at step 6 rather than guessed.
+5. **Never again with pruning on.** After cutover Firestore is no longer the source of truth, and a prune-on run deletes every reading written through the v2 client.
 
 ## Risks
 
-- **Reading ids change.** Fresh uuids, not Firestore auto-ids, and they differ between the rehearsal and the live run. Nothing persists a reading id outside Firestore and the client refetches, but a bookmarked deep link breaks.
+- **Reading ids are not Firestore auto-ids.** They are stable across runs, but a deep link bookmarked against a Firestore id breaks. Nothing persists a reading id client-side and the client refetches.
 - **Firestore records no book creator**, so every migrated book gets `created_by` null — attribution starts empty rather than wrong.
-- **A partial run cannot be resumed.** Each table is its own transaction, so a mid-run failure leaves earlier tables written, and the empty-destination precondition then refuses the retry. Recovery is clear-and-rerun.
-- **Forgetting to clear prod after the rehearsal** stops the cutover run at its precondition. That is the intended failure — loud, before the freeze, rather than a silent merge of rehearsal rows into live data.
+- **Pruning is destructive after cutover.** The default deletes Postgres readings and TBR entries absent from Firestore. One prune-on run after the client is live erases everything logged since. Nothing in the script guards this; the operator does.
+- **A changed `IMPORT_NAMESPACE`** re-keys every reading and TBR entry, so a rerun deletes the whole subtree and reinserts it under new ids.
 
 ## Open decisions
 
