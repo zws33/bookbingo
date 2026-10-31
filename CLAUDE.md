@@ -35,9 +35,7 @@ Rules:
 - **Nothing in a challenge's subtree is deleted implicitly.** Every foreign key reaching `challenges` is `on delete restrict`, as are `reading_tags` and `tbr_entry_tags` against their parent row. The `cascade` is absent on purpose, not forgotten: `challenges.remove` deletes memberships, tags and the join code by name, and readings and TBR entries refuse it outright. Clearing history is an explicit ordered script that does not exist yet: `reading_tags`, `readings`, `tbr_entry_tags`, `tbr_entries`, then `challenges.remove` for the scaffolding. Never a repository method.
 - `*.db.test.ts` runs only under `pnpm run test:db`, against the Docker Postgres and never in `verify` or CI. It needs `docker compose up -d --wait` and `functions/.env.local`; an edited migration also needs `docker compose down -v` first, because `schema_migrations` survives both the suite's own reset and a plain `down`. It runs `--test-concurrency=1`: node:test runs files in parallel processes, and against one database the truncates deadlock and seeds vanish mid-test.
 
-One deviation is deliberate:
-
-- **Responses flatten the book** as `bookTitle`/`bookAuthor`/`bookMetadata`. The target is a nested `book: Book`, matching what `getLibrary` and `fetchBookDetails` already return. It is the only non-backward-compatible change pending and needs a coordinated `deploy:all`.
+The v1 Firestore `present.ts` files still flatten the book as `bookTitle`/`bookAuthor`/`bookMetadata`. `postgresPresent.ts` returns the nested `book: Book` that was the target, so the flattening lives only in the v1 presenters and dies with them.
 
 ## Git
 
