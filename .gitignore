@@ -125,9 +125,6 @@ dist
 # Firebase emulator exported data (machine-local, can be large)
 emulator-data/
 
-# Local dataset dumps (machine-local, can exceed GitHub's 100MB file limit)
-data/*.parquet
-
 # TernJS port file
 .tern-port
 
@@ -156,9 +153,6 @@ app/web/*.config.js
 app/web/*.config.js.map
 app/web/*.config.d.ts
 app/web/*.config.d.ts.map
-
-# Migration backup
-pre-migration-backup/
 
 # Claude Code local settings (personal permission grants, not project config)
 **/.claude/settings.local.json

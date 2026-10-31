@@ -40,8 +40,7 @@ export function libraryHandlers(
      * readings, all books and all members to assemble the same thing.
      *
      * Books with no readings are left out. They exist when a manual title or
-     * author edit re-points a reading at a new book — see
-     * docs/decisions/book-identity-and-deduplication.md.
+     * author edit re-points a reading at a new book.
      */
     async get(request: CallableRequest<unknown>): Promise<LibraryBook[]> {
       const { uid } = requireAuth(request, 'load the library');

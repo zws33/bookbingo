@@ -6,7 +6,6 @@
     "test": "node --import tsx --test \"**/*.test.ts\""
   },
   "dependencies": {
-    "firebase-admin": "^13.7.0",
     "pg": "^8.23.0",
     "zod": "^4.4.2"
   },
