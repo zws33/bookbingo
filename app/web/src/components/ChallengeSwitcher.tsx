@@ -26,11 +26,16 @@ export function ChallengeSwitcher() {
 
   return (
     <DropdownMenu.Root>
-      <DropdownMenu.Trigger aria-label={`Challenge: ${label}`}>
+      <DropdownMenu.Trigger
+        className="min-w-0"
+        aria-label={`Challenge: ${label}`}
+      >
         <span className="font-display text-sm font-semibold truncate max-w-40 sm:max-w-64">
           {label}
         </span>
-        {active && <StatusChip status={active.challenge.status} />}
+        {active && (
+          <StatusChip status={active.challenge.status} className="shrink-0" />
+        )}
         <ChevronIcon className="text-on-surface-variant" />
       </DropdownMenu.Trigger>
 
