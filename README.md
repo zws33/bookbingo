@@ -42,7 +42,8 @@ If you prefer separate terminals, run `pnpm run emulator:start` in one and
 
 ### Local Postgres
 
-Postgres is being introduced alongside Firestore; no handler reads it yet.
+Postgres is the application database. Neon hosts staging and prod; Docker hosts
+local dev and `test:db`.
 
 ```bash
 docker compose up -d --wait              # Postgres on 5433, database bookbingo_test
@@ -72,7 +73,7 @@ bookbingo/
 │   └── util/src/         # Cross-platform utilities (logger)
 ├── app/
 │   └── web/src/          # React web application (Vite + Tailwind + Firebase)
-├── functions/src/        # Firebase Cloud Functions (enrichBook, submitFeedback)
+├── functions/src/        # Firebase Cloud Functions (callable API over Postgres)
 └── docs/                 # Design documents
 ```
 
@@ -85,7 +86,7 @@ dependencies.
 The project enforces a strict boundary between business logic and the application layer:
 
 - **`lib/`** — Pure TypeScript. No React, no Firebase. All scoring, validation, and tile logic lives here. This code is framework-agnostic and fully unit-testable.
-- **`app/web/`** — React + Firebase. Consumes `lib/` packages for logic, handles UI, auth, and Firestore reads/writes.
+- **`app/web/`** — React + Firebase. Consumes `lib/` packages for logic, handles UI and auth. Every read and write goes through a callable; `firebase/firestore` is ESLint-banned in `src/data`.
 
 When adding a feature, start in `lib/` (logic + tests), then wire it into `app/web/` (UI). Never import React or Firebase into `lib/`.
 
@@ -158,7 +159,7 @@ The result: a reader who covers 25 diverse tiles with 10 books will outscore one
 | --------------- | ---------------------------------------------------------------------------- |
 | Language        | TypeScript (strict, ESM only)                                                |
 | Web app         | React 19 + Vite + Tailwind CSS                                               |
-| Backend         | Firebase (Auth, Firestore, Hosting)                                          |
+| Backend         | Firebase (Auth, Functions, Hosting) + Neon Postgres                          |
 | Testing         | `node:test` in `lib/` + `functions/`; Vitest + Testing Library in `app/web/` |
 | Package manager | pnpm 11 (monorepo workspaces)                                                |
 | Build           | `tsc --build` (project references)                                           |

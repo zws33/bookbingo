@@ -29,10 +29,8 @@
     "deploy:functions:prod": "firebase deploy --only functions --project prod",
     "deploy:all:staging": "pnpm --filter @bookbingo/web build:staging && firebase deploy --project staging",
     "deploy:all:prod": "pnpm --filter @bookbingo/web build:prod && firebase deploy --project prod",
-    "emulator:start": "firebase emulators:start --project demo-bookbingo --import=./emulator-data --export-on-exit ./emulator-data",
+    "emulator:start": "firebase emulators:start --project demo-bookbingo --export-on-exit ./emulator-data",
     "db:migrate": "node --env-file-if-exists=functions/.env.local --import tsx scripts/migrate.ts",
-    "db:import:firestore": "node --env-file-if-exists=functions/.env.local --import tsx scripts/firestore_pg_migration/index.ts",
-    "mirror:staging": "tsx scripts/mirror-prod-to-staging.ts",
     "test:integration": "pnpm --filter @bookbingo/functions run build && firebase emulators:exec --project demo-bookbingo 'pnpm --filter @bookbingo/web test:integration'",
     "verify": "pnpm run format:check && pnpm run lint && pnpm run build && pnpm test && pnpm run typecheck",
     "dev:local": "concurrently --kill-others --names 'emulator,web' 'pnpm run emulator:start' 'pnpm run dev:web:emulator'"

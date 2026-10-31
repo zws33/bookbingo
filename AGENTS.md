@@ -1,8 +1,7 @@
 # AGENTS.md
 
 BookBingo: a book-reading bingo tracker. pnpm-workspace monorepo, TypeScript
-strict + ESM only. Deeper context lives in `CLAUDE.md`,
-`.github/copilot-instructions.md`, and `docs/`.
+strict + ESM only. Deeper context lives in `CLAUDE.md` and `docs/`.
 
 ## Environment
 
@@ -17,9 +16,9 @@ strict + ESM only. Deeper context lives in `CLAUDE.md`,
   `bookbingo_test`), `cp functions/.env.example functions/.env.local`, then
   `pnpm run db:migrate` (`--dry-run` lists pending). Data persists in the
   `pgdata` volume; `docker compose down -v` discards it.
-- Every script writing to Postgres (`db:migrate`, `scripts/firestore_pg_migration`)
-  resolves its target through `resolveDatabaseTarget`: `TEST_DATABASE_URL` by
-  default, a remote database only when passed `--database-url <url>`.
+- Every script writing to Postgres (`db:migrate`) resolves its target through
+  `resolveDatabaseTarget`: `TEST_DATABASE_URL` by default, a remote database
+  only when passed `--database-url <url>`.
   `DATABASE_URL` is never a migration target — that is the application's
   connection, a Neon secret in staging and prod, never a file.
 
@@ -49,10 +48,10 @@ strict + ESM only. Deeper context lives in `CLAUDE.md`,
 - `app/web/` — React 19 + Vite + Tailwind + Firebase. Every read/write goes
   through a callable; `firebase/firestore` is banned in `app/web/src/data` by
   ESLint. Reads live in `src/data` + `src/hooks`; writes in `src/lib`.
-- `scripts/` — tsx scripts (migrations, seeds, backfills). `db/migrations` holds
-  Postgres SQL; a Postgres pool (`functions/src/db/pool.ts`, `DATABASE_URL`,
-  docker-compose) is **in progress and not yet wired into handlers** — current
-  backend is still Firestore.
+- `scripts/` — tsx scripts. `migrate.ts` applies `db/migrations` Postgres SQL
+  and is the only one left. Neon Postgres (`functions/src/db/pool.ts`,
+  `DATABASE_URL`) backs every `*V2` callable; the v1 Firestore callables are
+  still deployed but no client calls them.
 
 ## functions/ conventions
 

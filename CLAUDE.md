@@ -23,7 +23,7 @@ Book reading bingo card tracker — a hobby project for a book club competition 
 Clean Architecture. Each domain module with persistence (`books/`, `challenges/`, `readings/`, `tags/`, `tbr/`, `users/`) has these files:
 
 - `store.ts` — repository interface, a private `firestoreX` singleton, and an `xRepository()` factory. The only layer that imports `firebase-admin`. Entities carry `Date`, not ISO strings.
-- `postgresStore.ts` — the Postgres replacement, built but wired to no handler. Declares its own interface and entities, challenge-scoped and different from the Firestore ones, so the two share nothing. `db/` owns the pool, `inTransaction` and `dbErrors`; `common/pgErrors.ts` maps a SQLSTATE to a `DomainError` by constraint name and stays pure. Each repository factory builds one `mapError = dbErrors('<name>', rules)` and every catch goes through it, so the storage layer logs its own `db.rejected`/`db.error` with the SQLSTATE and constraint. Handlers log what they were attempting and name no storage technology — `reportWriteFailure` carries no `stage`. Takes the `store.ts` name once Firestore is retired.
+- `postgresStore.ts` — the Postgres replacement, backing every live `*V2` callable. Declares its own interface and entities, challenge-scoped and different from the Firestore ones, so the two share nothing. `db/` owns the pool, `inTransaction` and `dbErrors`; `common/pgErrors.ts` maps a SQLSTATE to a `DomainError` by constraint name and stays pure. Each repository factory builds one `mapError = dbErrors('<name>', rules)` and every catch goes through it, so the storage layer logs its own `db.rejected`/`db.error` with the SQLSTATE and constraint. Handlers log what they were attempting and name no storage technology — `reportWriteFailure` carries no `stage`. Takes the `store.ts` name once Firestore is retired.
 - `handler.ts` — an `xHandlers(...repos)` factory returning a plain object of closures. Never a class: `callable(x.method, …)` passes the method unbound, so `this` would be lost.
 - `present.ts` — the response DTO and its mapper. Owns ISO encoding and the book flattening.
 
@@ -35,9 +35,7 @@ Rules:
 - **Nothing in a challenge's subtree is deleted implicitly.** Every foreign key reaching `challenges` is `on delete restrict`, as are `reading_tags` and `tbr_entry_tags` against their parent row. The `cascade` is absent on purpose, not forgotten: `challenges.remove` deletes memberships, tags and the join code by name, and readings and TBR entries refuse it outright. Clearing history is an explicit ordered script that does not exist yet: `reading_tags`, `readings`, `tbr_entry_tags`, `tbr_entries`, then `challenges.remove` for the scaffolding. Never a repository method.
 - `*.db.test.ts` runs only under `pnpm run test:db`, against the Docker Postgres and never in `verify` or CI. It needs `docker compose up -d --wait` and `functions/.env.local`; an edited migration also needs `docker compose down -v` first, because `schema_migrations` survives both the suite's own reset and a plain `down`. It runs `--test-concurrency=1`: node:test runs files in parallel processes, and against one database the truncates deadlock and seeds vanish mid-test.
 
-One deviation is deliberate:
-
-- **Responses flatten the book** as `bookTitle`/`bookAuthor`/`bookMetadata`. The target is a nested `book: Book`, matching what `getLibrary` and `fetchBookDetails` already return. It is the only non-backward-compatible change pending and needs a coordinated `deploy:all`.
+The v1 Firestore `present.ts` files still flatten the book as `bookTitle`/`bookAuthor`/`bookMetadata`. `postgresPresent.ts` returns the nested `book: Book` that was the target, so the flattening lives only in the v1 presenters and dies with them.
 
 ## Git
 
