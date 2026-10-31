@@ -22,7 +22,8 @@ import { LeaderboardPage } from './pages/LeaderboardPage';
 import { LibraryPage } from './pages/LibraryPage';
 import { StagingBanner } from './components/StagingBanner';
 import { FeedbackModal } from './components/FeedbackModal';
-import { Button } from './components/ui/index.js';
+import { AccountMenu } from './components/AccountMenu';
+import { Avatar, Button } from './components/ui/index.js';
 import { log } from '@bookbingo/lib-util';
 import { useEffect, useState, useCallback } from 'react';
 
@@ -131,7 +132,7 @@ function App() {
         {isStaging && <StagingBanner />}
         <header className="bg-surface-container-lowest shadow">
           <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between gap-3">
-            <div className="flex items-center gap-3 min-w-0">
+            <div className="flex items-center gap-3 min-w-0 flex-1">
               <Link
                 to="/"
                 className="font-display text-xl font-bold text-on-surface shrink-0"
@@ -143,37 +144,42 @@ function App() {
             </div>
             {user && (
               <div className="flex items-center gap-3 shrink-0">
-                {import.meta.env.DEV && (
-                  <NavLink
-                    to="/catalog"
-                    className={({ isActive }) =>
-                      `hidden sm:inline text-sm font-medium ${isActive ? 'text-primary' : 'text-on-surface-variant hover:text-on-surface'}`
-                    }
+                <div className="hidden sm:flex items-center gap-3">
+                  {import.meta.env.DEV && (
+                    <NavLink
+                      to="/catalog"
+                      className={({ isActive }) =>
+                        `text-sm font-medium ${isActive ? 'text-primary' : 'text-on-surface-variant hover:text-on-surface'}`
+                      }
+                    >
+                      Catalog
+                    </NavLink>
+                  )}
+                  <Button
+                    variant="outline"
+                    className="text-sm"
+                    onClick={() => setIsFeedbackOpen(true)}
                   >
-                    Catalog
-                  </NavLink>
-                )}
-                <Button
-                  variant="outline"
-                  className="text-sm"
-                  onClick={() => setIsFeedbackOpen(true)}
-                >
-                  Send Feedback
-                </Button>
-                {user.photoURL && (
-                  <img
-                    src={user.photoURL}
-                    alt="Profile"
-                    className="w-8 h-8 rounded-full"
+                    Send Feedback
+                  </Button>
+                  <Avatar
+                    name={user.displayName ?? 'Account'}
+                    photoURL={user.photoURL ?? undefined}
                   />
-                )}
-                <Button
-                  variant="outline"
-                  className="text-sm"
-                  onClick={handleSignOut}
-                >
-                  Sign Out
-                </Button>
+                  <Button
+                    variant="outline"
+                    className="text-sm"
+                    onClick={handleSignOut}
+                  >
+                    Sign Out
+                  </Button>
+                </div>
+                <AccountMenu
+                  className="sm:hidden"
+                  user={user}
+                  onFeedback={() => setIsFeedbackOpen(true)}
+                  onSignOut={handleSignOut}
+                />
               </div>
             )}
           </div>
