@@ -17,6 +17,8 @@ export const queryKeys = {
   library: (challengeId: string) => ['library', challengeId] as const,
   tbr: (challengeId: string, userId: string) =>
     ['tbr', challengeId, userId] as const,
+  score: (challengeId: string, userId: string) =>
+    ['score', challengeId, userId] as const,
 };
 
 /**

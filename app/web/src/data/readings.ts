@@ -1,22 +1,16 @@
 import { createCallable } from '../lib/callable';
-import {
-  ListReadingsResponseSchema,
-  type Reading,
-  type Score,
-} from '../types/schemas';
+import { ListReadingsResponseSchema, type Reading } from '../types/schemas';
 import { z } from 'zod/v4';
 
 const VoidResponseSchema = z.unknown().transform(() => undefined);
 
 /**
- * One member's readings in a challenge, newest first, with their score.
- *
- * Readings arrive with their book resolved, and the score is computed from the
- * same set, so the two cannot disagree on screen.
+ * One member's readings in a challenge, newest first, each with its book
+ * already resolved. The score comes from `getScore`, not from here.
  */
 export const listReadings = createCallable<
   { challengeId: string; userId: string },
-  { readings: Reading[]; score: Score }
+  { readings: Reading[] }
 >('listReadingsV2', ListReadingsResponseSchema);
 
 /**

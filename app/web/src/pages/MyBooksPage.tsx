@@ -14,6 +14,7 @@ import { log } from '@bookbingo/lib-util';
 import { createManualBook } from '../lib/createManualBook';
 import type { Book } from '../types/schemas';
 import { ReadingForm } from 'src/components/ReadingForm.js';
+import { useScore } from 'src/hooks/useScore.js';
 
 interface MyBooksPageProps {
   userId: string;
@@ -27,21 +28,21 @@ type DialogState =
 
 export function MyBooksPage({ userId }: MyBooksPageProps) {
   const { challenge } = useActiveChallenge();
-  const writable = statusAllows(challenge.status, 'readingWrite');
+  const canAddBooks = statusAllows(challenge.status, 'readingWrite');
   const [dialog, setDialog] = useState<DialogState>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { showSuccess, showError } = useToast();
   const {
     readings,
-    score,
     loading: readingsLoading,
     error: readingsError,
   } = useReadings(challenge.id, userId);
+  const {
+    score,
+    loading: scoreLoading,
+    error: scoreError,
+  } = useScore(challenge.id, userId);
   const invalidate = useInvalidateReadings(challenge.id, userId);
-
-  const loading = readingsLoading;
-  const error = readingsError;
-  const scoreBreakdown = readings.length > 0 ? score : null;
 
   // The search callable returns the whole book, so the form renders at once.
   const handleBookSelected = useCallback((book: Book) => {
@@ -79,8 +80,6 @@ export function MyBooksPage({ userId }: MyBooksPageProps) {
     }
   };
 
-  // fetchBookDetails already wrote the book and derived its id; this only
-  // records the reading.
   const submitReadingData = async (data: {
     tiles: string[];
     isFreebie: boolean;
@@ -107,19 +106,17 @@ export function MyBooksPage({ userId }: MyBooksPageProps) {
 
   return (
     <>
-      {' '}
       <div className="space-y-6">
-        {' '}
-        {scoreBreakdown && <ScoreDisplay breakdown={scoreBreakdown} />}{' '}
+        {!scoreLoading && !scoreError && <ScoreDisplay breakdown={score} />}
         <BookList
           challengeId={challenge.id}
           userId={userId}
           readings={readings}
-          loading={loading}
-          error={error}
-          readOnly={!writable}
+          loading={readingsLoading}
+          error={readingsError}
+          readOnly={!canAddBooks}
         />
-        {writable && (
+        {canAddBooks && (
           <div className="fixed right-4 bottom-20 sm:right-8">
             <button
               onClick={() => setDialog({ kind: 'search' })}
