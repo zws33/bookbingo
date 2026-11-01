@@ -14,12 +14,7 @@ export function errorCode(error: unknown): string {
 }
 
 /**
- * Binds a callable to its response schema.
- *
- * The response is validated at this boundary rather than trusted: the client
- * and the function are deployed separately, so a stale bundle can meet a newer
- * response shape. Parsing here means that surfaces as one failed call instead
- * of an undefined field somewhere in a component.
+ * Binds a callable to its response schema. The response is validated at this boundary.
  */
 export function createCallable<Req, Res>(
   name: string,

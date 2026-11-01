@@ -96,9 +96,12 @@ export const ScoreSchema = z.object({
 });
 export type Score = z.infer<typeof ScoreSchema>;
 
+/**
+ * Zod strips unknown keys, so the `score` the function still returns is dropped
+ * here rather than read. `getScore` is the only source of a breakdown.
+ */
 export const ListReadingsResponseSchema = z.object({
   readings: z.array(ReadingSchema),
-  score: ScoreSchema,
 });
 
 export const LibraryReaderSchema = z.object({

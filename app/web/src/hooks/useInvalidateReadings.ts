@@ -3,10 +3,9 @@ import { useCallback } from 'react';
 import { queryKeys } from '../lib/queryClient';
 
 /**
- * A reading write is only visible after the affected queries refetch, and a
- * reading feeds three: the member's list, the leaderboard's scores, and the
- * library's read counts. Promote also empties the reading list. Callers await
- * this so the UI they return to is current.
+ * Invalidates every query derived from reading state: a reading write does not
+ * refetch them on its own. Callers await this so a navigation that follows the
+ * write lands on current data.
  */
 export function useInvalidateReadings(challengeId: string, userId: string) {
   const queryClient = useQueryClient();
@@ -24,6 +23,9 @@ export function useInvalidateReadings(challengeId: string, userId: string) {
       }),
       queryClient.invalidateQueries({
         queryKey: queryKeys.tbr(challengeId, userId),
+      }),
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.score(challengeId, userId),
       }),
     ]);
   }, [queryClient, challengeId, userId]);

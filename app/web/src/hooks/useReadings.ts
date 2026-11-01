@@ -1,24 +1,11 @@
 import { useQuery } from '@tanstack/react-query';
 import { listReadings } from '../data/readings';
 import { queryKeys } from '../lib/queryClient';
-import type { Reading, Score } from '../types/schemas';
+import type { Reading } from '../types/schemas';
 
 const NO_READINGS: Reading[] = [];
 
-const NO_SCORE: Score = {
-  score: 0,
-  varietyPoints: 0,
-  volumePoints: 0,
-  tileCounts: {},
-  totalBooks: 0,
-};
-
-/**
- * One member's readings in a challenge, and their score.
- *
- * `score` is whatever the server computed for this exact set of readings, so
- * callers render it rather than recomputing.
- */
+/** One member's readings in a challenge. The score comes from `useScore`. */
 export function useReadings(challengeId: string, userId: string) {
   const { data, isPending, error } = useQuery({
     queryKey: queryKeys.readings(challengeId, userId),
@@ -30,7 +17,6 @@ export function useReadings(challengeId: string, userId: string) {
 
   return {
     readings: data?.readings ?? NO_READINGS,
-    score: data?.score ?? NO_SCORE,
     loading: idle ? false : isPending,
     error: error ?? undefined,
   };

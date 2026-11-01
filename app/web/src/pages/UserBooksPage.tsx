@@ -1,6 +1,7 @@
 import { Link, useParams } from 'react-router-dom';
 import { useActiveChallenge } from '../challenge/ChallengeContext';
 import { useReadings } from '../hooks/useReadings';
+import { useScore } from '../hooks/useScore';
 import { useUserProfile } from '../hooks/useUserProfile';
 import { BookList } from '../components/BookList';
 import { ScoreDisplay } from '../components/ScoreDisplay';
@@ -15,13 +16,14 @@ export function UserBooksPage() {
   const { profile, loading: profileLoading } = useUserProfile(userId ?? '');
   const {
     readings,
-    score,
     loading: readingsLoading,
     error: readingsError,
   } = useReadings(challenge.id, userId ?? '');
-  const loading = readingsLoading;
-  const error = readingsError;
-  const scoreBreakdown = readings.length > 0 ? score : null;
+  const {
+    score,
+    loading: scoreLoading,
+    error: scoreError,
+  } = useScore(challenge.id, userId ?? '');
 
   if (!userId) {
     return <div className="text-center py-8 text-error">Invalid user.</div>;
@@ -70,14 +72,14 @@ export function UserBooksPage() {
         </h2>
       </div>
 
-      {scoreBreakdown && <ScoreDisplay breakdown={scoreBreakdown} />}
+      {!scoreLoading && !scoreError && <ScoreDisplay breakdown={score} />}
 
       <BookList
         challengeId={challenge.id}
         userId={userId}
         readings={readings}
-        loading={loading}
-        error={error}
+        loading={readingsLoading}
+        error={readingsError}
         readOnly
       />
     </div>

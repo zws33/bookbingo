@@ -3,7 +3,6 @@ import { renderHook, waitFor } from '@testing-library/react';
 import { Providers } from '../testing/test-utils';
 import { makeReading } from '../testing/fixtures';
 import { useReadings } from './useReadings';
-import type { Score } from '../types/schemas';
 
 vi.mock('../data/readings', () => ({
   listReadings: vi.fn(),
@@ -12,14 +11,6 @@ vi.mock('../data/readings', () => ({
 import { listReadings } from '../data/readings';
 
 const listReadingsMock = vi.mocked(listReadings);
-
-const SCORE: Score = {
-  score: 4.5,
-  varietyPoints: 3,
-  volumePoints: 2,
-  tileCounts: { t02: 2 },
-  totalBooks: 2,
-};
 
 beforeEach(() => {
   listReadingsMock.mockReset();
@@ -31,15 +22,14 @@ const render = (userId: string) =>
   renderHook(() => useReadings(CHALLENGE_ID, userId), { wrapper: Providers });
 
 describe('useReadings', () => {
-  it('exposes the readings and the score the server computed', async () => {
+  it('exposes the readings the server returned', async () => {
     const readings = [makeReading()];
-    listReadingsMock.mockResolvedValue({ readings, score: SCORE });
+    listReadingsMock.mockResolvedValue({ readings });
 
     const { result } = render('user-1');
 
     await waitFor(() => expect(result.current.loading).toBe(false));
     expect(result.current.readings).toEqual(readings);
-    expect(result.current.score).toEqual(SCORE);
     expect(listReadingsMock).toHaveBeenCalledWith({
       challengeId: CHALLENGE_ID,
       userId: 'user-1',
@@ -54,16 +44,13 @@ describe('useReadings', () => {
     expect(result.current.readings).toEqual([]);
   });
 
-  // Callers render score unconditionally, so it is a zero score while loading
-  // rather than undefined.
-  it('reports a zero score before the first response', () => {
+  it('reports an empty list before the first response', () => {
     listReadingsMock.mockReturnValue(new Promise(() => {}));
 
     const { result } = render('user-1');
 
     expect(result.current.loading).toBe(true);
-    expect(result.current.score.score).toBe(0);
-    expect(result.current.score.totalBooks).toBe(0);
+    expect(result.current.readings).toEqual([]);
   });
 
   it('exposes a failed call as an error', async () => {
@@ -76,7 +63,7 @@ describe('useReadings', () => {
   });
 
   it('caches by user id, so two views of one user make one call', async () => {
-    listReadingsMock.mockResolvedValue({ readings: [], score: SCORE });
+    listReadingsMock.mockResolvedValue({ readings: [] });
 
     const { result } = renderHook(
       () => ({
