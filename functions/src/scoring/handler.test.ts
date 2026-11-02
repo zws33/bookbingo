@@ -11,7 +11,6 @@ import { DomainError } from '../common/errors.js';
 import type { Reading, ReadingRepository } from '../readings/postgresStore.js';
 import type { Tag, TagRepository } from '../tags/postgresStore.js';
 import { scoringHandlers } from './handler.js';
-import { scorer } from './scorer.js';
 
 const AUTH = { uid: 'user-1', token: {}, rawToken: 'test' };
 
@@ -84,7 +83,7 @@ const handlers = (
   scoringHandlers(
     fakeReadingRepo(readings),
     fakeChallengeRepo(challenges),
-    scorer(fakeTagRepo(tags)),
+    fakeTagRepo(tags),
   );
 
 function makeRequest(

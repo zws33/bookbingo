@@ -1,4 +1,5 @@
 import type { CallableRequest } from 'firebase-functions/v2/https';
+import type { TagRepository } from '../tags/postgresStore.js';
 import { parseRequest, requireAuth } from '../callable.js';
 import { denied, requireActiveMembership } from '../challenges/access.js';
 import { hasPermission } from '../challenges/permissions.js';
@@ -6,12 +7,12 @@ import type { ChallengeRepository } from '../challenges/postgresStore.js';
 import type { ReadingRepository } from '../readings/postgresStore.js';
 import { toScoringInputs, type ScoreDTO } from './present.js';
 import { GetScoreRequestSchema } from './schema.js';
-import type { Scorer } from './scorer.js';
+import { scoreCalculator } from './scoreCalculator.js';
 
 export function scoringHandlers(
   readingsRepo: ReadingRepository,
   challengesRepo: ChallengeRepository,
-  scorer: Scorer,
+  tagsRepo: TagRepository,
 ) {
   return {
     /**
@@ -44,12 +45,12 @@ export function scoringHandlers(
         await requireActiveMembership(challengesRepo, challengeId, userId);
       }
 
-      const [readings, scoreOf] = await Promise.all([
+      const [readings, tags] = await Promise.all([
         readingsRepo.list(challengeId, userId),
-        scorer.forChallenge(challengeId),
+        tagsRepo.listByChallenge(challengeId),
       ]);
 
-      return scoreOf(toScoringInputs(readings));
+      return scoreCalculator(tags.length)(toScoringInputs(readings));
     },
   };
 }

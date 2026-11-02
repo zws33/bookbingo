@@ -16,7 +16,6 @@ import type {
   MembershipStatus,
 } from '../challenges/schema.js';
 import { DomainError } from '../common/errors.js';
-import { scorer } from '../scoring/scorer.js';
 import type { Tag, TagRepository } from '../tags/postgresStore.js';
 import { readingHandlers } from './postgresHandler.js';
 import type { Reading, ReadingRepository } from './postgresStore.js';
@@ -93,9 +92,12 @@ const VOCABULARY: Tag[] = Array.from({ length: 25 }, (_, i) => ({
   label: `tag ${i + 1}`,
 }));
 
-function fakeTagRepo(): TagRepository {
+function fakeTagRepo(onList?: () => void): TagRepository {
   return {
-    listByChallenge: () => Promise.resolve(VOCABULARY),
+    listByChallenge: () => {
+      onList?.();
+      return Promise.resolve(VOCABULARY);
+    },
     create: unexpected('create'),
     update: unexpected('update'),
     remove: unexpected('remove'),
@@ -106,12 +108,13 @@ const handlers = (
   readings: Partial<ReadingRepository> = {},
   challenges: Partial<ChallengeRepository> = {},
   books: Partial<BookRepository> = {},
+  tags: TagRepository = fakeTagRepo(),
 ) =>
   readingHandlers(
     fakeReadingRepo(readings),
     fakeBookRepo(books),
     fakeChallengeRepo(challenges),
-    scorer(fakeTagRepo()),
+    tags,
   );
 
 function makeRequest(
@@ -453,6 +456,25 @@ describe('readingHandlers.leaderboard', () => {
         bookCount: 0,
       },
     ]);
+  });
+
+  test('reads the tag vocabulary once, not once per member', async () => {
+    let calls = 0;
+    await handlers(
+      { listByChallenge: () => Promise.resolve(new Map()) },
+      {
+        getMembership: membershipOf(makeMembership('member')),
+        listMembers: () =>
+          Promise.resolve([
+            makeMember('member'),
+            makeMember('member', 'active', AUTHOR),
+          ]),
+      },
+      {},
+      fakeTagRepo(() => calls++),
+    ).leaderboard(makeRequest(AUTH, { challengeId: CHALLENGE_ID }));
+
+    assert.equal(calls, 1);
   });
 
   for (const status of ['left', 'removed'] as const) {
