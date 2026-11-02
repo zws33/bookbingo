@@ -1,39 +1,38 @@
+import { defineSecret } from 'firebase-functions/params';
 import { setGlobalOptions } from 'firebase-functions/v2';
 import { onCall, type CallableOptions } from 'firebase-functions/v2/https';
-import { defineSecret } from 'firebase-functions/params';
-import { callable } from './callable.js';
-import { submitFeedbackHandler, GITHUB_API_URL } from './feedback/handler.js';
 import {
   fetchBookDetailsHandler,
   searchBooksHandler,
 } from './books/handler.js';
 import { createManualBookHandler } from './books/manual.js';
+import { bookHandlers as postgresBookHandlers } from './books/postgresHandler.js';
+import { bookRepository as postgresBookRepository } from './books/postgresStore.js';
 import { bookRepository } from './books/store.js';
+import { callable } from './callable.js';
+import { challengeHandlers } from './challenges/handler.js';
+import { challengeRepository } from './challenges/postgresStore.js';
 import {
   boardConfigHandlers,
   getBoardConfigHandler,
 } from './config/handler.js';
-import { challengeHandlers } from './challenges/handler.js';
-import { challengeRepository } from './challenges/postgresStore.js';
-import { tagHandlers } from './tags/handler.js';
-import { tagRepository } from './tags/postgresStore.js';
-import { userHandlers } from './users/handler.js';
-import { userProfileRepository } from './users/store.js';
+import { GITHUB_API_URL, submitFeedbackHandler } from './feedback/handler.js';
+import { libraryHandlers } from './library/handler.js';
+import { libraryHandlers as postgresLibraryHandlers } from './library/postgresHandler.js';
 import { readingHandlers } from './readings/handler.js';
-import { readingRepository } from './readings/store.js';
 import { readingHandlers as postgresReadingHandlers } from './readings/postgresHandler.js';
 import { readingRepository as postgresReadingRepository } from './readings/postgresStore.js';
-import { bookRepository as postgresBookRepository } from './books/postgresStore.js';
-import { bookHandlers as postgresBookHandlers } from './books/postgresHandler.js';
-import { userProfileRepository as postgresUserProfileRepository } from './users/postgresStore.js';
-import { libraryHandlers } from './library/handler.js';
+import { readingRepository } from './readings/store.js';
 import { scoringHandlers } from './scoring/handler.js';
-import { scorer } from './scoring/scorer.js';
-import { libraryHandlers as postgresLibraryHandlers } from './library/postgresHandler.js';
+import { tagHandlers } from './tags/handler.js';
+import { tagRepository } from './tags/postgresStore.js';
 import { tbrHandlers } from './tbr/handler.js';
-import { tbrEntryRepository } from './tbr/store.js';
 import { tbrHandlers as postgresTbrHandlers } from './tbr/postgresHandler.js';
 import { tbrEntryRepository as postgresTbrEntryRepository } from './tbr/postgresStore.js';
+import { tbrEntryRepository } from './tbr/store.js';
+import { userHandlers } from './users/handler.js';
+import { userProfileRepository as postgresUserProfileRepository } from './users/postgresStore.js';
+import { userProfileRepository } from './users/store.js';
 
 // Caps the blast radius of a runaway caller rather than the traffic: nothing
 // rate-limits these endpoints, and the platform default of 100 instances lets
@@ -71,7 +70,6 @@ function buildPostgresApi() {
   const booksRepo = postgresBookRepository();
   const readingsRepo = postgresReadingRepository();
   const tbrRepo = postgresTbrEntryRepository();
-  const challengeScorer = scorer(tagsRepo);
   const postgresUsersRepo = postgresUserProfileRepository();
 
   return {
@@ -82,9 +80,9 @@ function buildPostgresApi() {
       readingsRepo,
       booksRepo,
       challengesRepo,
-      challengeScorer,
+      tagsRepo,
     ),
-    scoring: scoringHandlers(readingsRepo, challengesRepo, challengeScorer),
+    scoring: scoringHandlers(readingsRepo, challengesRepo, tagsRepo),
     library: postgresLibraryHandlers(readingsRepo, booksRepo, challengesRepo),
     tbr: postgresTbrHandlers(tbrRepo, booksRepo, challengesRepo),
     books: postgresBookHandlers(booksRepo),

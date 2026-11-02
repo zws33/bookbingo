@@ -26,7 +26,8 @@ import {
   UpdateChallengeReadingRequestSchema,
 } from './schema.js';
 import { toScoringInputs, type ScoreDTO } from '../scoring/present.js';
-import type { Scorer } from '../scoring/scorer.js';
+import { scoreCalculator } from '../scoring/scoreCalculator.js';
+import type { TagRepository } from '../tags/postgresStore.js';
 import { validateReadingTags } from './validate.js';
 
 const READINGS_FROZEN = 'This challenge is not taking readings right now.';
@@ -45,7 +46,7 @@ export function readingHandlers(
   readingsRepo: ReadingRepository,
   booksRepo: BookRepository,
   challengesRepo: ChallengeRepository,
-  scorer: Scorer,
+  tagsRepo: TagRepository,
 ) {
   /**
    * Returns the challenge rather than only gating on it: every write needs
@@ -132,17 +133,17 @@ export function readingHandlers(
       if (userId !== uid) {
         await requireActiveMembership(challengesRepo, challengeId, userId);
       }
-
-      const [readings, scoreOf] = await Promise.all([
+      const [readings, tags] = await Promise.all([
         readingsRepo.list(challengeId, userId),
-        scorer.forChallenge(challengeId),
+        tagsRepo.listByChallenge(challengeId),
       ]);
+      const calculateScore = scoreCalculator(tags.length);
 
       try {
         const joined = await attachBooks(booksRepo, readings);
         return {
           readings: joined.map(toReadingDTO),
-          score: scoreOf(toScoringInputs(readings)),
+          score: calculateScore(toScoringInputs(readings)),
         };
       } catch (error) {
         if (error instanceof MissingBookError) {
@@ -178,12 +179,12 @@ export function readingHandlers(
       if (!hasPermission(membership.role, 'challenge.read')) {
         throw denied(membership, 'challenge.read');
       }
-
-      const [members, byUser, scoreOf] = await Promise.all([
+      const [members, byUser, tags] = await Promise.all([
         challengesRepo.listMembers(challengeId),
         readingsRepo.listByChallenge(challengeId),
-        scorer.forChallenge(challengeId),
+        tagsRepo.listByChallenge(challengeId),
       ]);
+      const calculateScore = scoreCalculator(tags.length);
 
       return members
         .filter((member) => member.status === 'active')
@@ -193,7 +194,7 @@ export function readingHandlers(
             userId: member.userId,
             name: member.name,
             photoURL: member.photoURL,
-            score: scoreOf(toScoringInputs(readings)).score,
+            score: calculateScore(toScoringInputs(readings)).score,
             bookCount: readings.length,
           };
         })

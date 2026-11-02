@@ -106,7 +106,7 @@ export function validateReadingTags(
 /**
  * v1 only: the Firestore path has no challenge, so it cannot resolve the tag
  * vocabulary size the challenge-scoped engines take. Challenge-scoped scoring
- * goes through `scoring/scorer.ts`.
+ * goes through `scoring/scoreCalculator.ts`.
  */
 export function scoreOf(readings: ScoringInput[]): ScoreDTO {
   return toScoreDTO(getScoreBreakdown(readings));
