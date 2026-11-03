@@ -106,11 +106,6 @@
   // explorer, not just excluded from search. See the note in chat — add a
   // "files.exclude" block here if you want them gone from the tree.
 
-  // ── Firestore rules ──────────────────────────────────────────
-  "[firestore]": {
-    "editor.formatOnSave": false
-  },
-
   // ── Misc ─────────────────────────────────────────────────────
   // pnpm workspaces: never let the editor offer npm/yarn.
   "npm.packageManager": "pnpm",

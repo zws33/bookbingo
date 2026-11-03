@@ -7,8 +7,9 @@ strict + ESM only. Deeper context lives in `CLAUDE.md` and `docs/`.
 
 - Node 22 (`.nvmrc`) and pnpm (`packageManager` in `package.json`). Never use
   `npm` or `yarn`. CI uses `pnpm install --frozen-lockfile`.
-- Local dev: `pnpm run dev:local` (web + Firebase emulators). No real Firebase
-  credentials needed — emulator flow uses committed `.env.emulator`.
+- Local dev: `pnpm run dev:local` (web + the Auth and Functions emulators). No
+  real Firebase credentials needed — emulator flow uses committed
+  `.env.emulator`. Callables need `DATABASE_URL` in `functions/.env.local`.
 - Real environments copy `app/web/.env.example` → `.env.staging` / `.env.prod`
   and run `dev:web:staging` / `dev:web:prod`. Missing `VITE_FIREBASE_*` fails
   the build by design.
@@ -33,8 +34,6 @@ strict + ESM only. Deeper context lives in `CLAUDE.md` and `docs/`.
     (node:test; add `--test-name-pattern="..."` for one case)
   - `pnpm --filter @bookbingo/web exec vitest run src/.../X.test.tsx`
     (Vitest; add `-t "..."` for one case)
-- `pnpm run test:integration` runs web integration tests against the emulators.
-  Unit tests exclude `*.int.test.*`; integration uses `vitest.config.int.ts`.
 - `prettier --write .` after editing; `verify` fails on unformatted files.
 
 ## Architecture
@@ -46,12 +45,13 @@ strict + ESM only. Deeper context lives in `CLAUDE.md` and `docs/`.
   `functions/` may import `lib/types` for **types only** — a runtime import breaks
   the deploy.
 - `app/web/` — React 19 + Vite + Tailwind + Firebase. Every read/write goes
-  through a callable; `firebase/firestore` is banned in `app/web/src/data` by
-  ESLint. Reads live in `src/data` + `src/hooks`; writes in `src/lib`.
+  through a callable; `firebase/firestore` is ESLint-banned across `app/web`.
+  Reads live in `src/data` + `src/hooks`; writes in `src/lib`.
 - `scripts/` — tsx scripts. `migrate.ts` applies `db/migrations` Postgres SQL
   and is the only one left. Neon Postgres (`functions/src/db/pool.ts`,
-  `DATABASE_URL`) backs every `*V2` callable; the v1 Firestore callables are
-  still deployed but no client calls them.
+  `DATABASE_URL`) is the only datastore. `searchBooks` and `submitFeedback` are
+  the only callables that touch no store; dropping the `*V2` suffixes is
+  outstanding.
 
 ## functions/ conventions
 

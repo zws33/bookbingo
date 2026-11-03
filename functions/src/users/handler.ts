@@ -1,7 +1,7 @@
 import type { CallableRequest } from 'firebase-functions/v2/https';
 import { parseRequest, requireAuth } from '../callable.js';
 import { logEvent, reportWriteFailure } from '../observability.js';
-import type { UserProfileRepository } from './store.js';
+import type { UserProfileRepository } from './postgresStore.js';
 import { GetUserProfileRequestSchema } from './schema.js';
 import type { UserProfile } from '@bookbingo/lib-types';
 

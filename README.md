@@ -31,7 +31,7 @@ cd bookbingo
 # Install dependencies
 pnpm install
 
-# Start the web app and Firebase emulators together
+# Start the web app and the Auth/Functions emulators together
 pnpm run dev:local
 ```
 
@@ -86,7 +86,7 @@ dependencies.
 The project enforces a strict boundary between business logic and the application layer:
 
 - **`lib/`** — Pure TypeScript. No React, no Firebase. All scoring, validation, and tile logic lives here. This code is framework-agnostic and fully unit-testable.
-- **`app/web/`** — React + Firebase. Consumes `lib/` packages for logic, handles UI and auth. Every read and write goes through a callable; `firebase/firestore` is ESLint-banned in `src/data`.
+- **`app/web/`** — React + Firebase. Consumes `lib/` packages for logic, handles UI and auth. Every read and write goes through a callable; `firebase/firestore` is ESLint-banned.
 
 When adding a feature, start in `lib/` (logic + tests), then wire it into `app/web/` (UI). Never import React or Firebase into `lib/`.
 
@@ -109,7 +109,6 @@ output.
 
 ```bash
 pnpm test                  # Run all workspace tests (node:test + Vitest)
-pnpm run test:integration  # Run web integration tests against Firebase emulators
 pnpm run typecheck         # Type-check workspace packages with tsc --noEmit
 pnpm run lint              # Lint the repo
 pnpm run format            # Format with Prettier
@@ -122,7 +121,7 @@ pnpm run db:migrate        # Apply db/migrations/ to TEST_DATABASE_URL, or --dat
 Recommended local development uses the committed emulator config:
 
 ```bash
-pnpm run dev:local         # Web app + Firebase emulators
+pnpm run dev:local         # Web app + Auth/Functions emulators
 pnpm run dev:web:emulator  # Web app only, pointed at local emulators
 ```
 

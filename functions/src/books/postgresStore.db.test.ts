@@ -273,7 +273,7 @@ describe('bookRepository', () => {
     test('rejects an id that was not derived', async () => {
       await assert.rejects(
         repository().createIfAbsent({
-          id: 'firestore-auto-id',
+          id: 'not-a-derived-id',
           title: 'Dune',
           author: 'Frank Herbert',
           thumbnailUrl: null,
