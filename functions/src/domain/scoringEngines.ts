@@ -1,6 +1,5 @@
 import type { ScoreBreakdown, ScoringInput } from '@bookbingo/lib-types';
 import { coverageDecay } from './decay.js';
-import { getScoreBreakdown } from './scoring.js';
 
 /**
  * Parameters are bound when the engine is built, so scoring itself is only ever
@@ -19,26 +18,16 @@ export interface ScoringParams extends ScoringKnobs {
   vocabularySize: number;
 }
 
-export const ENGINE_NAMES = [
-  'coverage-decay',
-  'balanced-harmonic',
-  'harmonic',
-] as const;
+export type EngineName = 'coverage-decay';
 
-export type EngineName = (typeof ENGINE_NAMES)[number];
-
-/** The two pre-decay models take no parameters and ignore the ones they get. */
 const ENGINES: Record<EngineName, (params: ScoringParams) => ScoringEngine> = {
   'coverage-decay': coverageDecay,
-  'balanced-harmonic': () => (inputs) =>
-    getScoreBreakdown(inputs, 'balanced-harmonic'),
-  harmonic: () => (inputs) => getScoreBreakdown(inputs, 'harmonic'),
 };
 
 /**
  * The model every challenge-scoped score comes from. A server constant rather
  * than a request field: two callers must never get different scores for the
- * same readings. Flipping it back is the rollback for the decay model.
+ * same readings.
  */
 export const ACTIVE_ENGINE: EngineName = 'coverage-decay';
 
