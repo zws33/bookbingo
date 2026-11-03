@@ -31,7 +31,7 @@
     "deploy:all:prod": "pnpm --filter @bookbingo/web build:prod && firebase deploy --project prod",
     "emulator:start": "firebase emulators:start --project demo-bookbingo --export-on-exit ./emulator-data",
     "db:migrate": "node --env-file-if-exists=functions/.env.local --import tsx scripts/migrate.ts",
-    "verify": "pnpm run format:check && pnpm run lint && pnpm run build && pnpm test && pnpm run typecheck",
+    "verify": "pnpm run format:check && pnpm run lint && pnpm run build && pnpm run typecheck && pnpm test",
     "dev:local": "concurrently --kill-others --names 'emulator,web' 'pnpm run emulator:start' 'pnpm run dev:web:emulator'"
   },
   "keywords": [],
