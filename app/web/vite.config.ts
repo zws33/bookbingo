@@ -57,7 +57,6 @@ export default defineConfig({
       '**/node_modules/**',
       '**/dist/**',
       '**/.{idea,git,cache,output,temp}/**',
-      '**/*.int.test.*',
     ],
     coverage: {
       provider: 'v8',

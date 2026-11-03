@@ -116,7 +116,7 @@ test('catalog and manual key spaces are domain-separated', () => {
   assert.notEqual(catalog, manual);
 });
 
-test('derived id is a legal Firestore document id', () => {
+test('derived id matches the shape books_id_check enforces', () => {
   for (const id of [
     deriveBookId({
       openLibraryKey: '/works/OL166894W',

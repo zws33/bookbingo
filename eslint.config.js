@@ -60,8 +60,9 @@ export default tseslint.config(
     rules: {
       'react-hooks/exhaustive-deps': 'error',
       // The client owns no data-source access: every read and write goes
-      // through a callable in src/data. The security rules deny direct
-      // Firestore access, so an import here fails at runtime, not at build.
+      // through a callable in src/data. The database is Postgres, reachable
+      // only from functions/, so this import cannot work — the rule says why
+      // instead of leaving a runtime failure.
       'no-restricted-imports': [
         'error',
         {
@@ -69,7 +70,7 @@ export default tseslint.config(
             {
               name: 'firebase/firestore',
               message:
-                'The client does not talk to Firestore. Add a callable in functions/ and wrap it in src/data.',
+                'The client does not talk to a database directly. Add a callable in functions/ and wrap it in src/data.',
             },
           ],
         },

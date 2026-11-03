@@ -46,14 +46,14 @@ test('log.error dispatches app_error event with label and message', () => {
 
   const originalError = console.error;
   console.error = () => {};
-  log.error('books', new Error('firestore unavailable'));
+  log.error('books', new Error('database unavailable'));
   console.error = originalError;
 
   assert.equal(calls.length, 1);
   assert.equal(calls[0]![0], 'app_error');
   assert.deepEqual(calls[0]![1], {
     label: 'books',
-    message: 'firestore unavailable',
+    message: 'database unavailable',
   });
 });
 

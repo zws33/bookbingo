@@ -1,20 +1,10 @@
 import { HttpsError, type CallableRequest } from 'firebase-functions/v2/https';
-import type {
-  ProviderBookDetails,
-  BookProvider,
-  ProviderSearchResult,
-} from './types.js';
+import type { BookProvider, ProviderSearchResult } from './types.js';
 import { ProviderError } from './types.js';
 import { OpenLibraryProvider } from './providers/open-library.js';
-import { deriveBookId } from './bookIdentity.js';
-import { createBookIfAbsent } from './store.js';
 import { logEvent, logFailure } from '../observability.js';
 import { parseRequest, requireAuth } from '../callable.js';
-import {
-  BookSearchQuerySchema,
-  GetBookDetailsRequestSchema,
-} from './schema.js';
-import type { Book, BookMetadata } from '@bookbingo/lib-types';
+import { BookSearchQuerySchema } from './schema.js';
 
 const provider: BookProvider = new OpenLibraryProvider();
 
@@ -45,79 +35,6 @@ export async function searchBooksHandler(
 }
 
 /**
- * Ensures the catalog book exists in `/books` and returns it whole.
- *
- * The client renders the book straight from this response — the add form needs
- * a title, author and thumbnail, and this call already has all three. Returning
- * only an id would mean a second round trip to read back what was just written.
- */
-export async function fetchBookDetailsHandler(
-  request: CallableRequest<unknown>,
-): Promise<Book> {
-  const { uid } = requireAuth(request, 'fetch book details');
-  const { externalId } = parseRequest(
-    GetBookDetailsRequestSchema,
-    request.data,
-  );
-  const startedAt = Date.now();
-
-  let bookDetails: ProviderBookDetails;
-  try {
-    bookDetails = await provider.getDetails(externalId);
-  } catch (error) {
-    logFailure('book.fetch', error, {
-      uid,
-      externalId,
-      outcome: 'error',
-      stage: 'provider',
-      durationMs: Date.now() - startedAt,
-      ...(error instanceof ProviderError
-        ? { upstreamStatus: error.status, upstreamUrl: error.url }
-        : {}),
-    });
-    throw toHttpsError(error, 'Could not load book details.');
-  }
-
-  let written: { bookId: string; created: boolean };
-  try {
-    written = await createBookIfAbsent(
-      deriveBookId({
-        openLibraryKey: bookDetails.externalId,
-        title: bookDetails.title,
-        author: bookDetails.author,
-      }),
-      toBookData(bookDetails),
-    );
-  } catch (error) {
-    logFailure('book.fetch', error, {
-      uid,
-      externalId,
-      outcome: 'error',
-      durationMs: Date.now() - startedAt,
-    });
-    throw new HttpsError('internal', 'Failed to create book.');
-  }
-
-  logEvent('book.fetch', {
-    uid,
-    externalId,
-    outcome: 'ok',
-    bookId: written.bookId,
-    bookCreated: written.created,
-    hasAuthor: bookDetails.author !== '',
-    hasPageCount: bookDetails.pageCount !== null,
-    durationMs: Date.now() - startedAt,
-  });
-  const { metadata } = toBookData(bookDetails);
-  return {
-    id: written.bookId,
-    title: bookDetails.title.trim(),
-    author: bookDetails.author.trim(),
-    metadata,
-  };
-}
-
-/**
  * Maps an upstream failure to a callable error code.
  *
  * The distinction that matters to a caller is retryable vs. not: `not-found`
@@ -142,23 +59,4 @@ function toHttpsError(error: unknown, fallbackMessage: string): HttpsError {
     );
   }
   return new HttpsError('internal', fallbackMessage);
-}
-
-function toBookData(details: ProviderBookDetails) {
-  const metadata: BookMetadata = {
-    pageCount: details.pageCount,
-    publishedDate: details.publishedDate,
-    categories: details.categories,
-    language: details.language,
-    isbn: details.isbn,
-    thumbnailUrl: details.thumbnailUrl,
-  };
-  const bookData = {
-    title: details.title.trim(),
-    author: details.author.trim(),
-    externalIds: { openLibrary: details.externalId },
-    metadata,
-  };
-
-  return bookData;
 }

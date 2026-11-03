@@ -2,8 +2,7 @@ import { test, describe } from 'node:test';
 import assert from 'node:assert';
 import type { CallableRequest } from 'firebase-functions/v2/https';
 import { userHandlers } from './handler.js';
-import { toUserProfile, type UserProfileRepository } from './store.js';
-import type { DocumentSnapshot } from 'firebase-admin/firestore';
+import type { UserProfileRepository } from './postgresStore.js';
 
 const AUTH = { uid: 'user-1', token: {}, rawToken: 'test' };
 
@@ -35,10 +34,6 @@ function makeRequest(
   } as CallableRequest<unknown>;
 }
 
-function makeDoc(id: string, data: unknown): DocumentSnapshot {
-  return { id, data: () => data } as unknown as DocumentSnapshot;
-}
-
 describe('userHandlers.list', () => {
   test('throws unauthenticated when request has no auth', async () => {
     await assert.rejects(handlers().list(makeRequest(undefined, {})), {
@@ -65,32 +60,6 @@ describe('userHandlers.get', () => {
     await assert.rejects(handlers().get(makeRequest(AUTH, { userId: '   ' })), {
       code: 'invalid-argument',
     });
-  });
-});
-
-describe('toUserProfile', () => {
-  test('carries the document id as the profile id', () => {
-    const profile = toUserProfile(makeDoc('user-1', { name: 'Ada' }));
-    assert.deepEqual(profile, { id: 'user-1', name: 'Ada', photoURL: null });
-  });
-
-  test('falls back to User when the name is missing', () => {
-    assert.equal(toUserProfile(makeDoc('user-1', {})).name, 'User');
-  });
-
-  // photoURL is null rather than absent so it survives JSON to the client.
-  test('normalizes an absent photoURL to null', () => {
-    assert.equal(
-      toUserProfile(makeDoc('user-1', { name: 'Ada' })).photoURL,
-      null,
-    );
-  });
-
-  test('keeps a stored photoURL', () => {
-    const profile = toUserProfile(
-      makeDoc('user-1', { name: 'Ada', photoURL: 'https://example.com/a.png' }),
-    );
-    assert.equal(profile.photoURL, 'https://example.com/a.png');
   });
 });
 

@@ -13,9 +13,8 @@ export type ConstraintMessages = Record<
 export interface PgErrorRules {
   constraints?: ConstraintMessages;
   /**
-   * Postgres rejects a non-uuid string before any row is read (`22P02`), where
-   * Firestore accepted any id and simply found nothing. Without this an id the
-   * client made up is a 500 rather than the `not-found` it has always been.
+   * Postgres rejects a non-uuid string before any row is read (`22P02`).
+   * Without this, an id the client made up is a 500 rather than `not-found`.
    */
   malformedId?: string;
 }

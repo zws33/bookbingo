@@ -1,38 +1,24 @@
 import { defineSecret } from 'firebase-functions/params';
 import { setGlobalOptions } from 'firebase-functions/v2';
 import { onCall, type CallableOptions } from 'firebase-functions/v2/https';
-import {
-  fetchBookDetailsHandler,
-  searchBooksHandler,
-} from './books/handler.js';
-import { createManualBookHandler } from './books/manual.js';
+import { searchBooksHandler } from './books/handler.js';
 import { bookHandlers as postgresBookHandlers } from './books/postgresHandler.js';
 import { bookRepository as postgresBookRepository } from './books/postgresStore.js';
-import { bookRepository } from './books/store.js';
 import { callable } from './callable.js';
 import { challengeHandlers } from './challenges/handler.js';
 import { challengeRepository } from './challenges/postgresStore.js';
-import {
-  boardConfigHandlers,
-  getBoardConfigHandler,
-} from './config/handler.js';
+import { boardConfigHandlers } from './config/handler.js';
 import { GITHUB_API_URL, submitFeedbackHandler } from './feedback/handler.js';
-import { libraryHandlers } from './library/handler.js';
 import { libraryHandlers as postgresLibraryHandlers } from './library/postgresHandler.js';
-import { readingHandlers } from './readings/handler.js';
 import { readingHandlers as postgresReadingHandlers } from './readings/postgresHandler.js';
 import { readingRepository as postgresReadingRepository } from './readings/postgresStore.js';
-import { readingRepository } from './readings/store.js';
 import { scoringHandlers } from './scoring/handler.js';
 import { tagHandlers } from './tags/handler.js';
 import { tagRepository } from './tags/postgresStore.js';
-import { tbrHandlers } from './tbr/handler.js';
 import { tbrHandlers as postgresTbrHandlers } from './tbr/postgresHandler.js';
 import { tbrEntryRepository as postgresTbrEntryRepository } from './tbr/postgresStore.js';
-import { tbrEntryRepository } from './tbr/store.js';
 import { userHandlers } from './users/handler.js';
 import { userProfileRepository as postgresUserProfileRepository } from './users/postgresStore.js';
-import { userProfileRepository } from './users/store.js';
 
 // Caps the blast radius of a runaway caller rather than the traffic: nothing
 // rate-limits these endpoints, and the platform default of 100 instances lets
@@ -47,16 +33,6 @@ const postgresBacked: CallableOptions = {
   invoker: 'public',
   secrets: [databaseUrl],
 };
-
-const usersRepo = userProfileRepository();
-const tbrRepo = tbrEntryRepository();
-const readingsRepo = readingRepository();
-const booksRepo = bookRepository();
-
-const users = userHandlers(usersRepo);
-const tbr = tbrHandlers(tbrRepo, booksRepo);
-const readings = readingHandlers(readingsRepo, usersRepo, booksRepo);
-const library = libraryHandlers(readingsRepo, usersRepo, booksRepo);
 
 /**
  * Built on first request, not at module load: the pool reads DATABASE_URL,
@@ -86,9 +62,6 @@ function buildPostgresApi() {
     library: postgresLibraryHandlers(readingsRepo, booksRepo, challengesRepo),
     tbr: postgresTbrHandlers(tbrRepo, booksRepo, challengesRepo),
     books: postgresBookHandlers(booksRepo),
-    // The Postgres and Firestore user repositories declare the same interface,
-    // so this is the Firestore factory over the other store, not a second
-    // handler module.
     users: userHandlers(postgresUsersRepo),
   };
 }
@@ -110,82 +83,10 @@ export const submitFeedback = onCall(
   ),
 );
 
-export const fetchBookDetails = onCall(
-  { invoker: 'public' },
-  callable(fetchBookDetailsHandler, 'Could not load book details.'),
-);
+/** No `V2` twin: it reads the catalog provider and touches no store. */
 export const searchBooks = onCall(
   { invoker: 'public' },
   callable(searchBooksHandler, 'Book search is unavailable.'),
-);
-
-export const createManualBook = onCall(
-  { invoker: 'public' },
-  callable(createManualBookHandler, 'Failed to create book.'),
-);
-
-export const getBoardConfig = onCall(
-  { invoker: 'public' },
-  callable(getBoardConfigHandler, 'Could not load the board.'),
-);
-
-export const listUsers = onCall(
-  { invoker: 'public' },
-  callable(users.list, 'Could not load users.'),
-);
-export const getUserProfile = onCall(
-  { invoker: 'public' },
-  callable(users.get, 'Could not load that profile.'),
-);
-export const syncMyProfile = onCall(
-  { invoker: 'public' },
-  callable(users.sync, 'Failed to save your profile.'),
-);
-
-export const listReadings = onCall(
-  { invoker: 'public' },
-  callable(readings.list, 'Could not load those readings.'),
-);
-export const getLibrary = onCall(
-  { invoker: 'public' },
-  callable(library.get, 'Could not load the library.'),
-);
-export const getLeaderboard = onCall(
-  { invoker: 'public' },
-  callable(readings.leaderboard, 'Could not load the leaderboard.'),
-);
-export const createReading = onCall(
-  { invoker: 'public' },
-  callable(readings.create, 'Failed to save your reading.'),
-);
-export const updateReading = onCall(
-  { invoker: 'public' },
-  callable(readings.update, 'Failed to save your reading.'),
-);
-export const deleteReading = onCall(
-  { invoker: 'public' },
-  callable(readings.remove, 'Failed to save your reading.'),
-);
-
-export const listMyTBR = onCall(
-  { invoker: 'public' },
-  callable(tbr.list, 'Could not load your reading list.'),
-);
-export const createTBREntry = onCall(
-  { invoker: 'public' },
-  callable(tbr.create, 'Failed to save your reading list.'),
-);
-export const updateTBREntry = onCall(
-  { invoker: 'public' },
-  callable(tbr.update, 'Failed to save your reading list.'),
-);
-export const deleteTBREntry = onCall(
-  { invoker: 'public' },
-  callable(tbr.remove, 'Failed to save your reading list.'),
-);
-export const promoteTBREntry = onCall(
-  { invoker: 'public' },
-  callable(tbr.promote, 'Failed to save your reading.'),
 );
 
 export const createChallenge = onCall(

@@ -5,9 +5,6 @@ import { MissingBookError } from './errors.js';
  *
  * Generic so readings and TBR entries share the single `getAll` — resolving
  * books per item would turn one read into N.
- *
- * `B` is inferred from the repository rather than fixed, because the Firestore
- * and Postgres `Book` entities differ.
  */
 export async function attachBooks<T extends { bookId: string }, B>(
   booksRepo: { getByIds(ids: string[]): Promise<Map<string, B>> },

@@ -11,7 +11,7 @@
     // no extension — run those with `pnpm test`).
     "vitest.explorer",
 
-    // Firestore rules syntax + firebase.json / .firebaserc schema support.
+    // firebase.json / .firebaserc schema support.
     "toba.vsfire",
 
     // Already in the global config via claudeCode.preferredLocation.

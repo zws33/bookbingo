@@ -3,8 +3,8 @@ import { DomainError } from './errors.js';
 /**
  * Ceilings, not pagination. Every one of these is far above what a real
  * challenge produces; they exist so a single call cannot read an unbounded
- * number of documents, which is the only cost control available while
- * `functions/` is the sole reader and `firestore.rules` is deny-all.
+ * number of rows, which is the only cost control available while `functions/`
+ * is the sole reader.
  */
 export const MAX_READINGS_PER_USER = 500;
 export const MAX_TBR_PER_USER = 500;

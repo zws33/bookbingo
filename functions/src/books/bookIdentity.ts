@@ -11,11 +11,11 @@ export interface BookIdentity {
 }
 
 /**
- * Compute the deterministic document id for a book.
+ * Compute the deterministic id for a book.
  *
  * The "openLibrary:" / "manual:" input prefixes domain-separate the two key
- * spaces so they can never collide. The raw `openLibraryKey` (slashes included)
- * is safe as hash input even though "/" is illegal in a Firestore doc id.
+ * spaces so they can never collide. The raw `openLibraryKey` goes in slashes
+ * and all: it is hash input, never the id itself.
  */
 export function deriveBookId(identity: BookIdentity): string {
   const key = identity.openLibraryKey?.trim();
@@ -47,7 +47,8 @@ export function normalizeForKey(value: string): string {
 }
 
 /**
- * First 128 bits of sha256, as 32 hex chars (always a legal Firestore doc id).
+ * First 128 bits of sha256, as 32 hex chars — the shape `books_id_check`
+ * enforces.
  * Frozen: changing it changes every book id and requires a data migration.
  */
 function hashKey(input: string): string {

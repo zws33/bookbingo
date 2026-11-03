@@ -32,8 +32,8 @@ export interface ReadingRepository {
   /** Keyed by user id, and only for members who are still `active` (rule 24). */
   listByChallenge(challengeId: string): Promise<Map<string, Reading[]>>;
   /**
-   * The row an admin is about to edit. The Firestore path encoded authorship in
-   * the document path; here the author is read so a guard can compare ranks.
+   * The row an admin is about to edit. The author comes back with it so a
+   * guard can compare ranks before allowing the write.
    */
   get(challengeId: string, readingId: string): Promise<Reading | undefined>;
   create(
