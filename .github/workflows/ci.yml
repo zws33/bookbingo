@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - main
+    # paths-ignore belongs on `push` only. The branch ruleset requires the
+    # `verify` check on every PR, so a docs-only PR under a `pull_request`
+    # paths-ignore would wait forever on a check that never runs.
     paths-ignore:
       - 'docs/**'
   pull_request:
