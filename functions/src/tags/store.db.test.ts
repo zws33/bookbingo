@@ -13,7 +13,7 @@ import {
   seedTbrEntryTag,
   seedUser,
 } from '../testing/factories.js';
-import { tagRepository } from './postgresStore.js';
+import { tagRepository } from './store.js';
 
 const ABSENT_ID = '00000000-0000-0000-0000-000000000000';
 

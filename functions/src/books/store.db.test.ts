@@ -5,7 +5,7 @@ import { inTransaction } from '../db/transaction.js';
 import { connectTestDatabase, type TestDatabase } from '../testing/db.js';
 import { seedBook, seedUser } from '../testing/factories.js';
 import { MissingBookError } from './errors.js';
-import { bookRepository } from './postgresStore.js';
+import { bookRepository } from './store.js';
 
 const OPEN_LIBRARY = 'openLibrary';
 

@@ -15,7 +15,7 @@ import {
   hasPermission,
   statusAllows,
 } from './permissions.js';
-import type { ChallengeRepository } from './postgresStore.js';
+import type { ChallengeRepository } from './store.js';
 import {
   toChallengeDTO,
   toChallengeMembershipDTO,

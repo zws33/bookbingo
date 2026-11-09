@@ -7,10 +7,10 @@ import {
   type Challenge,
   type ChallengeRepository,
   type Membership,
-} from '../challenges/postgresStore.js';
+} from '../challenges/store.js';
 import type { MemberRole, MembershipStatus } from '../challenges/schema.js';
 import { DomainError } from '../common/errors.js';
-import type { TagRepository } from '../tags/postgresStore.js';
+import type { TagRepository } from '../tags/store.js';
 
 const AUTH = { uid: 'user-1', token: {}, rawToken: 'test' };
 

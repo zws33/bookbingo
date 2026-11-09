@@ -1,10 +1,10 @@
 import type { CallableRequest } from 'firebase-functions/v2/https';
-import type { TagRepository } from '../tags/postgresStore.js';
+import type { TagRepository } from '../tags/store.js';
 import { parseRequest, requireAuth } from '../callable.js';
 import { denied, requireActiveMembership } from '../challenges/access.js';
 import { hasPermission } from '../challenges/permissions.js';
-import type { ChallengeRepository } from '../challenges/postgresStore.js';
-import type { ReadingRepository } from '../readings/postgresStore.js';
+import type { ChallengeRepository } from '../challenges/store.js';
+import type { ReadingRepository } from '../readings/store.js';
 import { toScoringInputs, type ScoreDTO } from './present.js';
 import { GetScoreRequestSchema } from './schema.js';
 import { scoreCalculator } from './scoreCalculator.js';

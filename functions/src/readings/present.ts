@@ -1,5 +1,5 @@
-import type { Book } from '../books/postgresStore.js';
-import type { Reading } from './postgresStore.js';
+import type { Book } from '../books/store.js';
+import type { Reading } from './store.js';
 
 /**
  * Instants are ISO strings, not Dates: the callable protocol encodes responses

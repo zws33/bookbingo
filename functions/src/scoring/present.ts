@@ -1,5 +1,5 @@
 import type { ScoreBreakdown, ScoringInput } from '@bookbingo/lib-types';
-import type { Reading } from '../readings/postgresStore.js';
+import type { Reading } from '../readings/store.js';
 
 /**
  * The score breakdown as the API returns it.

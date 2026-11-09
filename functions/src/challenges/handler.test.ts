@@ -9,7 +9,7 @@ import {
   type ChallengeMember,
   type ChallengeRepository,
   type Membership,
-} from './postgresStore.js';
+} from './store.js';
 import type { MemberRole, MembershipStatus } from './schema.js';
 
 const AUTH = { uid: 'user-1', token: {}, rawToken: 'test' };

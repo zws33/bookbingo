@@ -2,7 +2,7 @@ import type { CallableRequest } from 'firebase-functions/v2/https';
 import { parseRequest, requireAuth } from '../callable.js';
 import { MissingBookError } from '../books/errors.js';
 import { attachBooks } from '../books/join.js';
-import type { BookRepository } from '../books/postgresStore.js';
+import type { BookRepository } from '../books/store.js';
 import { denied, requireActiveMembership } from '../challenges/access.js';
 import {
   canEditOthersReading,
@@ -13,11 +13,11 @@ import type {
   Challenge,
   ChallengeRepository,
   Membership,
-} from '../challenges/postgresStore.js';
+} from '../challenges/store.js';
 import { DomainError } from '../common/errors.js';
 import { logEvent, logFailure, reportWriteFailure } from '../observability.js';
-import { toReadingDTO, type ReadingDTO } from './postgresPresent.js';
-import type { Reading, ReadingRepository } from './postgresStore.js';
+import { toReadingDTO, type ReadingDTO } from './present.js';
+import type { Reading, ReadingRepository } from './store.js';
 import {
   CreateChallengeReadingRequestSchema,
   DeleteChallengeReadingRequestSchema,
@@ -27,7 +27,7 @@ import {
 } from './schema.js';
 import { toScoringInputs, type ScoreDTO } from '../scoring/present.js';
 import { scoreCalculator } from '../scoring/scoreCalculator.js';
-import type { TagRepository } from '../tags/postgresStore.js';
+import type { TagRepository } from '../tags/store.js';
 import { validateReadingTags } from './validate.js';
 
 const READINGS_FROZEN = 'This challenge is not taking readings right now.';

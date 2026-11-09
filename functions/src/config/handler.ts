@@ -3,8 +3,8 @@ import type { BoardConfig } from '@bookbingo/lib-types';
 import { parseRequest, requireAuth } from '../callable.js';
 import { denied, requireActiveMembership } from '../challenges/access.js';
 import { hasPermission } from '../challenges/permissions.js';
-import type { ChallengeRepository } from '../challenges/postgresStore.js';
-import type { TagRepository } from '../tags/postgresStore.js';
+import type { ChallengeRepository } from '../challenges/store.js';
+import type { TagRepository } from '../tags/store.js';
 import { GetBoardConfigRequestSchema } from './schema.js';
 
 /**

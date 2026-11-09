@@ -2,7 +2,7 @@ import { test, describe } from 'node:test';
 import assert from 'node:assert';
 import type { CallableRequest } from 'firebase-functions/v2/https';
 import { userHandlers } from './handler.js';
-import type { UserProfileRepository } from './postgresStore.js';
+import type { UserProfileRepository } from './store.js';
 
 const AUTH = { uid: 'user-1', token: {}, rawToken: 'test' };
 
