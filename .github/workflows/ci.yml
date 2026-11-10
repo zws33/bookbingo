@@ -4,9 +4,6 @@ on:
   push:
     branches:
       - main
-    # paths-ignore belongs on `push` only. The branch ruleset requires the
-    # `verify` check on every PR, so a docs-only PR under a `pull_request`
-    # paths-ignore would wait forever on a check that never runs.
     paths-ignore:
       - 'docs/**'
   pull_request:
@@ -15,18 +12,10 @@ on:
   workflow_dispatch:
 
 jobs:
-  # Runs the same chain contributors run locally. `verify` is
-  # format:check -> lint -> build -> test -> typecheck, in that order:
-  # build must precede typecheck because functions/ resolves
-  # @bookbingo/lib-types through node_modules to lib/types/dist, which
-  # does not exist on a fresh checkout.
   verify:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      # Both versions come from the repo, not from this file: pnpm reads
-      # `packageManager` in package.json, Node reads .nvmrc. Keep it that way —
-      # a hardcoded version here silently diverges from what contributors run.
       - uses: pnpm/action-setup@v6
       - uses: actions/setup-node@v7
         with:
@@ -35,10 +24,6 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm run verify
 
-  # The only coverage the repository layer gets in CI: 7 *.db.test.ts files
-  # that otherwise run by hand, including the `on delete restrict` invariant.
-  # The service container is always empty, so this is also the only place
-  # db/migrations/*.sql is proven to apply to a fresh database.
   test_db:
     runs-on: ubuntu-latest
     services:
@@ -47,8 +32,6 @@ jobs:
         env:
           POSTGRES_DB: bookbingo_test
           POSTGRES_PASSWORD: postgres
-        # Mirrors docker-compose.yaml except the port: 5433 exists locally
-        # only to dodge a host Postgres, and the runner has none.
         ports:
           - 5432:5432
         options: >-
@@ -68,10 +51,6 @@ jobs:
       - run: pnpm run db:migrate
       - run: pnpm --filter @bookbingo/functions run test:db:ci
 
-  # Staging tracks main. Lives in this workflow rather than its own so it
-  # can depend on `verify` — `needs` cannot cross workflow boundaries, and
-  # as two sibling workflows on the same trigger a failing build did not
-  # stop the deploy.
   deploy_staging:
     needs: verify
     # Off until the deploy is actually configured. The first real run of this
@@ -88,9 +67,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      # Both versions come from the repo, not from this file: pnpm reads
-      # `packageManager` in package.json, Node reads .nvmrc. Keep it that way —
-      # a hardcoded version here silently diverges from what contributors run.
       - uses: pnpm/action-setup@v6
       - uses: actions/setup-node@v7
         with:
