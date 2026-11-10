@@ -2,7 +2,7 @@ import { test, describe, before, beforeEach, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { connectTestDatabase, type TestDatabase } from '../testing/db.js';
 import { seedBook, seedUser } from '../testing/factories.js';
-import { userProfileRepository } from './postgresStore.js';
+import { userProfileRepository } from './store.js';
 
 describe('userProfileRepository', () => {
   let testDb: TestDatabase;

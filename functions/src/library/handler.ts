@@ -1,14 +1,14 @@
 import type { CallableRequest } from 'firebase-functions/v2/https';
 import { parseRequest, requireAuth } from '../callable.js';
 import { MissingBookError } from '../books/errors.js';
-import type { Book, BookRepository } from '../books/postgresStore.js';
+import type { Book, BookRepository } from '../books/store.js';
 import { denied, requireActiveMembership } from '../challenges/access.js';
 import { DomainError } from '../common/errors.js';
 import { hasPermission } from '../challenges/permissions.js';
-import type { ChallengeRepository } from '../challenges/postgresStore.js';
+import type { ChallengeRepository } from '../challenges/store.js';
 import { ChallengeRef } from '../challenges/schema.js';
 import { logFailure } from '../observability.js';
-import type { ReadingRepository } from '../readings/postgresStore.js';
+import type { ReadingRepository } from '../readings/store.js';
 
 const NO_MEMBERSHIP = 'Reading author has no membership row.';
 

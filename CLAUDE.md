@@ -22,9 +22,9 @@ Book reading bingo card tracker — a hobby project for a book club competition 
 
 Clean Architecture. Each domain module with persistence (`books/`, `challenges/`, `readings/`, `tags/`, `tbr/`, `users/`) has these files:
 
-- `<...>Store.ts` — the repository interface, its challenge-scoped entities, and an `xRepository()` factory. The only layer that reaches the database. Entities carry `Date`, not ISO strings. `db/` owns the pool, `inTransaction` and `dbErrors`; `common/pgErrors.ts` maps a SQLSTATE to a `DomainError` by constraint name and stays pure. Each repository factory builds one `mapError = dbErrors('<name>', rules)` and every catch goes through it, so the storage layer logs its own `db.rejected`/`db.error` with the SQLSTATE and constraint. Handlers log what they were attempting and name no storage technology — `reportWriteFailure` carries no `stage`.
-- `handler.ts` or `postgresHandler.ts` — an `xHandlers(...repos)` factory returning a plain object of closures. Never a class: `callable(x.method, …)` passes the method unbound, so `this` would be lost.
-- `present.ts` or `postgresPresent.ts` — the response DTO and its mapper. Owns ISO encoding and returns the nested `book: Book`.
+- `store.ts` — the repository interface, its challenge-scoped entities, and an `xRepository()` factory. The only layer that reaches the database. Entities carry `Date`, not ISO strings. `db/` owns the pool, `inTransaction` and `dbErrors`; `common/pgErrors.ts` maps a SQLSTATE to a `DomainError` by constraint name and stays pure. Each repository factory builds one `mapError = dbErrors('<name>', rules)` and every catch goes through it, so the storage layer logs its own `db.rejected`/`db.error` with the SQLSTATE and constraint. Handlers log what they were attempting and name no storage technology — `reportWriteFailure` carries no `stage`.
+- `handler.ts` — an `xHandlers(...repos)` factory returning a plain object of closures. Never a class: `callable(x.method, …)` passes the method unbound, so `this` would be lost.
+- `present.ts` — the response DTO and its mapper. Owns ISO encoding and returns the nested `book: Book`.
 
 Rules:
 

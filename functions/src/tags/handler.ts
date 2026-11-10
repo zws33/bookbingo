@@ -6,9 +6,9 @@ import {
   requireStatusAllows,
 } from '../challenges/access.js';
 import { hasPermission, type Permission } from '../challenges/permissions.js';
-import type { ChallengeRepository } from '../challenges/postgresStore.js';
+import type { ChallengeRepository } from '../challenges/store.js';
 import { logEvent, reportWriteFailure } from '../observability.js';
-import type { Tag, TagRepository } from './postgresStore.js';
+import type { Tag, TagRepository } from './store.js';
 import {
   CreateTagRequestSchema,
   DeleteTagRequestSchema,

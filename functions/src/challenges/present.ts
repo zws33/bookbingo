@@ -3,7 +3,7 @@ import type {
   ChallengeMember,
   ChallengeMembership,
   Membership,
-} from './postgresStore.js';
+} from './store.js';
 import type {
   ChallengeStatus,
   MemberRole,

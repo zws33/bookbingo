@@ -2,21 +2,21 @@ import { test, describe } from 'node:test';
 import assert from 'node:assert';
 import type { CallableRequest } from 'firebase-functions/v2/https';
 import { MissingBookError } from '../books/errors.js';
-import type { Book, BookRepository } from '../books/postgresStore.js';
+import type { Book, BookRepository } from '../books/store.js';
 import {
   CHALLENGE_GONE,
   type Challenge,
   type ChallengeRepository,
   type Membership,
-} from '../challenges/postgresStore.js';
+} from '../challenges/store.js';
 import type {
   ChallengeStatus,
   MemberRole,
   MembershipStatus,
 } from '../challenges/schema.js';
 import { DomainError } from '../common/errors.js';
-import { tbrHandlers } from './postgresHandler.js';
-import type { TBREntry, TBREntryRepository } from './postgresStore.js';
+import { tbrHandlers } from './handler.js';
+import type { TBREntry, TBREntryRepository } from './store.js';
 
 const AUTH = { uid: 'user-1', token: {}, rawToken: 'test' };
 

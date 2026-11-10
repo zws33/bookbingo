@@ -8,7 +8,7 @@ import {
   CHALLENGE_GONE,
   type ChallengeRepository,
   type Membership,
-} from './postgresStore.js';
+} from './store.js';
 
 /**
  * The three checks every challenge-scoped handler runs, shared so their

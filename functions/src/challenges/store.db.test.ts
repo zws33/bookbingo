@@ -14,7 +14,7 @@ import {
   seedUser,
 } from '../testing/factories.js';
 import { JOIN_CODE_PATTERN } from './joinCode.js';
-import { challengeRepository } from './postgresStore.js';
+import { challengeRepository } from './store.js';
 
 const ABSENT_ID = '00000000-0000-0000-0000-000000000000';
 

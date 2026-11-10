@@ -1,7 +1,7 @@
 import { test, describe, before, beforeEach, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { DomainError } from '../common/errors.js';
-import { readingRepository } from '../readings/postgresStore.js';
+import { readingRepository } from '../readings/store.js';
 import { connectTestDatabase, type TestDatabase } from '../testing/db.js';
 import {
   seedBook,
@@ -10,7 +10,7 @@ import {
   seedTag,
   seedUser,
 } from '../testing/factories.js';
-import { tbrEntryRepository } from './postgresStore.js';
+import { tbrEntryRepository } from './store.js';
 
 const ABSENT_ID = '00000000-0000-0000-0000-000000000000';
 

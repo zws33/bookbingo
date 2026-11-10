@@ -2,25 +2,22 @@ import type { CallableRequest } from 'firebase-functions/v2/https';
 import { parseRequest, requireAuth } from '../callable.js';
 import { MissingBookError } from '../books/errors.js';
 import { attachBooks } from '../books/join.js';
-import type { BookRepository } from '../books/postgresStore.js';
+import type { BookRepository } from '../books/store.js';
 import { denied, requireActiveMembership } from '../challenges/access.js';
 import { hasPermission, statusAllows } from '../challenges/permissions.js';
-import type {
-  Challenge,
-  ChallengeRepository,
-} from '../challenges/postgresStore.js';
+import type { Challenge, ChallengeRepository } from '../challenges/store.js';
 import { DomainError } from '../common/errors.js';
 import { logEvent, logFailure, reportWriteFailure } from '../observability.js';
 import {
   validateDistinctTags,
   validateReadingTags,
 } from '../readings/validate.js';
-import { toTBREntryDTO, type TBREntryDTO } from './postgresPresent.js';
+import { toTBREntryDTO, type TBREntryDTO } from './present.js';
 import type {
   PromotionOutcome,
   TBREntry,
   TBREntryRepository,
-} from './postgresStore.js';
+} from './store.js';
 import {
   CreateChallengeTBRRequestSchema,
   DeleteChallengeTBRRequestSchema,

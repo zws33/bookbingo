@@ -2,23 +2,23 @@ import { test, describe } from 'node:test';
 import assert from 'node:assert';
 import type { CallableRequest } from 'firebase-functions/v2/https';
 import { MissingBookError } from '../books/errors.js';
-import type { Book, BookRepository } from '../books/postgresStore.js';
+import type { Book, BookRepository } from '../books/store.js';
 import {
   CHALLENGE_GONE,
   type Challenge,
   type ChallengeMember,
   type ChallengeRepository,
   type Membership,
-} from '../challenges/postgresStore.js';
+} from '../challenges/store.js';
 import type {
   ChallengeStatus,
   MemberRole,
   MembershipStatus,
 } from '../challenges/schema.js';
 import { DomainError } from '../common/errors.js';
-import type { Tag, TagRepository } from '../tags/postgresStore.js';
-import { readingHandlers } from './postgresHandler.js';
-import type { Reading, ReadingRepository } from './postgresStore.js';
+import type { Tag, TagRepository } from '../tags/store.js';
+import { readingHandlers } from './handler.js';
+import type { Reading, ReadingRepository } from './store.js';
 
 const AUTH = { uid: 'user-1', token: {}, rawToken: 'test' };
 

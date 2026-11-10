@@ -2,17 +2,17 @@ import { test, describe } from 'node:test';
 import assert from 'node:assert';
 import type { CallableRequest } from 'firebase-functions/v2/https';
 import { MissingBookError } from '../books/errors.js';
-import type { Book, BookRepository } from '../books/postgresStore.js';
+import type { Book, BookRepository } from '../books/store.js';
 import {
   CHALLENGE_GONE,
   type ChallengeMember,
   type ChallengeRepository,
   type Membership,
-} from '../challenges/postgresStore.js';
+} from '../challenges/store.js';
 import type { MemberRole, MembershipStatus } from '../challenges/schema.js';
 import { DomainError } from '../common/errors.js';
-import type { Reading, ReadingRepository } from '../readings/postgresStore.js';
-import { libraryHandlers } from './postgresHandler.js';
+import type { Reading, ReadingRepository } from '../readings/store.js';
+import { libraryHandlers } from './handler.js';
 
 const AUTH = { uid: 'user-1', token: {}, rawToken: 'test' };
 
@@ -301,7 +301,7 @@ describe('libraryHandlers.get aggregation', () => {
     );
   });
 
-  test('returns the nested postgres book, with no metadata', async () => {
+  test('returns the nested book, with no metadata', async () => {
     const books = await handlers(
       {
         listByChallenge: () =>

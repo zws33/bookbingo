@@ -5,11 +5,11 @@ import {
   CHALLENGE_GONE,
   type ChallengeRepository,
   type Membership,
-} from '../challenges/postgresStore.js';
+} from '../challenges/store.js';
 import type { MemberRole, MembershipStatus } from '../challenges/schema.js';
 import { DomainError } from '../common/errors.js';
-import type { Reading, ReadingRepository } from '../readings/postgresStore.js';
-import type { Tag, TagRepository } from '../tags/postgresStore.js';
+import type { Reading, ReadingRepository } from '../readings/store.js';
+import type { Tag, TagRepository } from '../tags/store.js';
 import { scoringHandlers } from './handler.js';
 
 const AUTH = { uid: 'user-1', token: {}, rawToken: 'test' };

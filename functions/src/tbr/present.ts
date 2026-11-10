@@ -1,5 +1,5 @@
-import type { Book } from '../books/postgresStore.js';
-import type { TBREntry } from './postgresStore.js';
+import type { Book } from '../books/store.js';
+import type { TBREntry } from './store.js';
 
 /** Instants are ISO strings for the same reason as ReadingDTO. */
 export interface TBREntryDTO {
