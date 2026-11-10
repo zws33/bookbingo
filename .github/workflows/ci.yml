@@ -63,20 +63,42 @@ jobs:
       - run: pnpm run db:migrate
       - run: pnpm --filter @bookbingo/functions run test:db:ci
 
-  deploy_staging:
+  deploy_functions_staging:
     needs: [verify, test, test_db]
-    # Off until the deploy is actually configured. The first real run of this
-    # job failed on `Input required and not supplied: firebaseServiceAccount`
-    # — the repository has no secrets or variables set at all, so none of the
-    # eight values below have ever existed. Rather than leave main permanently
-    # red, the job is opt-in: create the service account and the seven
-    # VITE_*_STAGING values, then
-    #     gh variable set ENABLE_STAGING_DEPLOY --body true
-    # and this starts running with no workflow edit.
     if: >-
       github.event_name != 'pull_request' &&
       vars.ENABLE_STAGING_DEPLOY == 'true'
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - uses: google-github-actions/auth@v3
+        with:
+          project_id: bookbingo-staging
+          workload_identity_provider: ${{ vars.WIF_PROVIDER_STAGING }}
+          service_account: ${{ vars.WIF_SERVICE_ACCOUNT_STAGING }}
+      # firebase.json predeploy builds functions/ and its lib/ references.
+      # No --force: an unexpected function deletion must fail the job.
+      - run: pnpm exec firebase deploy --only functions --project staging --non-interactive
+
+  deploy_staging:
+    # After functions: the bundle this ships calls them.
+    needs: deploy_functions_staging
+    if: >-
+      github.event_name != 'pull_request' &&
+      vars.ENABLE_STAGING_DEPLOY == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
     steps:
       - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v6
@@ -94,21 +116,14 @@ jobs:
           VITE_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.VITE_FIREBASE_MESSAGING_SENDER_ID_STAGING }}
           VITE_FIREBASE_APP_ID: ${{ secrets.VITE_FIREBASE_APP_ID_STAGING }}
           VITE_FIREBASE_MEASUREMENT_ID: ${{ secrets.VITE_FIREBASE_MEASUREMENT_ID_STAGING }}
-      - uses: FirebaseExtended/action-hosting-deploy@v0
-        id: deploy
+      - uses: google-github-actions/auth@v3
         with:
-          repoToken: ${{ secrets.GITHUB_TOKEN }}
-          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_BOOKBINGO_STAGING }}
-          channelId: live
-          projectId: bookbingo-staging
-          entryPoint: .
-      - name: Display deployment URL
+          project_id: bookbingo-staging
+          workload_identity_provider: ${{ vars.WIF_PROVIDER_STAGING }}
+          service_account: ${{ vars.WIF_SERVICE_ACCOUNT_STAGING }}
+      - run: pnpm exec firebase deploy --only hosting --project staging --non-interactive
+      - name: Summarize the deploy
         run: |
-          echo "## Deployment Successful! 🚀" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Live Site URL:" >> $GITHUB_STEP_SUMMARY
-          echo "🔗 **[https://bookbingo-staging.web.app](https://bookbingo-staging.web.app)**" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "---" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "Your application has been deployed to Firebase Hosting." >> $GITHUB_STEP_SUMMARY
+          echo "### Staging deployed" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "<https://bookbingo-staging.web.app>" >> "$GITHUB_STEP_SUMMARY"
