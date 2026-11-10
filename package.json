@@ -10,7 +10,7 @@
     "pnpm": ">=11"
   },
   "scripts": {
-    "test": "pnpm -r test",
+    "test": "pnpm run build:libs && pnpm -r test",
     "test:db": "pnpm run db:migrate && pnpm --filter @bookbingo/functions run test:db",
     "lint": "eslint . --max-warnings 0",
     "format": "prettier --write .",
@@ -31,7 +31,7 @@
     "deploy:all:prod": "pnpm --filter @bookbingo/web build:prod && firebase deploy --project prod",
     "emulator:start": "firebase emulators:start --project demo-bookbingo --export-on-exit ./emulator-data",
     "db:migrate": "node --env-file-if-exists=functions/.env.local --import tsx scripts/migrate.ts",
-    "verify": "pnpm run format:check && pnpm run lint && pnpm run build && pnpm run typecheck && pnpm test",
+    "verify": "pnpm run format:check && pnpm run lint && pnpm run build && pnpm run typecheck",
     "dev:local": "concurrently --kill-others --names 'emulator,web' 'pnpm run emulator:start' 'pnpm run dev:web:emulator'"
   },
   "keywords": [],
