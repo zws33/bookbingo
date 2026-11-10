@@ -24,6 +24,18 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm run verify
 
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm test
+
   test_db:
     runs-on: ubuntu-latest
     services:
@@ -52,7 +64,7 @@ jobs:
       - run: pnpm --filter @bookbingo/functions run test:db:ci
 
   deploy_staging:
-    needs: verify
+    needs: [verify, test, test_db]
     # Off until the deploy is actually configured. The first real run of this
     # job failed on `Input required and not supplied: firebaseServiceAccount`
     # — the repository has no secrets or variables set at all, so none of the

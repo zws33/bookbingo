@@ -100,15 +100,21 @@ Run this after every change before committing:
 pnpm run verify
 ```
 
-`verify` matches CI and runs `format:check -> lint -> build -> test ->
-typecheck` in that order. The build step intentionally comes before typecheck
-because `functions/` resolves `@bookbingo/lib-types` from built workspace
-output.
+`verify` runs `format:check -> lint -> build -> typecheck` in that order. The
+build step intentionally comes before typecheck because `functions/` resolves
+`@bookbingo/lib-types` from built workspace output.
+
+`verify` does not run tests. CI runs them as separate jobs (`test` and
+`test_db`); run them locally with:
+
+```bash
+pnpm test                  # Unit tests, all workspaces (builds lib/ first)
+pnpm run test:db           # Postgres tests, needs Docker and functions/.env.local
+```
 
 ### Individual commands
 
 ```bash
-pnpm test                  # Run all workspace tests (node:test + Vitest)
 pnpm run typecheck         # Type-check workspace packages with tsc --noEmit
 pnpm run lint              # Lint the repo
 pnpm run format            # Format with Prettier
