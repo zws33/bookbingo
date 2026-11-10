@@ -33,14 +33,10 @@ export default tseslint.config(
       parserOptions: {
         // `projectService` discovers only files literally named tsconfig.json
         // by walking up from each linted file. app/web/tsconfig.node.json
-        // covers vite.config.ts and vitest.config.int.ts for `tsc`, but isn't
-        // auto-discovered under that name — list them explicitly so lint
-        // doesn't silently drop coverage for the two.
+        // covers vite.config.ts for `tsc`, but isn't auto-discovered under
+        // that name — list it explicitly so lint doesn't silently drop it.
         projectService: {
-          allowDefaultProject: [
-            'app/web/vite.config.ts',
-            'app/web/vitest.config.int.ts',
-          ],
+          allowDefaultProject: ['app/web/vite.config.ts'],
         },
         tsconfigRootDir: import.meta.dirname,
       },

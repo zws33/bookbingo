@@ -4,22 +4,14 @@
 
 Deploy staging hosting and functions together from a commit.
 
-Current state, audited 2026-11-10:
-
-- `gh secret list` and `gh variable list` are empty; `ENABLE_STAGING_DEPLOY` was never set, so `deploy_staging` has never run, and no job deploys `functions/`. Every deploy runs from one machine against gitignored `.env.*`, so hosting and functions can ship out of step.
-- `test_db` passes on every PR but is not a required check.
+Current state, audited 2026-11-10: `gh secret list` and `gh variable list` are empty; `ENABLE_STAGING_DEPLOY` was never set, so `deploy_staging` has never run, and no job deploys `functions/`. Every deploy runs from one machine against gitignored `.env.*`, so hosting and functions can ship out of step.
 
 ## Files to change
 
-| File                         | Change                                                         |
-| ---------------------------- | -------------------------------------------------------------- |
-| `.github/workflows/ci.yml`   | `deploy_functions_staging` job                                 |
-| `.github/dependabot.yml`     | new                                                            |
-| `app/web/tsconfig.node.json` | drop `vitest.config.int.ts` from `include`                     |
-| `eslint.config.js`           | drop `app/web/vitest.config.int.ts` from `allowDefaultProject` |
-| `functions/.env.example`     | drop the `mark-test-database.sql` line                         |
-
-Ruleset and repo settings change through `gh`, not a file.
+| File                       | Change                         |
+| -------------------------- | ------------------------------ |
+| `.github/workflows/ci.yml` | `deploy_functions_staging` job |
+| `.github/dependabot.yml`   | new                            |
 
 ## Ordered steps
 
@@ -36,26 +28,6 @@ Prod stays manual — a deliberate brake, not an omission.
 ### 2. Dependabot
 
 `.github/dependabot.yml` covering `npm` and `github-actions`, monthly, one group per ecosystem for minor and patch, majors separate.
-
-### 3. Dead config
-
-Three references point at files that do not exist:
-
-- `app/web/tsconfig.node.json:4` includes `vitest.config.int.ts`.
-- `eslint.config.js` lists it in `allowDefaultProject` with a comment explaining coverage it no longer provides. `vite.config.ts` must stay listed — it appears in no `tsconfig.json` `include`, so `projectService` cannot discover it.
-- `functions/.env.example:16` cites `db/testing/mark-test-database.sql`. No `db/testing/` exists; the harness checks only the `_test` suffix.
-
-### 4. Repo settings
-
-```bash
-gh repo edit --enable-merge-commit=false --enable-rebase-merge=false --delete-branch-on-merge
-```
-
-Aligns the repo with the squash workflow in CLAUDE.md and the `clean_gone` command.
-
-### 5. Require test_db
-
-Add `test_db` to ruleset `15363103`'s `required_status_checks` alongside `verify`, once it has passed on several PRs.
 
 ## Credential checklist
 
@@ -77,15 +49,13 @@ Interactive, and outside what CI can do:
 ## Risks
 
 - **A wrong service account scope fails the functions deploy after hosting succeeded** — the half-deployed state this work exists to prevent. On the first run, deploy functions before hosting and verify, then trust the pair.
-- **`test_db` flakes against the service container.** The `pg_isready` health check and the harness's eager `select 1` cover startup. While it stays out of required checks it blocks nothing; step 5 is what makes a flake matter.
 - **Dependabot across pnpm workspaces can produce a lockfile `--frozen-lockfile` rejects.** Grouped monthly PRs keep each change reviewable.
 
 ## Commits
 
-Three, each independently green:
+Two, each independently green:
 
 1. `ci:` staging functions deploy — step 1
 2. `chore:` dependabot — step 2
-3. `chore:` remove dead config references — step 3
 
-Steps 4 and 5 are `gh` changes, not commits. Delete this file when the work ships.
+Delete this file when the work ships.
