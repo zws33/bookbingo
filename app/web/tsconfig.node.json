@@ -1,5 +1,5 @@
 {
   "extends": "@bookbingo/tsconfig/node",
   "compilerOptions": { "noEmit": true },
-  "include": ["vite.config.ts", "vitest.config.int.ts"]
+  "include": ["vite.config.ts"]
 }
