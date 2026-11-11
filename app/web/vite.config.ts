@@ -1,5 +1,4 @@
-import { defineConfig } from 'vitest/config';
-import { loadEnv, type Plugin } from 'vite';
+import { defineConfig, loadEnv, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
 import tsconfigPaths from 'vite-tsconfig-paths';
 import tailwindcss from '@tailwindcss/vite';
@@ -47,7 +46,7 @@ function requireFirebaseEnv(): Plugin {
   };
 }
 
-export default defineConfig({
+const config = {
   plugins: [requireFirebaseEnv(), tailwindcss(), react(), tsconfigPaths()],
   test: {
     globals: true,
@@ -64,4 +63,6 @@ export default defineConfig({
       exclude: ['src/testing/**', 'src/main.tsx'],
     },
   },
-});
+};
+
+export default defineConfig(config);
