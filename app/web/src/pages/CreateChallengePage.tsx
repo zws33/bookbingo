@@ -16,8 +16,7 @@ interface FieldErrors {
 }
 
 type Validation =
-  | { ok: true; name: string; tagCap: number }
-  | ({ ok: false } & FieldErrors);
+  { ok: true; name: string; tagCap: number } | ({ ok: false } & FieldErrors);
 
 /** Mirrors `CreateChallengeRequestSchema`. The server rejects the same values. */
 function validate(name: string, tagCap: string): Validation {

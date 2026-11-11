@@ -4,8 +4,7 @@ import { searchBooksHandler } from './searchHandler.js';
 import type { CallableRequest } from 'firebase-functions/v2/https';
 
 type MockAuth =
-  | { uid: string; token: Record<string, unknown>; rawToken: string }
-  | undefined;
+  { uid: string; token: Record<string, unknown>; rawToken: string } | undefined;
 
 const AUTH: MockAuth = { uid: 'user-1', token: {}, rawToken: 'test' };
 

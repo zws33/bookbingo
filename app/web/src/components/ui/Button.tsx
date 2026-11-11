@@ -3,11 +3,7 @@ import { cn } from '../../lib/cn.js';
 import { Spinner } from './Spinner.js';
 
 export type ButtonVariant =
-  | 'primary'
-  | 'secondary'
-  | 'ghost'
-  | 'danger'
-  | 'outline';
+  'primary' | 'secondary' | 'ghost' | 'danger' | 'outline';
 
 export interface ButtonProps extends ComponentPropsWithRef<'button'> {
   variant?: ButtonVariant;
