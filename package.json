@@ -44,12 +44,12 @@
     "eslint": "^9.39.2",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-react-hooks": "^7.1.1",
-    "firebase-tools": "^15.26.0",
-    "globals": "^17.0.0",
-    "prettier": "^3.8.0",
-    "tsx": "^4.19.0",
+    "firebase-tools": "^15.35.0",
+    "globals": "^17.14.0",
+    "prettier": "^3.9.10",
+    "tsx": "^4.23.15",
     "typescript": "^5.4.0",
-    "typescript-eslint": "^8.18.0",
+    "typescript-eslint": "^8.72.1",
     "vite-tsconfig-paths": "^6.1.1"
   }
 }

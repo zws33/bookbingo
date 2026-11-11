@@ -1,9 +1,5 @@
 export type DomainErrorKind =
-  | 'invalid-input'
-  | 'not-found'
-  | 'conflict'
-  | 'forbidden'
-  | 'corrupt';
+  'invalid-input' | 'not-found' | 'conflict' | 'forbidden' | 'corrupt';
 
 /**
  * `invalid-input`, `not-found`, `conflict` and `forbidden` messages are
