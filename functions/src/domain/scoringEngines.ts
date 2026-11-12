@@ -1,19 +1,9 @@
 import { coverageDecay } from './decay.js';
 import type { ScoringEngine } from './engine.js';
 
-export interface ScoringKnobs {
-  yMin: number;
-  yMax: number;
-}
-
-export interface ScoringParams extends ScoringKnobs {
-  /** N — the challenge's tag vocabulary size. Never read from `TILES`. */
-  vocabularySize: number;
-}
-
 export type EngineName = 'coverage-decay';
 
-const ENGINES: Record<EngineName, (params: ScoringParams) => ScoringEngine> = {
+const ENGINES: Record<EngineName, (vocabularySize: number) => ScoringEngine> = {
   'coverage-decay': coverageDecay,
 };
 
@@ -24,15 +14,9 @@ const ENGINES: Record<EngineName, (params: ScoringParams) => ScoringEngine> = {
  */
 export const ACTIVE_ENGINE: EngineName = 'coverage-decay';
 
-/**
- * Provisional: no reading data or stated group expectation has validated them
- * (docs/scoring-model.md). This is the seam a per-challenge column replaces.
- */
-export const DEFAULT_KNOBS: ScoringKnobs = { yMin: 0.2, yMax: 0.5 };
-
 export function scoringEngine(
   name: EngineName,
-  params: ScoringParams,
+  vocabularySize: number,
 ): ScoringEngine {
-  return ENGINES[name](params);
+  return ENGINES[name](vocabularySize);
 }
