@@ -1,22 +1,17 @@
 import { coverageDecay } from './decay.js';
 import type { ScoringEngine } from './engine.js';
 
-export type EngineName = 'coverage-decay';
-
-const ENGINES: Record<EngineName, (vocabularySize: number) => ScoringEngine> = {
-  'coverage-decay': coverageDecay,
-};
-
-/**
- * The model every challenge-scoped score comes from. A server constant rather
- * than a request field: two callers must never get different scores for the
- * same readings.
- */
-export const ACTIVE_ENGINE: EngineName = 'coverage-decay';
+export const Engines = ['COVERAGE_DECAY'] as const;
+export type Engine = (typeof Engines)[number];
 
 export function scoringEngine(
-  name: EngineName,
   vocabularySize: number,
+  engine: Engine = 'COVERAGE_DECAY',
 ): ScoringEngine {
-  return ENGINES[name](vocabularySize);
+  switch (engine) {
+    case 'COVERAGE_DECAY':
+      return coverageDecay(vocabularySize);
+    default:
+      throw new Error('Invalid Engine');
+  }
 }
