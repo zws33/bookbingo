@@ -1,6 +1,7 @@
 import type { ScoreBreakdown, ScoringInput } from '@bookbingo/lib-types';
 import { DomainError } from '../common/errors.js';
-import type { ScoringEngine, ScoringParams } from './scoringEngines.js';
+import type { ScoringEngine } from './engine.js';
+import type { ScoringParams } from './scoringEngines.js';
 import { calculateTileCounts } from './statistics.js';
 
 /**

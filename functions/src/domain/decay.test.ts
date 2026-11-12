@@ -3,7 +3,7 @@ import { strict as assert } from 'node:assert';
 import type { ScoringInput } from '@bookbingo/lib-types';
 import { DomainError } from '../common/errors.js';
 import { coverageDecay } from './decay.js';
-import type { ScoringEngine } from './scoringEngines.js';
+import type { ScoringEngine } from './engine.js';
 import { harmonicSum } from './statistics.js';
 
 const KNOBS = { yMin: 0.2, yMax: 0.5 };

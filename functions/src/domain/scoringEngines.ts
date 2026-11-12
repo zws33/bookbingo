@@ -1,12 +1,5 @@
-import type { ScoreBreakdown, ScoringInput } from '@bookbingo/lib-types';
 import { coverageDecay } from './decay.js';
-
-/**
- * Parameters are bound when the engine is built, so scoring itself is only ever
- * readings in and a breakdown out. That is what lets a caller resolve a
- * challenge's parameters once and score every member with the result.
- */
-export type ScoringEngine = (inputs: ScoringInput[]) => ScoreBreakdown;
+import type { ScoringEngine } from './engine.js';
 
 export interface ScoringKnobs {
   yMin: number;
