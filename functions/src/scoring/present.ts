@@ -5,7 +5,8 @@ import type { Reading } from '../readings/store.js';
  * The score breakdown as the API returns it.
  *
  * `tileCounts` is a Record, not the domain's Map: JSON has no Map, and an
- * encoded one arrives as `{}`.
+ * encoded one arrives as `{}`. It is also where the domain's `tagCounts`
+ * becomes the wire's `tile` (challenge-model rule 13).
  */
 export interface ScoreDTO {
   score: number;
@@ -20,15 +21,14 @@ export function toScoreDTO(breakdown: ScoreBreakdown): ScoreDTO {
     score: breakdown.score,
     varietyPoints: breakdown.varietyPoints,
     volumePoints: breakdown.volumePoints,
-    tileCounts: Object.fromEntries(breakdown.tileCounts),
+    tileCounts: Object.fromEntries(breakdown.tagCounts),
     totalBooks: breakdown.totalBooks,
   };
 }
 
-/** Scoring reads tag ids as opaque strings, under the field name it declares. */
 export function toScoringInputs(readings: Reading[]): ScoringInput[] {
   return readings.map((reading) => ({
-    tiles: reading.tagIds,
+    tags: reading.tagIds,
     isFreebie: reading.isFreebie,
   }));
 }

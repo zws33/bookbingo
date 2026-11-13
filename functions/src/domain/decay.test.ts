@@ -2,33 +2,28 @@ import { test } from 'node:test';
 import { strict as assert } from 'node:assert';
 import type { ScoringInput } from '@bookbingo/lib-types';
 import { DomainError } from '../common/errors.js';
-import { coverageDecay } from './decay.js';
-import type { ScoringEngine } from './scoringEngines.js';
+import { coverageDecay, requireParamsInBounds } from './decay.js';
 import { harmonicSum } from './statistics.js';
+import type { ScoringEngine } from './engine.js';
 
-const KNOBS = { yMin: 0.2, yMax: 0.5 };
-
-/** The bound-case parameters the model doc verifies I1 at, not the live ones. */
-const BOUND_CASE = { yMin: 0.2, yMax: 0.9 };
-
-/** `counts[i]` books under tile `i`, one tile per book. */
+/** `counts[i]` books under tag `i`, one tag per book. */
 function state(counts: number[]): ScoringInput[] {
   const readings: ScoringInput[] = [];
-  counts.forEach((count, tile) => {
+  counts.forEach((count, tag) => {
     for (let n = 0; n < count; n++) {
-      readings.push({ tiles: [`t${tile}`], isFreebie: false });
+      readings.push({ tags: [`t${tag}`], isFreebie: false });
     }
   });
   return readings;
 }
 
-/** `k` tiles covered, one of them holding `depth` books. */
+/** `k` tags covered, one of them holding `depth` books. */
 function atCoverage(k: number, depth: number): ScoringInput[] {
   return state([depth, ...Array(k - 1).fill(1)]);
 }
 
 /**
- * ρ(j) read through the public surface: the score a tile's j-th book adds with
+ * ρ(j) read through the public surface: the score a tag's j-th book adds with
  * coverage held at `k`, which is what the invariants are stated about.
  */
 function repeatValue(engine: ScoringEngine, k: number, j: number): number {
@@ -43,44 +38,42 @@ function pickDistinct(howMany: number, bound: number): Set<number> {
   return picked;
 }
 
-function bump(counts: number[], tiles: number[]): number[] {
+function bump(counts: number[], tags: number[]): number[] {
   const next = [...counts];
-  for (const tile of tiles) next[tile] = next[tile]! + 1;
+  for (const tag of tags) next[tag] = next[tag]! + 1;
   return next;
 }
 
 test('coverageDecay', async (t) => {
   await t.test('scores an empty reading list as zero', () => {
-    const b = coverageDecay({ ...KNOBS, vocabularySize: 25 })([]);
+    const b = coverageDecay(25)([]);
     assert.equal(b.score, 0);
     assert.equal(b.varietyPoints, 0);
     assert.equal(b.volumePoints, 0);
     assert.equal(b.totalBooks, 0);
-    assert.equal(b.tileCounts.size, 0);
+    assert.equal(b.tagCounts.size, 0);
   });
 
-  await t.test('counts a book that claims no tile, and scores it zero', () => {
-    const b = coverageDecay({ ...KNOBS, vocabularySize: 25 })([
-      { tiles: [], isFreebie: false },
-    ]);
+  await t.test('counts a book that claims no tag, and scores it zero', () => {
+    const b = coverageDecay(25)([{ tags: [], isFreebie: false }]);
     assert.equal(b.totalBooks, 1);
     assert.equal(b.score, 0);
   });
 
-  await t.test('a freebie scores as the single-tile books it claims', () => {
-    const engine = coverageDecay({ ...KNOBS, vocabularySize: 25 });
-    const freebie = engine([{ tiles: ['t0', 't1', 't2'], isFreebie: true }]);
+  await t.test('a freebie scores as the single-tag books it claims', () => {
+    const engine = coverageDecay(25);
+    const freebie = engine([{ tags: ['t0', 't1', 't2'], isFreebie: true }]);
     assert.equal(freebie.score, engine(state([1, 1, 1])).score);
   });
 
-  await t.test('counts every tile a book claims', () => {
-    const b = coverageDecay({ ...KNOBS, vocabularySize: 25 })([
-      { tiles: ['a', 'b'], isFreebie: false },
-      { tiles: ['b', 'c'], isFreebie: false },
+  await t.test('counts every tag a book claims', () => {
+    const b = coverageDecay(25)([
+      { tags: ['a', 'b'], isFreebie: false },
+      { tags: ['b', 'c'], isFreebie: false },
     ]);
-    assert.equal(b.tileCounts.get('a'), 1);
-    assert.equal(b.tileCounts.get('b'), 2);
-    assert.equal(b.tileCounts.get('c'), 1);
+    assert.equal(b.tagCounts.get('a'), 1);
+    assert.equal(b.tagCounts.get('b'), 2);
+    assert.equal(b.tagCounts.get('c'), 1);
     assert.equal(b.varietyPoints, 3);
     assert.equal(b.totalBooks, 2);
   });
@@ -89,16 +82,14 @@ test('coverageDecay', async (t) => {
     await t.test('y_max = 0.50 puts p at exactly 1 when k = N', () => {
       // At p = 1 the repeat sum is the harmonic series, so the whole curve is
       // pinned to a closed form rather than to a recorded number.
-      const b = coverageDecay({ ...KNOBS, vocabularySize: 25 })(
-        atCoverage(25, 31),
-      );
+      const b = coverageDecay(25)(atCoverage(25, 31));
       assert.equal(b.varietyPoints, 25);
       assert.ok(Math.abs(b.volumePoints - (harmonicSum(31) - 1)) < 1e-12);
     });
 
-    await t.test('y_min = 0.20 caps one tile at k = 1 near 0.42', () => {
-      // p > 1 there, so the repeat series converges however deep the tile goes.
-      const engine = coverageDecay({ ...KNOBS, vocabularySize: 25 });
+    await t.test('y_min = 0.20 caps one tag at k = 1 near 0.42', () => {
+      // p > 1 there, so the repeat series converges however deep the tag goes.
+      const engine = coverageDecay(25);
       const deep = engine(atCoverage(1, 5000)).volumePoints;
       assert.ok(deep > 0.4 && deep < 0.43, `got ${deep}`);
       assert.ok(engine(atCoverage(1, 100000)).volumePoints < 0.43);
@@ -106,13 +97,12 @@ test('coverageDecay', async (t) => {
   });
 
   await t.test('I1 — every book strictly increases the score', () => {
-    // Random states crossed with the three move types, at the bound-case knobs
-    // rather than the live ones: a wider ramp is where I1 is tightest.
-    const engine = coverageDecay({ ...BOUND_CASE, vocabularySize: 25 });
+    // Proven at the live ramp only, not at y_max = 0.9 where I1 is tightest.
+    const engine = coverageDecay(25);
     let smallest = Infinity;
 
     for (let trial = 0; trial < 5000; trial++) {
-      // The first tile is seeded covered, so every move type has a tile to act on.
+      // The first tag is seeded covered, so every move type has a tag to act on.
       const counts = [
         1 + randomInt(12),
         ...Array.from({ length: 24 }, () => randomInt(13)),
@@ -124,7 +114,7 @@ test('coverageDecay', async (t) => {
 
       const moves: number[][] = [
         bump(counts, [covered[randomInt(covered.length)]!]),
-        // A book at tag_cap: three distinct tiles at once.
+        // A book at tag_cap: three distinct tags at once.
         bump(counts, [...pickDistinct(3, 25)]),
       ];
 
@@ -144,7 +134,7 @@ test('coverageDecay', async (t) => {
 
   await t.test('I2 — repeats pay less each time, and never zero', () => {
     for (const k of [1, 2, 5, 25]) {
-      const engine = coverageDecay({ ...KNOBS, vocabularySize: 25 });
+      const engine = coverageDecay(25);
       let previous = Infinity;
       for (let j = 2; j <= 10; j++) {
         const value = repeatValue(engine, k, j);
@@ -156,7 +146,7 @@ test('coverageDecay', async (t) => {
   });
 
   await t.test('I3 — broader coverage decays slower', () => {
-    const engine = coverageDecay({ ...KNOBS, vocabularySize: 25 });
+    const engine = coverageDecay(25);
     for (let j = 2; j <= 6; j++) {
       for (let k = 2; k <= 25; k++) {
         assert.ok(
@@ -167,21 +157,10 @@ test('coverageDecay', async (t) => {
     }
   });
 
-  await t.test('y_min = y_max stops coverage modulating the decay', () => {
-    const engine = coverageDecay({
-      yMin: 0.3,
-      yMax: 0.3,
-      vocabularySize: 25,
-    });
-    const flat = repeatValue(engine, 1, 2);
-    assert.ok(Math.abs(flat - 0.3) < 1e-12);
-    assert.ok(Math.abs(repeatValue(engine, 25, 2) - flat) < 1e-12);
-  });
-
-  await t.test('a one-tile vocabulary scores off y_min', () => {
+  await t.test('a one-tag vocabulary scores off y_min', () => {
     // The ramp divides by N - 1, so N = 1 has no range to ramp over.
-    const single = coverageDecay({ ...KNOBS, vocabularySize: 1 });
-    const wide = coverageDecay({ ...KNOBS, vocabularySize: 25 });
+    const single = coverageDecay(1);
+    const wide = coverageDecay(25);
     const b = single(state([4]));
     assert.ok(Number.isFinite(b.score));
     assert.equal(b.varietyPoints, 1);
@@ -190,8 +169,8 @@ test('coverageDecay', async (t) => {
     );
   });
 
-  await t.test('rejects knobs the invariants rule out', () => {
-    for (const knobs of [
+  await t.test('rejects parameters the invariants rule out', () => {
+    for (const { yMin, yMax } of [
       { yMin: 0.2, yMax: 1 },
       { yMin: 0.2, yMax: 1.4 },
       { yMin: 0.5, yMax: 0.2 },
@@ -200,11 +179,16 @@ test('coverageDecay', async (t) => {
       { yMin: 0.2, yMax: 0 },
     ]) {
       assert.throws(
-        () => coverageDecay({ ...knobs, vocabularySize: 25 }),
+        () => requireParamsInBounds(yMin, yMax),
         (error: unknown) =>
           error instanceof DomainError && error.kind === 'corrupt',
-        `accepted ${JSON.stringify(knobs)}`,
+        `accepted y_min=${yMin}, y_max=${yMax}`,
       );
     }
+  });
+
+  await t.test('accepts the ramp bounds the model doc verifies I1 at', () => {
+    requireParamsInBounds(0.2, 0.9);
+    requireParamsInBounds(0.3, 0.3);
   });
 });

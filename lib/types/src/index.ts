@@ -47,10 +47,10 @@ export interface Book {
 }
 
 /**
- * Minimal input for the scoring engine. Any object with tiles and freebie status works.
+ * Minimal input for the scoring engine. Any object with tags and freebie status works.
  */
 export interface ScoringInput {
-  tiles: string[];
+  tags: string[];
   isFreebie: boolean;
 }
 
@@ -61,11 +61,11 @@ export interface ScoringInput {
  */
 export interface ScoreBreakdown {
   score: number;
-  /** Tiles holding at least one book, worth a point each. */
+  /** Tags holding at least one book, worth a point each. */
   varietyPoints: number;
-  /** What the repeats past the first book in each tile are worth. */
+  /** What the repeats past the first book in each tag are worth. */
   volumePoints: number;
-  tileCounts: Map<string, number>;
+  tagCounts: Map<string, number>;
   totalBooks: number;
 }
 

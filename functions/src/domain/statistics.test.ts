@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import { strict as assert } from 'node:assert';
-import { calculateTileCounts, harmonicSum } from './statistics.js';
+import { calculateTagCounts, harmonicSum } from './statistics.js';
 import type { ScoringInput } from '@bookbingo/lib-types';
 
 test('Statistics Core', async (t) => {
@@ -24,26 +24,26 @@ test('Statistics Core', async (t) => {
     });
   });
 
-  await t.test('calculateTileCounts', async (t) => {
+  await t.test('calculateTagCounts', async (t) => {
     await t.test('should return an empty map for no books', () => {
       const inputs: ScoringInput[] = [];
-      const tileCounts = calculateTileCounts(inputs);
-      assert.equal(tileCounts.size, 0);
+      const tagCounts = calculateTagCounts(inputs);
+      assert.equal(tagCounts.size, 0);
     });
 
-    await t.test('should correctly count tiles from a list of books', () => {
+    await t.test('should correctly count tags from a list of books', () => {
       const inputs: ScoringInput[] = [
-        { tiles: ['t01', 't02'], isFreebie: false },
-        { tiles: ['t01', 't03'], isFreebie: false },
-        { tiles: ['t04'], isFreebie: false },
-        { tiles: ['t01'], isFreebie: false },
+        { tags: ['t01', 't02'], isFreebie: false },
+        { tags: ['t01', 't03'], isFreebie: false },
+        { tags: ['t04'], isFreebie: false },
+        { tags: ['t01'], isFreebie: false },
       ];
-      const tileCounts = calculateTileCounts(inputs);
-      assert.equal(tileCounts.get('t01'), 3);
-      assert.equal(tileCounts.get('t02'), 1);
-      assert.equal(tileCounts.get('t03'), 1);
-      assert.equal(tileCounts.get('t04'), 1);
-      assert.equal(tileCounts.size, 4);
+      const tagCounts = calculateTagCounts(inputs);
+      assert.equal(tagCounts.get('t01'), 3);
+      assert.equal(tagCounts.get('t02'), 1);
+      assert.equal(tagCounts.get('t03'), 1);
+      assert.equal(tagCounts.get('t04'), 1);
+      assert.equal(tagCounts.size, 4);
     });
   });
 });

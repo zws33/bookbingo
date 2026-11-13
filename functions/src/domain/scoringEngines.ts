@@ -1,45 +1,17 @@
-import type { ScoreBreakdown, ScoringInput } from '@bookbingo/lib-types';
 import { coverageDecay } from './decay.js';
+import type { ScoringEngine } from './engine.js';
 
-/**
- * Parameters are bound when the engine is built, so scoring itself is only ever
- * readings in and a breakdown out. That is what lets a caller resolve a
- * challenge's parameters once and score every member with the result.
- */
-export type ScoringEngine = (inputs: ScoringInput[]) => ScoreBreakdown;
-
-export interface ScoringKnobs {
-  yMin: number;
-  yMax: number;
-}
-
-export interface ScoringParams extends ScoringKnobs {
-  /** N — the challenge's tag vocabulary size. Never read from `TILES`. */
-  vocabularySize: number;
-}
-
-export type EngineName = 'coverage-decay';
-
-const ENGINES: Record<EngineName, (params: ScoringParams) => ScoringEngine> = {
-  'coverage-decay': coverageDecay,
-};
-
-/**
- * The model every challenge-scoped score comes from. A server constant rather
- * than a request field: two callers must never get different scores for the
- * same readings.
- */
-export const ACTIVE_ENGINE: EngineName = 'coverage-decay';
-
-/**
- * Provisional: no reading data or stated group expectation has validated them
- * (docs/scoring-model.md). This is the seam a per-challenge column replaces.
- */
-export const DEFAULT_KNOBS: ScoringKnobs = { yMin: 0.2, yMax: 0.5 };
+export const Engines = ['COVERAGE_DECAY'] as const;
+export type Engine = (typeof Engines)[number];
 
 export function scoringEngine(
-  name: EngineName,
-  params: ScoringParams,
+  tagsCount: number,
+  engine: Engine = 'COVERAGE_DECAY',
 ): ScoringEngine {
-  return ENGINES[name](params);
+  switch (engine) {
+    case 'COVERAGE_DECAY':
+      return coverageDecay(tagsCount);
+    default:
+      throw new Error('Invalid Engine');
+  }
 }
