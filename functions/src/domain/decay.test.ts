@@ -6,24 +6,24 @@ import { coverageDecay, requireParamsInBounds } from './decay.js';
 import { harmonicSum } from './statistics.js';
 import type { ScoringEngine } from './engine.js';
 
-/** `counts[i]` books under tile `i`, one tile per book. */
+/** `counts[i]` books under tag `i`, one tag per book. */
 function state(counts: number[]): ScoringInput[] {
   const readings: ScoringInput[] = [];
-  counts.forEach((count, tile) => {
+  counts.forEach((count, tag) => {
     for (let n = 0; n < count; n++) {
-      readings.push({ tags: [`t${tile}`], isFreebie: false });
+      readings.push({ tags: [`t${tag}`], isFreebie: false });
     }
   });
   return readings;
 }
 
-/** `k` tiles covered, one of them holding `depth` books. */
+/** `k` tags covered, one of them holding `depth` books. */
 function atCoverage(k: number, depth: number): ScoringInput[] {
   return state([depth, ...Array(k - 1).fill(1)]);
 }
 
 /**
- * ρ(j) read through the public surface: the score a tile's j-th book adds with
+ * ρ(j) read through the public surface: the score a tag's j-th book adds with
  * coverage held at `k`, which is what the invariants are stated about.
  */
 function repeatValue(engine: ScoringEngine, k: number, j: number): number {
@@ -54,19 +54,19 @@ test('coverageDecay', async (t) => {
     assert.equal(b.tagCounts.size, 0);
   });
 
-  await t.test('counts a book that claims no tile, and scores it zero', () => {
+  await t.test('counts a book that claims no tag, and scores it zero', () => {
     const b = coverageDecay(25)([{ tags: [], isFreebie: false }]);
     assert.equal(b.totalBooks, 1);
     assert.equal(b.score, 0);
   });
 
-  await t.test('a freebie scores as the single-tile books it claims', () => {
+  await t.test('a freebie scores as the single-tag books it claims', () => {
     const engine = coverageDecay(25);
     const freebie = engine([{ tags: ['t0', 't1', 't2'], isFreebie: true }]);
     assert.equal(freebie.score, engine(state([1, 1, 1])).score);
   });
 
-  await t.test('counts every tile a book claims', () => {
+  await t.test('counts every tag a book claims', () => {
     const b = coverageDecay(25)([
       { tags: ['a', 'b'], isFreebie: false },
       { tags: ['b', 'c'], isFreebie: false },
@@ -87,8 +87,8 @@ test('coverageDecay', async (t) => {
       assert.ok(Math.abs(b.volumePoints - (harmonicSum(31) - 1)) < 1e-12);
     });
 
-    await t.test('y_min = 0.20 caps one tile at k = 1 near 0.42', () => {
-      // p > 1 there, so the repeat series converges however deep the tile goes.
+    await t.test('y_min = 0.20 caps one tag at k = 1 near 0.42', () => {
+      // p > 1 there, so the repeat series converges however deep the tag goes.
       const engine = coverageDecay(25);
       const deep = engine(atCoverage(1, 5000)).volumePoints;
       assert.ok(deep > 0.4 && deep < 0.43, `got ${deep}`);
@@ -102,7 +102,7 @@ test('coverageDecay', async (t) => {
     let smallest = Infinity;
 
     for (let trial = 0; trial < 5000; trial++) {
-      // The first tile is seeded covered, so every move type has a tile to act on.
+      // The first tag is seeded covered, so every move type has a tag to act on.
       const counts = [
         1 + randomInt(12),
         ...Array.from({ length: 24 }, () => randomInt(13)),
@@ -114,7 +114,7 @@ test('coverageDecay', async (t) => {
 
       const moves: number[][] = [
         bump(counts, [covered[randomInt(covered.length)]!]),
-        // A book at tag_cap: three distinct tiles at once.
+        // A book at tag_cap: three distinct tags at once.
         bump(counts, [...pickDistinct(3, 25)]),
       ];
 
@@ -157,7 +157,7 @@ test('coverageDecay', async (t) => {
     }
   });
 
-  await t.test('a one-tile vocabulary scores off y_min', () => {
+  await t.test('a one-tag vocabulary scores off y_min', () => {
     // The ramp divides by N - 1, so N = 1 has no range to ramp over.
     const single = coverageDecay(1);
     const wide = coverageDecay(25);

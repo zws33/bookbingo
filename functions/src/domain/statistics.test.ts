@@ -31,7 +31,7 @@ test('Statistics Core', async (t) => {
       assert.equal(tagCounts.size, 0);
     });
 
-    await t.test('should correctly count tiles from a list of books', () => {
+    await t.test('should correctly count tags from a list of books', () => {
       const inputs: ScoringInput[] = [
         { tags: ['t01', 't02'], isFreebie: false },
         { tags: ['t01', 't03'], isFreebie: false },
