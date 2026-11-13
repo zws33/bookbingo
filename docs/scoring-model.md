@@ -28,8 +28,8 @@ y_min = 0.20        y_max = 0.50
 
 - `p` is the decay exponent. Each time a tag's depth doubles, the next book there is worth `2^p` times less.
 - `y` is `ρ(2)`, the value of a tag's first repeat. The curve is set by `y` rather than by `p` because `y` is the quantity a member experiences directly, and because moving `y` in equal steps makes every tag covered worth the same improvement in decay rate.
-- `y_min` and `y_max` are the only knobs. They are the value of a tag's first repeat at the two ends of the coverage range: `y_min` at `k = 1`, `y_max` at `k = N`. Everything else about the curve follows from them.
-- Both arrive as inputs when the engine is built, alongside `N`, so scoring itself takes only readings. `scoring/scoreCalculator.ts` is the only place they are chosen: it reads `N` from the challenge's tag vocabulary and supplies `DEFAULT_KNOBS` until they become a challenge column.
+- `y_min` and `y_max` are the only parameters. They are the value of a tag's first repeat at the two ends of the coverage range: `y_min` at `k = 1`, `y_max` at `k = N`. Everything else about the curve follows from them.
+- Both are module constants in `domain/decay.ts`, asserted in bounds at import. Only `N` is supplied per call, by `scoring/scoreCalculator.ts` from the challenge's tag count, so scoring itself takes only readings. Each engine owns its own parameters; they become per-challenge the day they move to a column.
 - The ramp divides by `N−1`, not `N`, so both ends are hit exactly. With `k/N` a reader at `k = 1` lands at 0.206 rather than 0.200, and `y_min` would not mean what it says. `k = 0` is unreachable: no books, no repeats, score 0.
 - `p` is computed once per score from `k` and held constant across the sum. Coverage sets the slope of the decay; it never scales the total.
 - The current values are provisional. No reading data or stated group expectation has validated them.
@@ -57,7 +57,7 @@ y_min = 0.20        y_max = 0.50
 | 0.50    | 1.00           | none                           |
 
 - A ceiling exists only while `p > 1`. At `p ≤ 1` repeat points from one tag grow without bound. At `p = 1` that growth is logarithmic — 3 points takes 31 books, 7 points takes 1,674. Below `p = 1` it is a power of the count, `n^(1−p)`, which is materially faster: at `y_max = 0.65` a tag with 20 books yields 5.19 repeat points where `y_max = 0.50` yields 2.60.
-- The two knobs are not redundant. Raising `y_max` reaches only readers who earned a low `p`. At `N = 25`, moving `y_max` from 0.50 to 0.80 takes a reader with 3 tags at 10 books each from 4.39 to 4.65, and a reader at full coverage with a second pass over the board from 37.50 to 45.00.
+- The two parameters are not redundant. Raising `y_max` reaches only readers who earned a low `p`. At `N = 25`, moving `y_max` from 0.50 to 0.80 takes a reader with 3 tags at 10 books each from 4.39 to 4.65, and a reader at full coverage with a second pass over the board from 37.50 to 45.00.
 
 ## Invariants
 

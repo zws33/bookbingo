@@ -5,12 +5,12 @@ export const Engines = ['COVERAGE_DECAY'] as const;
 export type Engine = (typeof Engines)[number];
 
 export function scoringEngine(
-  vocabularySize: number,
+  tagsCount: number,
   engine: Engine = 'COVERAGE_DECAY',
 ): ScoringEngine {
   switch (engine) {
     case 'COVERAGE_DECAY':
-      return coverageDecay(vocabularySize);
+      return coverageDecay(tagsCount);
     default:
       throw new Error('Invalid Engine');
   }

@@ -1,15 +1,15 @@
 import type { ScoringInput } from '@bookbingo/lib-types';
 
-export function calculateTileCounts(
+export function calculateTagCounts(
   inputs: ScoringInput[],
 ): Map<string, number> {
-  const tileCounts = new Map<string, number>();
+  const tagCounts = new Map<string, number>();
   for (const input of inputs) {
-    for (const tileId of input.tiles) {
-      tileCounts.set(tileId, (tileCounts.get(tileId) || 0) + 1);
+    for (const tagId of input.tags) {
+      tagCounts.set(tagId, (tagCounts.get(tagId) || 0) + 1);
     }
   }
-  return tileCounts;
+  return tagCounts;
 }
 
 /**

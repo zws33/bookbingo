@@ -5,7 +5,7 @@ import { scoreCalculator } from './scoreCalculator.js';
 const readings = (counts: number[]) =>
   counts.flatMap((count, tile) =>
     Array.from({ length: count }, () => ({
-      tiles: [`t${tile}`],
+      tags: [`t${tile}`],
       isFreebie: false,
     })),
   );

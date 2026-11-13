@@ -11,7 +11,7 @@ function state(counts: number[]): ScoringInput[] {
   const readings: ScoringInput[] = [];
   counts.forEach((count, tile) => {
     for (let n = 0; n < count; n++) {
-      readings.push({ tiles: [`t${tile}`], isFreebie: false });
+      readings.push({ tags: [`t${tile}`], isFreebie: false });
     }
   });
   return readings;
@@ -38,9 +38,9 @@ function pickDistinct(howMany: number, bound: number): Set<number> {
   return picked;
 }
 
-function bump(counts: number[], tiles: number[]): number[] {
+function bump(counts: number[], tags: number[]): number[] {
   const next = [...counts];
-  for (const tile of tiles) next[tile] = next[tile]! + 1;
+  for (const tag of tags) next[tag] = next[tag]! + 1;
   return next;
 }
 
@@ -51,29 +51,29 @@ test('coverageDecay', async (t) => {
     assert.equal(b.varietyPoints, 0);
     assert.equal(b.volumePoints, 0);
     assert.equal(b.totalBooks, 0);
-    assert.equal(b.tileCounts.size, 0);
+    assert.equal(b.tagCounts.size, 0);
   });
 
   await t.test('counts a book that claims no tile, and scores it zero', () => {
-    const b = coverageDecay(25)([{ tiles: [], isFreebie: false }]);
+    const b = coverageDecay(25)([{ tags: [], isFreebie: false }]);
     assert.equal(b.totalBooks, 1);
     assert.equal(b.score, 0);
   });
 
   await t.test('a freebie scores as the single-tile books it claims', () => {
     const engine = coverageDecay(25);
-    const freebie = engine([{ tiles: ['t0', 't1', 't2'], isFreebie: true }]);
+    const freebie = engine([{ tags: ['t0', 't1', 't2'], isFreebie: true }]);
     assert.equal(freebie.score, engine(state([1, 1, 1])).score);
   });
 
   await t.test('counts every tile a book claims', () => {
     const b = coverageDecay(25)([
-      { tiles: ['a', 'b'], isFreebie: false },
-      { tiles: ['b', 'c'], isFreebie: false },
+      { tags: ['a', 'b'], isFreebie: false },
+      { tags: ['b', 'c'], isFreebie: false },
     ]);
-    assert.equal(b.tileCounts.get('a'), 1);
-    assert.equal(b.tileCounts.get('b'), 2);
-    assert.equal(b.tileCounts.get('c'), 1);
+    assert.equal(b.tagCounts.get('a'), 1);
+    assert.equal(b.tagCounts.get('b'), 2);
+    assert.equal(b.tagCounts.get('c'), 1);
     assert.equal(b.varietyPoints, 3);
     assert.equal(b.totalBooks, 2);
   });
@@ -169,7 +169,7 @@ test('coverageDecay', async (t) => {
     );
   });
 
-  await t.test('rejects knobs the invariants rule out', () => {
+  await t.test('rejects parameters the invariants rule out', () => {
     for (const { yMin, yMax } of [
       { yMin: 0.2, yMax: 1 },
       { yMin: 0.2, yMax: 1.4 },

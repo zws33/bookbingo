@@ -1,7 +1,7 @@
 import type { ScoreBreakdown, ScoringInput } from '@bookbingo/lib-types';
 import { DomainError } from '../common/errors.js';
 import type { ScoringEngine } from './engine.js';
-import { calculateTileCounts } from './statistics.js';
+import { calculateTagCounts } from './statistics.js';
 
 /**
  * `y_min = 0` would make every repeat worth exactly nothing rather than less,
@@ -11,7 +11,7 @@ export function requireParamsInBounds(yMin: number, yMax: number): void {
   if (!(yMin > 0 && yMin <= yMax && yMax < 1)) {
     throw new DomainError(
       'corrupt',
-      `Scoring knobs out of bounds: need 0 < y_min <= y_max < 1, got y_min=${yMin}, y_max=${yMax}.`,
+      `Scoring parameters out of bounds: need 0 < y_min <= y_max < 1, got y_min=${yMin}, y_max=${yMax}.`,
     );
   }
 }
@@ -32,36 +32,37 @@ requireParamsInBounds(yMin, yMax);
  * distribution. `p` is therefore computed once from `k` and held constant
  * across the sum.
  */
-export function coverageDecay(vocabularySize: number): ScoringEngine {
+export function coverageDecay(tagsCount: number): ScoringEngine {
   /**
    * ρ(2). The ramp divides by `N − 1` so that `y_min` and `y_max` are reached
    * exactly, which leaves `N = 1` with no range to ramp over.
    */
-  function firstRepeatValue(k: number): number {
-    if (vocabularySize <= 1) {
+  function coverageRamp(k: number): number {
+    if (tagsCount <= 1) {
       return yMin;
     }
-    return yMin + (yMax - yMin) * ((k - 1) / (vocabularySize - 1));
+    const progress = (k - 1) / (tagsCount - 1);
+    return yMin + (yMax - yMin) * progress;
   }
 
   return (inputs: ScoringInput[]): ScoreBreakdown => {
-    const tileCounts = calculateTileCounts(inputs);
-    const varietyPoints = tileCounts.size;
+    const tagCounts = calculateTagCounts(inputs);
+    const varietyPoints = tagCounts.size;
 
     if (varietyPoints === 0) {
       return {
         score: 0,
         varietyPoints: 0,
         volumePoints: 0,
-        tileCounts,
+        tagCounts,
         totalBooks: inputs.length,
       };
     }
 
-    const p = Math.log2(1 / firstRepeatValue(varietyPoints));
+    const p = Math.log2(1 / coverageRamp(varietyPoints));
 
     let volumePoints = 0;
-    for (const count of tileCounts.values()) {
+    for (const count of tagCounts.values()) {
       for (let j = 2; j <= count; j++) {
         volumePoints += 1 / j ** p;
       }
@@ -71,7 +72,7 @@ export function coverageDecay(vocabularySize: number): ScoringEngine {
       score: varietyPoints + volumePoints,
       varietyPoints,
       volumePoints,
-      tileCounts,
+      tagCounts,
       totalBooks: inputs.length,
     };
   };
