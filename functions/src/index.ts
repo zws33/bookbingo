@@ -13,6 +13,7 @@ import { libraryHandlers } from './library/handler.js';
 import { readingHandlers } from './readings/handler.js';
 import { readingRepository } from './readings/store.js';
 import { scoringHandlers } from './scoring/handler.js';
+import { scoringConfigRepository } from './scoring/store.js';
 import { tagHandlers } from './tags/handler.js';
 import { tagRepository } from './tags/store.js';
 import { tbrHandlers } from './tbr/handler.js';
@@ -47,6 +48,7 @@ function buildApi() {
   const readingsRepo = readingRepository();
   const tbrRepo = tbrEntryRepository();
   const usersRepo = userProfileRepository();
+  const scoringConfigRepo = scoringConfigRepository();
 
   return {
     challenges: challengeHandlers(challengesRepo),
@@ -57,8 +59,14 @@ function buildApi() {
       booksRepo,
       challengesRepo,
       tagsRepo,
+      scoringConfigRepo,
     ),
-    scoring: scoringHandlers(readingsRepo, challengesRepo, tagsRepo),
+    scoring: scoringHandlers(
+      readingsRepo,
+      challengesRepo,
+      tagsRepo,
+      scoringConfigRepo,
+    ),
     library: libraryHandlers(readingsRepo, booksRepo, challengesRepo),
     tbr: tbrHandlers(tbrRepo, booksRepo, challengesRepo),
     books: bookHandlers(booksRepo),
