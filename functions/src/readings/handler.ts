@@ -26,6 +26,7 @@ import {
   UpdateChallengeReadingRequestSchema,
 } from './schema.js';
 import { toScoringInputs, type ScoreDTO } from '../scoring/present.js';
+import { DEFAULT_ENGINE } from '../domain/scoringEngines.js';
 import { scoreCalculator } from '../scoring/scoreCalculator.js';
 import type { TagRepository } from '../tags/store.js';
 import { validateReadingTags } from './validate.js';
@@ -137,7 +138,7 @@ export function readingHandlers(
         readingsRepo.list(challengeId, userId),
         tagsRepo.listByChallenge(challengeId),
       ]);
-      const calculateScore = scoreCalculator(tags.length);
+      const calculateScore = scoreCalculator(DEFAULT_ENGINE, tags.length);
 
       try {
         const joined = await attachBooks(booksRepo, readings);
@@ -184,7 +185,7 @@ export function readingHandlers(
         readingsRepo.listByChallenge(challengeId),
         tagsRepo.listByChallenge(challengeId),
       ]);
-      const calculateScore = scoreCalculator(tags.length);
+      const calculateScore = scoreCalculator(DEFAULT_ENGINE, tags.length);
 
       return members
         .filter((member) => member.status === 'active')

@@ -7,6 +7,7 @@ import type { ChallengeRepository } from '../challenges/store.js';
 import type { ReadingRepository } from '../readings/store.js';
 import { toScoringInputs, type ScoreDTO } from './present.js';
 import { GetScoreRequestSchema } from './schema.js';
+import { DEFAULT_ENGINE } from '../domain/scoringEngines.js';
 import { scoreCalculator } from './scoreCalculator.js';
 
 export function scoringHandlers(
@@ -50,7 +51,10 @@ export function scoringHandlers(
         tagsRepo.listByChallenge(challengeId),
       ]);
 
-      return scoreCalculator(tags.length)(toScoringInputs(readings));
+      return scoreCalculator(
+        DEFAULT_ENGINE,
+        tags.length,
+      )(toScoringInputs(readings));
     },
   };
 }
