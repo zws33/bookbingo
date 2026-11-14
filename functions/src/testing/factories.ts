@@ -189,3 +189,16 @@ export async function seedTbrEntryTag(
     [tbrEntryId, tagId, challengeId],
   );
 }
+
+export async function seedScoringConfig(
+  db: Db,
+  {
+    challengeId,
+    engine = 'COVERAGE_DECAY',
+  }: { challengeId: string; engine?: string },
+): Promise<void> {
+  await db.query(
+    'insert into challenge_scoring_config (challenge_id, engine) values ($1, $2)',
+    [challengeId, engine],
+  );
+}
