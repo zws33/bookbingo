@@ -16,7 +16,19 @@ S = k + Σᵢ Σ_{j=2}^{cᵢ} ρ(j)
 
 The first book in a tag is the `+1` in `k`. The inner sum starts at `j = 2`, so coverage and repeats never double-count.
 
-## Decay curve
+## Engines
+
+Two are registered in `domain/scoringEngines.ts`. Both share the formula above
+and differ only in ρ(j). Which one scores a challenge is a
+`challenge_scoring_config` row, read on every scoring call; a challenge with no
+row is scored with `COVERAGE_DECAY`.
+
+| Engine             | ρ(j)              | Volume from one tag                                |
+| ------------------ | ----------------- | -------------------------------------------------- |
+| `COVERAGE_DECAY`   | `1 / j^p`         | bounded while `p > 1`, so `y_max` is capped at 0.5 |
+| `SHIFTED_HARMONIC` | `y·a/(j − 2 + a)` | logarithmic, uncapped, so `y_max` may exceed 0.5   |
+
+## COVERAGE_DECAY
 
 ```
 ρ(j) = 1 / j^p
@@ -34,7 +46,24 @@ y_min = 0.20        y_max = 0.50
 - `p` is computed once per score from `k` and held constant across the sum. Coverage sets the slope of the decay; it never scales the total.
 - The current values are provisional. No reading data or stated group expectation has validated them.
 
-## Calibration
+## SHIFTED_HARMONIC
+
+```
+ρ(j) = y · a / (j − 2 + a)
+y    = y_min + (y_max − y_min) · (k−1)/(N−1)
+
+y_min = 0.45        y_max = 0.75        a = 2
+```
+
+- `a` in the numerator is the scale forced by `ρ(2) = y`, so a tag's first repeat is worth `y` whatever the shift is.
+- The `1/j` tail holds a tag's volume to logarithmic growth. That is what removes the ceiling `COVERAGE_DECAY` has: deriving an exponent from `y` there caps `y_max` at 0.5, because `p ≤ 1` lets one tag grow without bound.
+- `a > 0` is an invariant, not a preference: at `a = 0` the denominator is zero at the first repeat. `a ≥ 1` is the preference.
+- Bounds are `0 < y_min ≤ y_max < 1`, asserted at import in `domain/shiftedHarmonic.ts`. `y_max = 1` makes a repeat worth a full new tag, which is I2 gone.
+- The three parameters are provisional. No reading data has validated them.
+
+## Calibration — COVERAGE_DECAY
+
+The tables below are the decay curve's. `SHIFTED_HARMONIC` is uncalibrated.
 
 `y_max` sets how far a tag can be taken by a reader at full coverage.
 
@@ -78,6 +107,8 @@ Covering a new tag is therefore always worth at least 1 point, with no special c
 
 Consequences of the invariants, not preferences. Reject a challenge whose values violate them.
 
+Stated for `COVERAGE_DECAY`; `SHIFTED_HARMONIC`'s own bounds are in its section above.
+
 1. `0 < y_max < 1`. At `y_max = 1`, `p = 0` and every repeat is worth a full point, so I2 is gone. Above 1, `p < 0` and repeats grow, inverting it.
 2. `y_min ≤ y_max`. Reversed, `p` rises with coverage, so covering a new tag devalues every repeat already banked and the 1 point gained can be outweighed. This is the defect the balance factor had, re-entering through configuration.
 3. `y_min = y_max` is legal. Coverage stops modulating decay, I1 and I2 still hold, and I3 becomes non-strict.
@@ -95,5 +126,6 @@ Consequences of the invariants, not preferences. Reject a challenge whose values
 - I1 — brute force over random states crossed with three move types: a repeat, a new tag, and a multi-tag book at `tag_cap`. Run at the bound-case parameters `y_min = 0.20`, `y_max = 0.90`, not only at the current values: minimum score change over 200k moves is +0.0016.
 - I2 — repeat values strictly decreasing at fixed coverage, across a range of `k`.
 - I3 — `ρ(j)` asserted rising across every `k` from 2 to `N`, for one family of distributions: one tag at depth `j` and the rest at 1. Other families are still unchecked.
-- The decay engine reads no measure of unevenness. The earlier `harmonic` and `balanced-harmonic` models, and the CV and standard-deviation helpers behind the balance factor, are removed. `coverage-decay` is the only engine in `domain/scoringEngines.ts`, so rolling back means reverting the commit, not changing `ACTIVE_ENGINE`.
+- Neither engine reads any measure of unevenness. The earlier `harmonic` and `balanced-harmonic` models, and the CV and standard-deviation helpers behind the balance factor, are removed.
+- Rolling back an engine is an `update` to `challenge_scoring_config`, not a revert. No score is persisted, so the previous numbers return exactly on the next read.
 - Reference profiles pin magnitudes, not design claims. Re-derive their expected values rather than preserving them.

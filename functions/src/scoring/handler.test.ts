@@ -9,8 +9,10 @@ import {
 import type { MemberRole, MembershipStatus } from '../challenges/schema.js';
 import { DomainError } from '../common/errors.js';
 import type { Reading, ReadingRepository } from '../readings/store.js';
+import type { Engine } from '../domain/scoringEngines.js';
 import type { Tag, TagRepository } from '../tags/store.js';
 import { scoringHandlers } from './handler.js';
+import type { ScoringConfigRepository } from './store.js';
 
 const AUTH = { uid: 'user-1', token: {}, rawToken: 'test' };
 
@@ -75,15 +77,29 @@ function fakeTagRepo(tags: Tag[] = VOCABULARY): TagRepository {
   };
 }
 
+/** Counts resolutions, so a per-member or per-request re-read fails loudly. */
+function countingConfigRepo(engine: Engine = 'COVERAGE_DECAY') {
+  const calls: string[] = [];
+  const repo: ScoringConfigRepository = {
+    getEngine: (challengeId) => {
+      calls.push(challengeId);
+      return Promise.resolve(engine);
+    },
+  };
+  return { repo, calls };
+}
+
 const handlers = (
   readings: Partial<ReadingRepository> = {},
   challenges: Partial<ChallengeRepository> = {},
   tags: Tag[] = VOCABULARY,
+  scoringConfig: ScoringConfigRepository = countingConfigRepo().repo,
 ) =>
   scoringHandlers(
     fakeReadingRepo(readings),
     fakeChallengeRepo(challenges),
     fakeTagRepo(tags),
+    scoringConfig,
   );
 
 function makeRequest(
@@ -278,5 +294,34 @@ describe('scoringHandlers.get', () => {
     // 25-tag one, so the repeat is worth more in the narrow challenge.
     assert.ok(narrow.volumePoints > wide.volumePoints);
     assert.equal(narrow.varietyPoints, wide.varietyPoints);
+  });
+
+  test('resolves the engine once per call', async () => {
+    const config = countingConfigRepo();
+    await handlers(
+      readingsOf([makeReading()]),
+      { getMembership: membershipOf(makeMembership('member')) },
+      VOCABULARY,
+      config.repo,
+    ).get(makeRequest(AUTH, DATA));
+
+    assert.deepEqual(config.calls, [CHALLENGE_ID]);
+  });
+
+  test('scores with the configured engine', async () => {
+    const scoreUnder = (engine: Engine) =>
+      handlers(
+        readingsOf([makeReading(), makeReading()]),
+        { getMembership: membershipOf(makeMembership('member')) },
+        VOCABULARY,
+        countingConfigRepo(engine).repo,
+      ).get(makeRequest(AUTH, DATA));
+
+    const decay = await scoreUnder('COVERAGE_DECAY');
+    const harmonic = await scoreUnder('SHIFTED_HARMONIC');
+
+    // Two books on one tag is a repeat, which the engines value differently.
+    assert.notEqual(decay.score, harmonic.score);
+    assert.equal(decay.varietyPoints, harmonic.varietyPoints);
   });
 });
