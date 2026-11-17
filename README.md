@@ -68,8 +68,7 @@ matching script: `pnpm run dev:web:staging` or `pnpm run dev:web:prod`.
 ```
 bookbingo/
 ├── lib/
-│   ├── types/src/        # Shared TypeScript types (Tile, Book, Reading, TBREntry, ScoreBreakdown, …)
-│   ├── core/src/         # Business logic: scoring, validation, tile definitions, statistics
+│   ├── types/src/        # Shared TypeScript types (Tile, BoardConfig, Book, ScoringInput, ScoreBreakdown, …)
 │   └── util/src/         # Cross-platform utilities (logger)
 ├── app/
 │   └── web/src/          # React web application (Vite + Tailwind + Firebase)
@@ -85,10 +84,11 @@ dependencies.
 
 The project enforces a strict boundary between business logic and the application layer:
 
-- **`lib/`** — Pure TypeScript. No React, no Firebase. All scoring, validation, and tile logic lives here. This code is framework-agnostic and fully unit-testable.
-- **`app/web/`** — React + Firebase. Consumes `lib/` packages for logic, handles UI and auth. Every read and write goes through a callable; `firebase/firestore` is ESLint-banned.
+- **`lib/`** — Pure TypeScript, framework-agnostic: the shared types every package reads and cross-platform utilities. No React, no Firebase.
+- **`functions/`** — The callable API over Postgres, and where every domain rule lives. `functions/src/domain/` is pure and unit-testable: scoring engines, validation, statistics. Each module with persistence splits into `store.ts` / `handler.ts` / `present.ts`; `index.ts` is the only module naming a concrete repository.
+- **`app/web/`** — React + Firebase. Consumes `lib/` types, handles UI and auth. Every read and write goes through a callable; `firebase/firestore` is ESLint-banned.
 
-When adding a feature, start in `lib/` (logic + tests), then wire it into `app/web/` (UI). Never import React or Firebase into `lib/`.
+When adding a feature, start in `functions/src/domain/` (logic + tests), then its store and handler, then wire it into `app/web/` (UI). Never import React or Firebase into `lib/`.
 
 ## Development
 
@@ -147,16 +147,19 @@ Firebase credentials.
 Each book can be tagged with up to 3 categories (tiles). One designated freebie book can cover unlimited categories, and its tiles are scored exactly like any other book's. All books and all categories count equally — there are no difficulty tiers or bonus multipliers. The score formula is:
 
 ```
-Score = VarietyPoints + VolumePoints × BalanceFactor
+S = k + Σᵢ Σ_{j=2}^{cᵢ} ρ(j)
 ```
 
-**Variety Points** — 1 point per unique tile covered, never diminished. Covering a new category is the single highest-value action.
+- `k` — tags holding at least one book. A tag's first book is a full point, never diminished, so covering a new category is the highest-value move.
+- `ρ(j)` — the value of the j-th book within a tag, defined for `j ≥ 2`. The inner sum starts at 2, so coverage and repeats never double-count.
 
-**Volume Points** — Additional books in an already-covered tile still earn points, but with harmonic diminishing returns: the 2nd book earns ½ point, the 3rd earns ⅓, the 4th earns ¼, and so on.
+**Engines.** Two are registered in `domain/scoringEngines.ts` and differ only in `ρ(j)`: `COVERAGE_DECAY` uses `1 / j^p` with the exponent derived from coverage, and `SHIFTED_HARMONIC` uses `y·a/(j − 2 + a)` for an uncapped logarithmic tail. Broader coverage decays slower in both, which is what makes a new tag always worth at least 1 point.
 
-**Balance Factor** — Scales volume points by how evenly books are spread across the tiles you have _already covered_, using the coefficient of variation. An even spread gives 1.0; piling extra books onto a few of your tiles reduces it. Covering only a handful of tiles is not penalized here — that cost is the variety points you never earn. Variety points are never scaled.
+Scoring reads no measure of how unevenly books are spread across tiles. Any such term — standard deviation, coefficient of variation, books per tag — breaks "more is always better," because adding a book can worsen the spread while adding to the total.
 
-The result: a reader who covers 25 diverse tiles with 10 books will outscore one who stacks 30 books into 5 tiles. The implementation and the rationale for each term live in [`functions/src/domain/scoring.ts`](functions/src/domain/scoring.ts); [`scoring.test.ts`](functions/src/domain/scoring.test.ts) carries worked scenarios with their expected scores. Scores are computed server-side and arrive with the readings they were computed from.
+**Selection.** Which engine scores a challenge is a `challenge_scoring_config` row, read on every scoring call; a challenge with no row is scored with `COVERAGE_DECAY`. No score is persisted — every score is recomputed on read — so switching a challenge's engine rescores its whole history, and switching back restores the previous numbers exactly.
+
+Scores are computed server-side and arrive with the readings they were computed from. The engines live in [`functions/src/domain/`](functions/src/domain/); [`docs/scoring-model.md`](docs/scoring-model.md) carries the parameters, invariants, and calibration tables.
 
 ## Tech Stack
 
