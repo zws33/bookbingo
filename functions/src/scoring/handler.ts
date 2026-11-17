@@ -8,11 +8,13 @@ import type { ReadingRepository } from '../readings/store.js';
 import { toScoringInputs, type ScoreDTO } from './present.js';
 import { GetScoreRequestSchema } from './schema.js';
 import { scoreCalculator } from './scoreCalculator.js';
+import type { ScoringConfigRepository } from './store.js';
 
 export function scoringHandlers(
   readingsRepo: ReadingRepository,
   challengesRepo: ChallengeRepository,
   tagsRepo: TagRepository,
+  scoringConfigRepo: ScoringConfigRepository,
 ) {
   return {
     /**
@@ -45,12 +47,13 @@ export function scoringHandlers(
         await requireActiveMembership(challengesRepo, challengeId, userId);
       }
 
-      const [readings, tags] = await Promise.all([
+      const [readings, tags, engine] = await Promise.all([
         readingsRepo.list(challengeId, userId),
         tagsRepo.listByChallenge(challengeId),
+        scoringConfigRepo.getEngine(challengeId),
       ]);
 
-      return scoreCalculator(tags.length)(toScoringInputs(readings));
+      return scoreCalculator(engine, tags.length)(toScoringInputs(readings));
     },
   };
 }

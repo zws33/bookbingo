@@ -27,6 +27,7 @@ import {
 } from './schema.js';
 import { toScoringInputs, type ScoreDTO } from '../scoring/present.js';
 import { scoreCalculator } from '../scoring/scoreCalculator.js';
+import type { ScoringConfigRepository } from '../scoring/store.js';
 import type { TagRepository } from '../tags/store.js';
 import { validateReadingTags } from './validate.js';
 
@@ -47,6 +48,7 @@ export function readingHandlers(
   booksRepo: BookRepository,
   challengesRepo: ChallengeRepository,
   tagsRepo: TagRepository,
+  scoringConfigRepo: ScoringConfigRepository,
 ) {
   /**
    * Returns the challenge rather than only gating on it: every write needs
@@ -133,11 +135,12 @@ export function readingHandlers(
       if (userId !== uid) {
         await requireActiveMembership(challengesRepo, challengeId, userId);
       }
-      const [readings, tags] = await Promise.all([
+      const [readings, tags, engine] = await Promise.all([
         readingsRepo.list(challengeId, userId),
         tagsRepo.listByChallenge(challengeId),
+        scoringConfigRepo.getEngine(challengeId),
       ]);
-      const calculateScore = scoreCalculator(tags.length);
+      const calculateScore = scoreCalculator(engine, tags.length);
 
       try {
         const joined = await attachBooks(booksRepo, readings);
@@ -179,12 +182,15 @@ export function readingHandlers(
       if (!hasPermission(membership.role, 'challenge.read')) {
         throw denied(membership, 'challenge.read');
       }
-      const [members, byUser, tags] = await Promise.all([
+      // Resolved once, outside the loop: a member's rank is never computed
+      // under a different engine from their neighbour's.
+      const [members, byUser, tags, engine] = await Promise.all([
         challengesRepo.listMembers(challengeId),
         readingsRepo.listByChallenge(challengeId),
         tagsRepo.listByChallenge(challengeId),
+        scoringConfigRepo.getEngine(challengeId),
       ]);
-      const calculateScore = scoreCalculator(tags.length);
+      const calculateScore = scoreCalculator(engine, tags.length);
 
       return members
         .filter((member) => member.status === 'active')

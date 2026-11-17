@@ -31,7 +31,9 @@ Rules:
 - `index.ts` is the composition root and the only module that names a concrete repository. Handler dependency parameters are suffixed `*Repo`.
 - Inner layers throw `DomainError` (`common/errors.ts`); `callable.ts` maps it to an `HttpsError` at the boundary. A `corrupt` message is never forwarded to the caller.
 - Handler tests use a fake repository whose methods reject unless overridden, so an unexpected call fails loudly.
-- **Nothing in a challenge's subtree is deleted implicitly.** Every foreign key reaching `challenges` is `on delete restrict`, as are `reading_tags` and `tbr_entry_tags` against their parent row. The `cascade` is absent on purpose, not forgotten: `challenges.remove` deletes memberships, tags and the join code by name, and readings and TBR entries refuse it outright. Clearing history is an explicit ordered script that does not exist yet: `reading_tags`, `readings`, `tbr_entry_tags`, `tbr_entries`, then `challenges.remove` for the scaffolding. Never a repository method.
+- **Nothing a user created is deleted implicitly.** A foreign key carrying user state is `on delete restrict`, including `reading_tags` and `tbr_entry_tags` against their parent row. Derived configuration cascades. Classify a new child table before choosing: if a human typed it, it restricts.
+- `challenges.remove` deletes memberships, tags and the join code by name. Readings and TBR entries refuse it.
+- Clearing history is an explicit ordered script, never a repository method: `reading_tags`, `readings`, `tbr_entry_tags`, `tbr_entries`, then `challenges.remove`. It does not exist yet.
 - `*.db.test.ts` runs only under `pnpm run test:db` locally, against the Docker Postgres; `verify` runs no tests at all, and CI runs these in their own `test_db` job against a service container. It needs `docker compose up -d --wait` and `functions/.env.local`; an edited migration also needs `docker compose down -v` first, because `schema_migrations` survives both the suite's own reset and a plain `down`. It runs `--test-concurrency=1`: node:test runs files in parallel processes, and against one database the truncates deadlock and seeds vanish mid-test.
 
 ## Git

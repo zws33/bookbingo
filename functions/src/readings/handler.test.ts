@@ -17,6 +17,8 @@ import type {
 } from '../challenges/schema.js';
 import { DomainError } from '../common/errors.js';
 import type { Tag, TagRepository } from '../tags/store.js';
+import type { Engine } from '../domain/scoringEngines.js';
+import type { ScoringConfigRepository } from '../scoring/store.js';
 import { readingHandlers } from './handler.js';
 import type { Reading, ReadingRepository } from './store.js';
 
@@ -104,17 +106,31 @@ function fakeTagRepo(onList?: () => void): TagRepository {
   };
 }
 
+/** Counts resolutions, so a per-member or per-request re-read fails loudly. */
+function countingConfigRepo(engine: Engine = 'COVERAGE_DECAY') {
+  const calls: string[] = [];
+  const repo: ScoringConfigRepository = {
+    getEngine: (challengeId) => {
+      calls.push(challengeId);
+      return Promise.resolve(engine);
+    },
+  };
+  return { repo, calls };
+}
+
 const handlers = (
   readings: Partial<ReadingRepository> = {},
   challenges: Partial<ChallengeRepository> = {},
   books: Partial<BookRepository> = {},
   tags: TagRepository = fakeTagRepo(),
+  scoringConfig: ScoringConfigRepository = countingConfigRepo().repo,
 ) =>
   readingHandlers(
     fakeReadingRepo(readings),
     fakeBookRepo(books),
     fakeChallengeRepo(challenges),
     tags,
+    scoringConfig,
   );
 
 function makeRequest(
@@ -475,6 +491,49 @@ describe('readingHandlers.leaderboard', () => {
     ).leaderboard(makeRequest(AUTH, { challengeId: CHALLENGE_ID }));
 
     assert.equal(calls, 1);
+  });
+
+  test('resolves the engine once, not once per member', async () => {
+    const config = countingConfigRepo();
+    await handlers(
+      { listByChallenge: () => Promise.resolve(new Map()) },
+      {
+        getMembership: membershipOf(makeMembership('member')),
+        listMembers: () =>
+          Promise.resolve([
+            makeMember('member'),
+            makeMember('member', 'active', AUTHOR),
+          ]),
+      },
+      {},
+      fakeTagRepo(),
+      config.repo,
+    ).leaderboard(makeRequest(AUTH, { challengeId: CHALLENGE_ID }));
+
+    assert.deepEqual(config.calls, [CHALLENGE_ID]);
+  });
+
+  test('scores the whole board with the configured engine', async () => {
+    const board = (engine: Engine) =>
+      handlers(
+        {
+          listByChallenge: () =>
+            Promise.resolve(
+              new Map([[AUTH.uid, [makeReading(), makeReading()]]]),
+            ),
+        },
+        {
+          getMembership: membershipOf(makeMembership('member')),
+          listMembers: () => Promise.resolve([makeMember('member')]),
+        },
+        {},
+        fakeTagRepo(),
+        countingConfigRepo(engine).repo,
+      ).leaderboard(makeRequest(AUTH, { challengeId: CHALLENGE_ID }));
+
+    const [decay] = await board('COVERAGE_DECAY');
+    const [harmonic] = await board('SHIFTED_HARMONIC');
+    assert.notEqual(decay?.score, harmonic?.score);
   });
 
   for (const status of ['left', 'removed'] as const) {
