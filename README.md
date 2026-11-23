@@ -153,13 +153,13 @@ S = k + Σᵢ Σ_{j=2}^{cᵢ} ρ(j)
 - `k` — tags holding at least one book. A tag's first book is a full point, never diminished, so covering a new category is the highest-value move.
 - `ρ(j)` — the value of the j-th book within a tag, defined for `j ≥ 2`. The inner sum starts at 2, so coverage and repeats never double-count.
 
-**Engines.** Two are registered in `domain/scoringEngines.ts` and differ only in `ρ(j)`: `COVERAGE_DECAY` uses `1 / j^p` with the exponent derived from coverage, and `SHIFTED_HARMONIC` uses `y·a/(j − 2 + a)` for an uncapped logarithmic tail. Broader coverage decays slower in both, which is what makes a new tag always worth at least 1 point.
+**Engine.** `SHIFTED_HARMONIC` is the only engine registered in `domain/scoringEngines.ts`. It uses `ρ(j) = y·a/(j − 2 + a)`, a logarithmic tail with no ceiling on what one tile can yield, where `y` — the value of a tile's first repeat — rises with coverage. Broader coverage decays slower, which is what makes a new tile always worth at least 1 point.
 
 Scoring reads no measure of how unevenly books are spread across tiles. Any such term — standard deviation, coefficient of variation, books per tag — breaks "more is always better," because adding a book can worsen the spread while adding to the total.
 
-**Selection.** Which engine scores a challenge is a `challenge_scoring_config` row, read on every scoring call; a challenge with no row is scored with `COVERAGE_DECAY`. No score is persisted — every score is recomputed on read — so switching a challenge's engine rescores its whole history, and switching back restores the previous numbers exactly.
+**Selection.** Which engine scores a challenge is a `challenge_scoring_config` row, read on every scoring call; a challenge with no row is scored with the default, `SHIFTED_HARMONIC`. No score is persisted — every score is recomputed on read — so switching a challenge's engine rescores its whole history, and switching back restores the previous numbers exactly.
 
-Scores are computed server-side and arrive with the readings they were computed from. The engines live in [`functions/src/domain/`](functions/src/domain/); [`docs/scoring-model.md`](docs/scoring-model.md) carries the parameters, invariants, and calibration tables.
+Scores are computed server-side and arrive with the readings they were computed from. The engine lives in [`functions/src/domain/`](functions/src/domain/); [`docs/scoring-model.md`](docs/scoring-model.md) carries the parameters and invariants.
 
 ## Tech Stack
 

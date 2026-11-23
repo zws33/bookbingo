@@ -11,10 +11,10 @@ describe('parseEngine', () => {
 
   test('rejects anything else', () => {
     for (const value of [
-      'coverage-decay',
-      'COVERAGE DECAY',
+      'shifted-harmonic',
+      'SHIFTED HARMONIC',
       '',
-      ' COVERAGE_DECAY',
+      ' SHIFTED_HARMONIC',
       undefined,
       null,
       0,
@@ -30,15 +30,5 @@ describe('scoringEngine', () => {
     for (const engine of Engines) {
       assert.equal(typeof scoringEngine(25, engine), 'function');
     }
-  });
-
-  test('the engines disagree, so the name is load-bearing', () => {
-    const inputs = [
-      { tags: ['t0'], isFreebie: false },
-      { tags: ['t0'], isFreebie: false },
-    ];
-    const decay = scoringEngine(25, 'COVERAGE_DECAY')(inputs).score;
-    const harmonic = scoringEngine(25, 'SHIFTED_HARMONIC')(inputs).score;
-    assert.notEqual(decay, harmonic);
   });
 });

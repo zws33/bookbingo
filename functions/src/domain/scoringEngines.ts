@@ -1,12 +1,11 @@
-import { coverageDecay } from './decay.js';
 import type { ScoringEngine } from './engine.js';
 import { shiftedHarmonic } from './shiftedHarmonic.js';
 
-export const Engines = ['COVERAGE_DECAY', 'SHIFTED_HARMONIC'] as const;
+export const Engines = ['SHIFTED_HARMONIC'] as const;
 export type Engine = (typeof Engines)[number];
 
 /** Applies when a challenge has no `challenge_scoring_config` row. */
-export const DEFAULT_ENGINE: Engine = 'COVERAGE_DECAY';
+export const DEFAULT_ENGINE: Engine = 'SHIFTED_HARMONIC';
 
 export function parseEngine(value: unknown): Engine | undefined {
   return Engines.includes(value as Engine) ? (value as Engine) : undefined;
@@ -21,8 +20,6 @@ export function scoringEngine(
   engine: Engine,
 ): ScoringEngine {
   switch (engine) {
-    case 'COVERAGE_DECAY':
-      return coverageDecay(tagsCount);
     case 'SHIFTED_HARMONIC':
       return shiftedHarmonic(tagsCount);
   }

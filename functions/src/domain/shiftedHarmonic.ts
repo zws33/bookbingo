@@ -42,8 +42,9 @@ requireParamsInBounds(yMin, yMax, shift);
  *
  * `a` in the numerator is the scale forced by ρ(2) = y, so the first repeat is
  * worth `y` whatever the shift. The 1/j tail holds a tile's volume to
- * logarithmic growth, which is what removes the ceiling `coverage-decay` has:
- * there, deriving the exponent from `y` caps `y_max` at 0.5.
+ * logarithmic growth, which is why the curve is harmonic rather than a power
+ * law: with `ρ(j) = 1/j^p` and the exponent derived from `y`, a bounded tag
+ * needs `p > 1`, which caps `y_max` at 0.5.
  */
 export function shiftedHarmonic(tagsCount: number): ScoringEngine {
   return (inputs: ScoringInput[]): ScoreBreakdown => {

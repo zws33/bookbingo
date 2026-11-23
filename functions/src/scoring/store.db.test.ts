@@ -27,9 +27,12 @@ describe('scoringConfigRepository', () => {
   }
 
   describe('getEngine', () => {
-    test('defaults an unconfigured challenge to coverage-decay', async () => {
+    test('defaults an unconfigured challenge to shifted-harmonic', async () => {
       const challengeId = await challenge();
-      assert.equal(await repository().getEngine(challengeId), 'COVERAGE_DECAY');
+      assert.equal(
+        await repository().getEngine(challengeId),
+        'SHIFTED_HARMONIC',
+      );
     });
 
     test('returns the configured engine', async () => {
@@ -47,25 +50,30 @@ describe('scoringConfigRepository', () => {
     test('defaults a challenge that does not exist', async () => {
       // Scoring already refused a non-member before reaching here, so an
       // absent id is not this repository's rejection to make.
-      assert.equal(await repository().getEngine(ABSENT_ID), 'COVERAGE_DECAY');
+      assert.equal(await repository().getEngine(ABSENT_ID), 'SHIFTED_HARMONIC');
     });
 
     test('defaults a malformed id rather than raising', async () => {
       assert.equal(
         await repository().getEngine('not-a-uuid'),
-        'COVERAGE_DECAY',
+        'SHIFTED_HARMONIC',
       );
     });
   });
 
   describe('the schema', () => {
-    test('refuses an engine the deployment does not implement', async () => {
-      const challengeId = await challenge();
-      await assert.rejects(
-        seedScoringConfig(testDb.db, { challengeId, engine: 'HARMONIC' }),
-        /challenge_scoring_config_engine_check/,
-      );
-    });
+    // COVERAGE_DECAY is in the list because 0008 admitted it and 0009 narrowed
+    // the constraint; a database stuck on 0008 fails here rather than silently
+    // accepting a retired engine.
+    for (const engine of ['HARMONIC', 'COVERAGE_DECAY']) {
+      test(`refuses ${engine}, which the deployment does not implement`, async () => {
+        const challengeId = await challenge();
+        await assert.rejects(
+          seedScoringConfig(testDb.db, { challengeId, engine }),
+          /challenge_scoring_config_engine_check/,
+        );
+      });
+    }
 
     test('holds one engine per challenge', async () => {
       const challengeId = await challenge();

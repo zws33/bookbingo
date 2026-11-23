@@ -15,9 +15,9 @@ export function calculateTagCounts(
 /**
  * H(n) = 1 + 1/2 + 1/3 + ... + 1/n.
  *
- * Only `decay.test.ts` calls this: it is the closed form the calibration cases
- * pin the engine against, so the expected values are derived rather than
- * recorded. The engines sum their own terms.
+ * Only `shiftedHarmonic.test.ts` calls this: it is the closed form the
+ * calibration cases pin the engine against, so the expected values are derived
+ * rather than recorded. The engine sums its own terms.
  */
 export function harmonicSum(n: number): number {
   if (n <= 0) {

@@ -107,7 +107,7 @@ function fakeTagRepo(onList?: () => void): TagRepository {
 }
 
 /** Counts resolutions, so a per-member or per-request re-read fails loudly. */
-function countingConfigRepo(engine: Engine = 'COVERAGE_DECAY') {
+function countingConfigRepo(engine: Engine = 'SHIFTED_HARMONIC') {
   const calls: string[] = [];
   const repo: ScoringConfigRepository = {
     getEngine: (challengeId) => {
@@ -511,29 +511,6 @@ describe('readingHandlers.leaderboard', () => {
     ).leaderboard(makeRequest(AUTH, { challengeId: CHALLENGE_ID }));
 
     assert.deepEqual(config.calls, [CHALLENGE_ID]);
-  });
-
-  test('scores the whole board with the configured engine', async () => {
-    const board = (engine: Engine) =>
-      handlers(
-        {
-          listByChallenge: () =>
-            Promise.resolve(
-              new Map([[AUTH.uid, [makeReading(), makeReading()]]]),
-            ),
-        },
-        {
-          getMembership: membershipOf(makeMembership('member')),
-          listMembers: () => Promise.resolve([makeMember('member')]),
-        },
-        {},
-        fakeTagRepo(),
-        countingConfigRepo(engine).repo,
-      ).leaderboard(makeRequest(AUTH, { challengeId: CHALLENGE_ID }));
-
-    const [decay] = await board('COVERAGE_DECAY');
-    const [harmonic] = await board('SHIFTED_HARMONIC');
-    assert.notEqual(decay?.score, harmonic?.score);
   });
 
   for (const status of ['left', 'removed'] as const) {

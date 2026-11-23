@@ -149,8 +149,8 @@ test('shiftedHarmonic', async (t) => {
     });
 
     await t.test('no ceiling: volume keeps growing with depth', () => {
-      // The counterpart of coverage-decay's convergence case, which caps near
-      // 0.42 however deep the tag goes.
+      // A power-law rho(j) = 1/j^p converges at p > 1 however deep the tag
+      // goes. The harmonic tail is what removes that ceiling.
       const engine = shiftedHarmonic(N);
       const deep = engine(atCoverage(1, 100000)).volumePoints;
       const shallow = engine(atCoverage(1, 5000)).volumePoints;
