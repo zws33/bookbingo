@@ -18,33 +18,10 @@ The first book in a tag is the `+1` in `k`. The inner sum starts at `j = 2`, so 
 
 ## Engines
 
-Two are registered in `domain/scoringEngines.ts`. Both share the formula above
-and differ only in ρ(j). Which one scores a challenge is a
-`challenge_scoring_config` row, read on every scoring call; a challenge with no
-row is scored with `COVERAGE_DECAY`.
-
-| Engine             | ρ(j)              | Volume from one tag                                |
-| ------------------ | ----------------- | -------------------------------------------------- |
-| `COVERAGE_DECAY`   | `1 / j^p`         | bounded while `p > 1`, so `y_max` is capped at 0.5 |
-| `SHIFTED_HARMONIC` | `y·a/(j − 2 + a)` | logarithmic, uncapped, so `y_max` may exceed 0.5   |
-
-## COVERAGE_DECAY
-
-```
-ρ(j) = 1 / j^p
-p     = log₂(1 / y)
-y     = y_min + (y_max − y_min) · (k−1)/(N−1)
-
-y_min = 0.20        y_max = 0.50
-```
-
-- `p` is the decay exponent. Each time a tag's depth doubles, the next book there is worth `2^p` times less.
-- `y` is `ρ(2)`, the value of a tag's first repeat. The curve is set by `y` rather than by `p` because `y` is the quantity a member experiences directly, and because moving `y` in equal steps makes every tag covered worth the same improvement in decay rate.
-- `y_min` and `y_max` are the only parameters. They are the value of a tag's first repeat at the two ends of the coverage range: `y_min` at `k = 1`, `y_max` at `k = N`. Everything else about the curve follows from them.
-- Both are module constants in `domain/decay.ts`, asserted in bounds at import. Only `N` is supplied per call, by `scoring/scoreCalculator.ts` from the challenge's tag count, so scoring itself takes only readings. Each engine owns its own parameters; they become per-challenge the day they move to a column.
-- The ramp divides by `N−1`, not `N`, so both ends are hit exactly. With `k/N` a reader at `k = 1` lands at 0.206 rather than 0.200, and `y_min` would not mean what it says. `k = 0` is unreachable: no books, no repeats, score 0.
-- `p` is computed once per score from `k` and held constant across the sum. Coverage sets the slope of the decay; it never scales the total.
-- The current values are provisional. No reading data or stated group expectation has validated them.
+`SHIFTED_HARMONIC` is the only engine registered in `domain/scoringEngines.ts`.
+Any engine shares the formula above and supplies its own ρ(j). Which one scores
+a challenge is a `challenge_scoring_config` row, read on every scoring call; a
+challenge with no row is scored with the default, `SHIFTED_HARMONIC`.
 
 ## SHIFTED_HARMONIC
 
@@ -55,38 +32,13 @@ y    = y_min + (y_max − y_min) · (k−1)/(N−1)
 y_min = 0.45        y_max = 0.75        a = 2
 ```
 
+- `y` is `ρ(2)`, the value of a tag's first repeat. The curve is set by `y` because `y` is the quantity a member experiences directly.
 - `a` in the numerator is the scale forced by `ρ(2) = y`, so a tag's first repeat is worth `y` whatever the shift is.
-- The `1/j` tail holds a tag's volume to logarithmic growth. That is what removes the ceiling `COVERAGE_DECAY` has: deriving an exponent from `y` there caps `y_max` at 0.5, because `p ≤ 1` lets one tag grow without bound.
+- The `1/j` tail holds a tag's volume to logarithmic growth, which is why the curve is harmonic rather than a power law: with `ρ(j) = 1/j^p` and the exponent derived from `y`, bounding one tag's volume needs `p > 1`, which caps `y_max` at 0.5.
 - `a > 0` is an invariant, not a preference: at `a = 0` the denominator is zero at the first repeat. `a ≥ 1` is the preference.
-- Bounds are `0 < y_min ≤ y_max < 1`, asserted at import in `domain/shiftedHarmonic.ts`. `y_max = 1` makes a repeat worth a full new tag, which is I2 gone.
-- The three parameters are provisional. No reading data has validated them.
-
-## Calibration — COVERAGE_DECAY
-
-The tables below are the decay curve's. `SHIFTED_HARMONIC` is uncalibrated.
-
-`y_max` sets how far a tag can be taken by a reader at full coverage.
-
-| `y_max` | `p` at `k = N` | books in one tag for 3 pts | for 5 pts |
-| ------- | -------------- | -------------------------- | --------- |
-| 0.50    | 1.00           | 31                         | 227       |
-| 0.60    | 0.74           | 12                         | 29        |
-| 0.65    | 0.62           | 9                          | 19        |
-| 0.70    | 0.52           | 8                          | 14        |
-| 0.80    | 0.32           | 6                          | 10        |
-
-`y_min` sets the ceiling on what a reader at `k = 1` can extract from one tag, however many books go into it.
-
-| `y_min` | `p` at `k = 1` | max repeat points from one tag |
-| ------- | -------------- | ------------------------------ |
-| 0.10    | 3.32           | 0.15                           |
-| 0.20    | 2.32           | 0.42                           |
-| 0.30    | 1.74           | 0.99                           |
-| 0.40    | 1.32           | 2.70                           |
-| 0.50    | 1.00           | none                           |
-
-- A ceiling exists only while `p > 1`. At `p ≤ 1` repeat points from one tag grow without bound. At `p = 1` that growth is logarithmic — 3 points takes 31 books, 7 points takes 1,674. Below `p = 1` it is a power of the count, `n^(1−p)`, which is materially faster: at `y_max = 0.65` a tag with 20 books yields 5.19 repeat points where `y_max = 0.50` yields 2.60.
-- The two parameters are not redundant. Raising `y_max` reaches only readers who earned a low `p`. At `N = 25`, moving `y_max` from 0.50 to 0.80 takes a reader with 3 tags at 10 books each from 4.39 to 4.65, and a reader at full coverage with a second pass over the board from 37.50 to 45.00.
+- All three are module constants in `domain/shiftedHarmonic.ts`, asserted in bounds at import. Only `N` is supplied per call, by `scoring/scoreCalculator.ts` from the challenge's tag count, so scoring itself takes only readings. An engine owns its own parameters; they become per-challenge the day they move to a column.
+- The ramp divides by `N−1`, not `N`, so both ends are hit exactly. With `k/N` a reader at `k = 1` lands above `y_min` rather than on it, and `y_min` would not mean what it says. `k = 0` is unreachable: no books, no repeats, score 0.
+- The three parameters are provisional. No reading data has validated them, and there are no calibration tables for this curve.
 
 ## Invariants
 
@@ -94,12 +46,12 @@ The tables below are the decay curve's. `SHIFTED_HARMONIC` is uncalibrated.
 2. **I2 — repeats pay less each time.** `ρ(j)` is positive and gets smaller as `j` grows. Each repeat in a tag is worth less than the one before, and never zero.
 3. **I3 — coverage sets the decay rate.** Broader coverage decays slower: `ρ(j)` rises with `k` for every `j`.
 
-All three hold on one constraint: **`p` may depend on how many tags are covered, and must never depend on how unevenly books are spread across them.** Any measure of that unevenness — standard deviation, coefficient of variation, Gini coefficient, books per tag — breaks I1, because adding a book can worsen the spread even as it adds to the total.
+All three hold on one constraint: **`y` may depend on how many tags are covered, and must never depend on how unevenly books are spread across them.** Any measure of that unevenness — standard deviation, coefficient of variation, Gini coefficient, books per tag — breaks I1, because adding a book can worsen the spread even as it adds to the total.
 
 Given that constraint, both possible moves are covered:
 
-- A repeat leaves `k` and `p` unchanged, so the score rises by exactly `ρ(cᵢ+1)`, which is positive by I2.
-- A new tag raises `k` by one and lowers `p`, so the score rises by the 1 point for the new tag plus whatever every existing repeat gains from the lower `p`, which is never negative by I3.
+- A repeat leaves `k` and `y` unchanged, so the score rises by exactly `ρ(cᵢ+1)`, which is positive by I2.
+- A new tag raises `k` by one and raises `y`, so the score rises by the 1 point for the new tag plus whatever every existing repeat gains from the higher `y`, which is never negative by I3.
 
 Covering a new tag is therefore always worth at least 1 point, with no special case.
 
@@ -107,12 +59,11 @@ Covering a new tag is therefore always worth at least 1 point, with no special c
 
 Consequences of the invariants, not preferences. Reject a challenge whose values violate them.
 
-Stated for `COVERAGE_DECAY`; `SHIFTED_HARMONIC`'s own bounds are in its section above.
-
-1. `0 < y_max < 1`. At `y_max = 1`, `p = 0` and every repeat is worth a full point, so I2 is gone. Above 1, `p < 0` and repeats grow, inverting it.
-2. `y_min ≤ y_max`. Reversed, `p` rises with coverage, so covering a new tag devalues every repeat already banked and the 1 point gained can be outweighed. This is the defect the balance factor had, re-entering through configuration.
-3. `y_min = y_max` is legal. Coverage stops modulating decay, I1 and I2 still hold, and I3 becomes non-strict.
-4. `N ≥ 2`. A product bound rather than one derived from the invariants, and the reason the ramp may divide by `N−1` without a guard.
+1. `0 < y_max < 1`. At `y_max = 1` a tag's first repeat is worth a full new tag, so I2 is gone. Above 1 a repeat outvalues covering a new tag, inverting it.
+2. `y_min ≤ y_max`. Reversed, `ρ(j)` falls as coverage rises, so covering a new tag devalues every repeat already banked and the 1 point gained can be outweighed. This is the defect the balance factor had, re-entering through configuration.
+3. `y_min = y_max` is legal. Coverage stops modulating `ρ(j)`, I1 and I2 still hold, and I3 becomes non-strict.
+4. `a > 0`. At `a = 0` the denominator is zero at `j = 2`.
+5. `N ≥ 2`. A product bound rather than one derived from the invariants, and the reason the ramp may divide by `N−1` without a guard.
 
 ## Coverage
 
@@ -123,9 +74,10 @@ Stated for `COVERAGE_DECAY`; `SHIFTED_HARMONIC`'s own bounds are in its section 
 
 ## Verification
 
-- I1 — brute force over random states crossed with three move types: a repeat, a new tag, and a multi-tag book at `tag_cap`. Run at the bound-case parameters `y_min = 0.20`, `y_max = 0.90`, not only at the current values: minimum score change over 200k moves is +0.0016.
-- I2 — repeat values strictly decreasing at fixed coverage, across a range of `k`.
+- I1 — brute force over random states crossed with three move types: a repeat, a new tag, and a multi-tag book at `tag_cap`. The smallest score change across 5,000 trials at `N = 25` is asserted positive.
+- I2 — repeat values strictly decreasing and never zero at fixed coverage, across a range of `k`.
 - I3 — `ρ(j)` asserted rising across every `k` from 2 to `N`, for one family of distributions: one tag at depth `j` and the rest at 1. Other families are still unchecked.
-- Neither engine reads any measure of unevenness. The earlier `harmonic` and `balanced-harmonic` models, and the CV and standard-deviation helpers behind the balance factor, are removed.
-- Rolling back an engine is an `update` to `challenge_scoring_config`, not a revert. No score is persisted, so the previous numbers return exactly on the next read.
+- Closed forms rather than recorded numbers: one tag of depth `d` sums to `2y(H(d) − 1)`, `ρ(a + 2)` is half of `ρ(2)`, and `ρ(3)/ρ(2) = a/(1+a)` at every `k`.
+- The engine reads no measure of unevenness. The earlier models that did, and the CV and standard-deviation helpers behind the balance factor, are removed.
+- Switching a challenge's engine is an `update` to `challenge_scoring_config`, not a migration. No score is persisted, so the whole history rescores on the next read. Only one engine is registered, so there is nothing to switch to today.
 - Reference profiles pin magnitudes, not design claims. Re-derive their expected values rather than preserving them.

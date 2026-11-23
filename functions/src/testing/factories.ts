@@ -194,7 +194,7 @@ export async function seedScoringConfig(
   db: Db,
   {
     challengeId,
-    engine = 'COVERAGE_DECAY',
+    engine = 'SHIFTED_HARMONIC',
   }: { challengeId: string; engine?: string },
 ): Promise<void> {
   await db.query(

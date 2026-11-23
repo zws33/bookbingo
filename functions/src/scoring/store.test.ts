@@ -18,7 +18,7 @@ const returning = (rows: { engine: string }[]): Db => ({
 describe('scoringConfigRepository.getEngine', () => {
   test('defaults when the challenge has no row', async () => {
     const engine = await scoringConfigRepository(returning([])).getEngine('c1');
-    assert.equal(engine, 'COVERAGE_DECAY');
+    assert.equal(engine, 'SHIFTED_HARMONIC');
   });
 
   test('returns a registered engine', async () => {

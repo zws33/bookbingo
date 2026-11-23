@@ -78,7 +78,7 @@ function fakeTagRepo(tags: Tag[] = VOCABULARY): TagRepository {
 }
 
 /** Counts resolutions, so a per-member or per-request re-read fails loudly. */
-function countingConfigRepo(engine: Engine = 'COVERAGE_DECAY') {
+function countingConfigRepo(engine: Engine = 'SHIFTED_HARMONIC') {
   const calls: string[] = [];
   const repo: ScoringConfigRepository = {
     getEngine: (challengeId) => {
@@ -306,22 +306,5 @@ describe('scoringHandlers.get', () => {
     ).get(makeRequest(AUTH, DATA));
 
     assert.deepEqual(config.calls, [CHALLENGE_ID]);
-  });
-
-  test('scores with the configured engine', async () => {
-    const scoreUnder = (engine: Engine) =>
-      handlers(
-        readingsOf([makeReading(), makeReading()]),
-        { getMembership: membershipOf(makeMembership('member')) },
-        VOCABULARY,
-        countingConfigRepo(engine).repo,
-      ).get(makeRequest(AUTH, DATA));
-
-    const decay = await scoreUnder('COVERAGE_DECAY');
-    const harmonic = await scoreUnder('SHIFTED_HARMONIC');
-
-    // Two books on one tag is a repeat, which the engines value differently.
-    assert.notEqual(decay.score, harmonic.score);
-    assert.equal(decay.varietyPoints, harmonic.varietyPoints);
   });
 });
